@@ -22,6 +22,9 @@ class Game:
         self.entity_type_map = {}
         # dictionary mapping entity ids to the actual entity objects
         self.entities = {}
+        # all of the client sockets
+        self.client_sockets = []
+
         self.screen = pygame.display.set_mode([1280, 720])
 
         self.fps = fps
@@ -49,6 +52,7 @@ class Game:
         self.update_queue.append(
             update
         )
+
 
     def send_network_updates(self):
 
@@ -83,9 +87,33 @@ class Game:
                     ]
 
                     # create a new entity with the update data
-                    new_entity = entity_class.create()
+                    # we also pass the game object for entity creation
+                    new_entity = entity_class.create(
+                        update["data"], self
+                    )
+                    
+                    # add the entity to the dictionary of entities
+                    self.entities["entity_id"] = new_entity
+                
+                case "update":
 
-                    self.entities
+                    # retrive the entity to be updated
+                    updating_entity = self.entities[
+                        update["entity_id"]
+                    ]
+
+                    # call the entity's update function with the update data
+                    updating_entity.update(
+                        update["data"]
+                    )
+                
+                case "delete":
+                    
+                    # remove the entity from the dictionary
+                    del self.entities[
+                        update["entity_id"]
+                    ]
+
 
         # for all entities, resolve any uuids to actual objects
         for entity in self.entities.values():
@@ -122,16 +150,30 @@ class Game:
 
         while True:
             # accept new clients
+
             client, address = server.accept()
 
             self.handle_new_client(client)
 
+            # for every client socket we read the updates they sent, then forward them to the rest of the clients
+            for sending_client in self.client_sockets:
+
+                update_data = sending_client.recv_headered()
+
+                for receiving_client in self.client_sockets:
+                    
+                    # we dont send a clients update to itself
+                    if sending_client is receiving_client:
+                        continue
+                    
+                    # send the update data
+                    receiving_client.send_headered(update_data)
+
     def handle_new_client(self, client):
         # operation we follow when a new client socket connects
 
-        # this is blank for the base game object
-        pass
-
+        # add new client socket to the list of sockets
+        self.client_sockets.append(client)
 
     def start(self, server_ip="127.0.0.1", server_port=5560):
         # everything that needs to occur when we start a client
@@ -163,6 +205,6 @@ class Game:
 
             self.send_network_updates()
 
-            self.draw_entities()
+            #self.draw_entities()
 
             self.receive_network_updates()

@@ -6,7 +6,7 @@ from engine import Unresolved
 
 
 class Entity:
-    def __init__(self, rect, game, updater, sprite_path=None, scale_res=None):
+    def __init__(self, rect, game, updater, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None):
 
         # if we should blit this entity's sprite
         self.visible = True
@@ -15,8 +15,8 @@ class Entity:
         # the uuid for the game that will update this entity every tick
         self.updater = updater
         # this uuid is used to distinguish itself from other entities within the game
-        self.uuid = str(uuid.uuid4())
-        # the game object that created this entity
+        self.uuid = uuid
+        # the entity's game object
         self.game = game
 
         # adds this entity to the list of game entities
@@ -48,10 +48,31 @@ class Entity:
             ]
 
     @staticmethod
-    def create(self, update_data):
+    def create(update_data):
         # return a new entity using a dict of data
 
+        # we cant inherit the create function because reasons
+
         pass
+    
+    def update(self, update_data):
+
+        # loop through every attribute being updated
+        for attribute in update_data:
+
+            match attribute:
+
+                case "rect":
+                    self.rect.update(
+                        update_data["rect"]
+                    )
+                
+                case "updater":
+                    self.updater = update_data["updater"]
+                
+                case "sprite_path":
+                    self.sprite_path = update_data["sprite_path"]
+
 
     def tick(self):
         # this function runs every tick

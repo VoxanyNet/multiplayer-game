@@ -1,10 +1,12 @@
+import uuid
+
 from pygame import Rect
 
 from engine import Entity, Unresolved
 
 
 class Player(Entity):
-    def __init__(self, rect, game, updater, weapon, sprite_path=None, health=100):
+    def __init__(self, rect, game, updater, weapon, uuid=str(uuid.uuid4()), sprite_path=None, health=100):
         super().__init__(rect, game, updater, sprite_path)
 
         # the last time this player used a weapon
@@ -14,8 +16,10 @@ class Player(Entity):
         self.weapon = weapon
 
     @staticmethod
-    def create(self, update_data):
+    def create(update_data, game):
         # create a new player entity using update data dict
+
+        # we need to extract base entity attributes as well player attributes because reasons
 
         # construct a rect object from the list of values
         rect = Rect(
@@ -24,9 +28,32 @@ class Player(Entity):
             update_data["rect"][2],
             update_data["rect"][3]
         )
-        game = self.game
         updater = update_data["updater"]
+        sprite_path = update_data["sprite_path"]
         health = update_data["health"]
         # when network updates need to reference other objects, we use its uuid
         weapon = Unresolved(update_data["weapon"])
+
+        # create the actual player object
+        new_player = Player(rect=rect,game=game,updater=updater,weapon=weapon,sprite_path=sprite_path,health=health)
+
+        return new_player
+    
+    def update(self, update_data):
+        # update the attributes of this object with update data
+        
+        # update base entity attributes
+        super().update(update_data)
+
+        # loop through every attribute being updated
+        for attribute in update_data:
+            
+            # we only need to check for attribute updates unique to this entity
+            match attribute:
+                
+                case "health":
+                    self.health = update_data["health"]
+
+                case "weapon":
+                    self.weapon = Unresolved(update_data["weapon"])
 
