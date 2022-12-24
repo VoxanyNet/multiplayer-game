@@ -89,7 +89,7 @@ class Game:
                     # create a new entity with the update data
                     # we also pass the game object for entity creation
                     new_entity = entity_class.create(
-                        update["data"], self
+                        update["data"], update["entity_id"], self
                     )
                     
                     # add the entity to the dictionary of entities

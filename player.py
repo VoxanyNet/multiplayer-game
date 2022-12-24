@@ -1,5 +1,6 @@
 import uuid
 
+import pygame.key
 from pygame import Rect
 
 from engine import Entity, Unresolved
@@ -15,8 +16,21 @@ class Player(Entity):
         self.health = health
         self.weapon = weapon
 
+    def dict(self):
+        # create a json serializable dictionary with all of this object's attributes
+
+        # create the base entity's dict, then we add our own unique attributes on top
+        data_dict = super().dict()
+
+        data_dict.update(
+            {
+                "health": self.health,
+                "weapon": self.weapon.uuid  # this will be resolved to the actual object on the client
+            }
+        )
+
     @staticmethod
-    def create(update_data, game):
+    def create(update_data, entity_id, game):
         # create a new player entity using update data dict
 
         # we need to extract base entity attributes as well player attributes because reasons
@@ -35,25 +49,30 @@ class Player(Entity):
         weapon = Unresolved(update_data["weapon"])
 
         # create the actual player object
-        new_player = Player(rect=rect,game=game,updater=updater,weapon=weapon,sprite_path=sprite_path,health=health)
+        new_player = Player(rect=rect, game=game, updater=updater, weapon=weapon, sprite_path=sprite_path,
+                            health=health, uuid=entity_id)
 
         return new_player
-    
+
     def update(self, update_data):
         # update the attributes of this object with update data
-        
+
         # update base entity attributes
         super().update(update_data)
 
         # loop through every attribute being updated
         for attribute in update_data:
-            
+
             # we only need to check for attribute updates unique to this entity
             match attribute:
-                
+
                 case "health":
                     self.health = update_data["health"]
 
                 case "weapon":
                     self.weapon = Unresolved(update_data["weapon"])
 
+    def tick(self):
+        keys = pygame.key.get_pressed()
+
+        print(keys)

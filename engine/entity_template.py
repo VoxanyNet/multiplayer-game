@@ -6,9 +6,8 @@ from engine import Unresolved
 
 
 class Entity:
-    def __init__(self, rect=None, game=None, updater=None, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None):
+    def __init__(self, rect, game, updater, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None):
 
-        # check for required
         # if we should blit this entity's sprite
         self.visible = True
 
@@ -49,19 +48,18 @@ class Entity:
             ]
 
     def dict(self):
-        # dump just the base entity attributes to a dict
+        # create a json serializable dictionary with all of this object's attributes
 
-        data_dict = {
-            "rect": [
-                self.rect.x,
-                self.rect.y,
-                self.rect.width,
-                self.rect.height
-            ],
-            "visible": self.visible,
-            "updater": self.updater,
-            "sprite_path": self.sprite_path
-        }
+        # create the base entity's dict, then we add our own unique attributes on top
+        data_dict = super().dict()
+
+        data_dict.update(
+            {
+                "example1": self.exampele1,
+                "example2": self.example2
+            }
+        )
+
     @staticmethod
     def create(update_data, entity_id, game):
         # return a new entity using a dict of data
@@ -69,29 +67,26 @@ class Entity:
         # we cant inherit the create function because reasons
 
         pass
-    
+
     def update(self, update_data):
+
+        super().update(update_data)
 
         # loop through every attribute being updated
         for attribute in update_data:
 
             match attribute:
 
-                case "visible":
-                    self.visible = update_data["visible"]
+                case "example1":
+                    self.example1 = update_data["example1"]
 
-                case "rect":
-                    self.rect.update(
-                        update_data["rect"]
-                    )
-                
-                case "updater":
-                    self.updater = update_data["updater"]
-                
-                case "sprite_path":
-                    self.sprite = pygame.image.load(update_data["sprite_path"])
-
+                case "example2":
+                    self.example2 = update_data["example2"]
 
     def tick(self):
         # this function runs every tick
+
+        super().tick()
+
+        # do entity specific operations here
         pass

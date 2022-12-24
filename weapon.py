@@ -1,11 +1,15 @@
+import uuid
+
 from pygame import mouse
 
 from engine import Entity, Unresolved
 
 
+#def __init__(self, rect, game, updater, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None):
 class Weapon(Entity):
+
     def __init__(self, rect, wielder, game, updater, damage, attack_speed, uuid=str(uuid.uuid4())):
-        super().__init__(rect, game, updater)
+        super().__init__(rect, game, updater, uuid)
 
         # the player entity that is using this weapon
         self.wielder = wielder
