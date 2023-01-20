@@ -1,16 +1,30 @@
 import uuid
 
 import pygame.image
+from pygame import Rect
 
-from engine import Unresolved
+from .unresolved import Unresolved
 
 
 class Entity:
-    def __init__(self, rect=None, game=None, updater=None, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None):
+    def __init__(self, rect=None, game=None, updater=None, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None,
+                 visible=True):
 
-        # check for required
+        # check for required arguments
+        if rect is None:
+            raise TypeError("Missing rect argument")
+
+        if game is None:
+            raise TypeError("Missing game argument")
+
+        if updater is None:
+            raise TypeError("Missing updater argument")
+
+        if visible and sprite_path is None:
+            raise TypeError("Missing sprite_path argument")
+
         # if we should blit this entity's sprite
-        self.visible = True
+        self.visible = visible
 
         self.rect = rect
         # the uuid for the game that will update this entity every tick
@@ -62,14 +76,39 @@ class Entity:
             "updater": self.updater,
             "sprite_path": self.sprite_path
         }
-    @staticmethod
-    def create(update_data, entity_id, game):
-        # return a new entity using a dict of data
 
-        # we cant inherit the create function because reasons
+        return data_dict
 
-        pass
-    
+    @classmethod
+    def create(cls, entity_data, entity_id, game):
+        # convert all the attributes in the entity_data dictionary to the proper argument forms
+        # that explanation makes zero sense
+
+        # we only convert attributes unique to this entity type
+        for attribute in entity_data:
+            match attribute:
+
+                case "rect":
+                    entity_data["rect"] = Rect(
+                        entity_data["rect"]
+                    )
+
+                case "visible":
+                    # this is really stupid but, I just want to illustrate what we are doing here
+                    entity_data["visible"] = entity_data["visible"]
+
+                case "updater":
+                    entity_data["updater"] = entity_data["updater"]
+
+                case "sprite_path":
+                    entity_data["sprite_path"] = entity_data["sprite_path"]
+
+                case "scale_res":
+                    entity_data["scale_res"] = tuple(entity_data["scale_res"])
+
+        # pass the entity_data dictionary as keyword arguments to the object constructor
+        return cls(**entity_data)
+
     def update(self, update_data):
 
         # loop through every attribute being updated
@@ -84,13 +123,12 @@ class Entity:
                     self.rect.update(
                         update_data["rect"]
                     )
-                
+
                 case "updater":
                     self.updater = update_data["updater"]
-                
+
                 case "sprite_path":
                     self.sprite = pygame.image.load(update_data["sprite_path"])
-
 
     def tick(self):
         # this function runs every tick

@@ -1,7 +1,10 @@
+import time
 import uuid
 import socket
 import threading
+import multiprocessing
 import json
+from collections import defaultdict
 
 import pygame
 
@@ -10,10 +13,12 @@ from engine.exceptions import InvalidUpdateType, MalformedUpdate
 
 
 class Game:
-    def __init__(self, fps=60):
+    def __init__(self, fps=60, is_server=False):
         self.clock = pygame.time.Clock()
+        # the host server socket
+        self.hosting_socket = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
         # the socket that we use to communicate with the server
-        self.server = headered_socket.HeaderedSocket(type=socket.AF_INET)
+        self.server = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
         # the uuid that identifies this client among other clients connected to a server
         self.uuid = str(uuid.uuid4())
         # list of updates to be sent every frame
@@ -22,14 +27,16 @@ class Game:
         self.entity_type_map = {}
         # dictionary mapping entity ids to the actual entity objects
         self.entities = {}
-        # all of the client sockets
+        # all the client sockets
         self.client_sockets = []
 
         self.screen = pygame.display.set_mode([1280, 720])
 
         self.fps = fps
 
-    def network_update(self, update_type, entity_id, data, entity_type=None):
+        self.is_server = is_server
+
+    def network_update(self, update_type, entity_id, data, entity_type=None, empty=False):
         # queues up an update to be sent on the soonest frame
 
         if update_type not in ["create", "update", "delete"]:
@@ -53,7 +60,6 @@ class Game:
             update
         )
 
-
     def send_network_updates(self):
 
         updates_json = json.dumps(
@@ -69,8 +75,12 @@ class Game:
     def receive_network_updates(self):
         # receive network updates from the server
 
+        print("Start 'receive_network_updates'")
+
         # a list of updates received from the server
         updates_json = self.server.recv_headered().decode("utf-8")
+
+        print("Got 'updates_json'")
 
         updates = json.loads(
             updates_json
@@ -91,13 +101,13 @@ class Game:
                     new_entity = entity_class.create(
                         update["data"], update["entity_id"], self
                     )
-                    
+
                     # add the entity to the dictionary of entities
                     self.entities["entity_id"] = new_entity
-                
+
                 case "update":
 
-                    # retrive the entity to be updated
+                    # retrieve the entity to be updated
                     updating_entity = self.entities[
                         update["entity_id"]
                     ]
@@ -106,14 +116,13 @@ class Game:
                     updating_entity.update(
                         update["data"]
                     )
-                
+
                 case "delete":
-                    
+
                     # remove the entity from the dictionary
                     del self.entities[
                         update["entity_id"]
                     ]
-
 
         # for all entities, resolve any uuids to actual objects
         for entity in self.entities.values():
@@ -135,65 +144,150 @@ class Game:
 
             entity.tick()
 
-    def host_server(self):
-        # the socket that clients will connect to in order to receive updates from other clients
-        server = headered_socket.HeaderedSocket(type=socket.AF_INET)
-        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    def host_server(self, port=5560):
 
-        server.bind(
-            (socket.gethostname(), 5560)
-        )
+        self.hosting_socket.bind(("127.0.0.1", port))
 
-        server.listen(5)
+        # update 120 times a second
+        server_clock = pygame.time.Clock()
 
-        server.setblocking(False)
+        #server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        while True:
+        self.hosting_socket.setblocking(False)
+
+        self.hosting_socket.listen(5)
+
+        print("Server online...")
+
+        # this is a queue of the updates that need to be sent to
+        # each client once they send an update to the server
+        outgoing_updates = defaultdict(list)
+
+        time.sleep(1000)
+
+        while True:   
+
             # accept new clients
+            try:
+                client, address = self.hosting_socket.accept()
 
-            client, address = server.accept()
+                self.handle_new_client(client)
 
-            self.handle_new_client(client)
+            except BlockingIOError: 
+                pass
 
-            # for every client socket we read the updates they sent, then forward them to the rest of the clients
+            # we only send updates to clients that sent us updates
+            clients_that_we_received_an_update_from = []
+
+            # forward every incoming updates list to every other client
             for sending_client in self.client_sockets:
 
-                update_data = sending_client.recv_headered()
+                try:
+                    
+                    # we need to load the json we received so we can combine it
+                    # with the rest of the updates that need to be sent
+                    incoming_updates = json.loads(
+                        sending_client.recv_headered().decode("utf-8")
+                    )
+                
+                except BlockingIOError:
+                    # if we dont receive anything from the client we continue to the next one
+
+                    continue
+
+                # since this client sent us an update, they will receive all the updates
+                # queued for them
+                clients_that_we_received_an_update_from_lol.append(sending_client)
 
                 for receiving_client in self.client_sockets:
-                    
+
                     # we dont send a clients update to itself
                     if sending_client is receiving_client:
                         continue
-                    
-                    # send the update data
-                    receiving_client.send_headered(update_data)
+
+                    # merge incoming updates from sending_client with updates already queued
+                    outgoing_updates[receiving_client] += incoming_updates
+            
+            print(dict(outgoing_updates))
+
+            # once we have received incoming updates from all clients, we send them to other clients
+            for receiving_client, updates in outgoing_updates.copy().items():
+                
+                # if we never received an update from a client, then we don't send them an update
+                # they will eventually receive these updates once they send us an update
+                if receiving_client not in clients_that_we_received_an_update_from_lol:
+
+                    continue
+
+                updates_json = json.dumps(updates)
+                
+                receiving_client.send_headered(
+                    bytes(updates_json, "utf-8")
+                )
+
+                # clear the update queue for this particular client
+                outgoing_updates[receiving_client] = []     
+
+            server_clock.tick(1)   
 
     def handle_new_client(self, client):
         # operation we follow when a new client socket connects
 
+        print("New connecting client")
+
         # add new client socket to the list of sockets
         self.client_sockets.append(client)
+        
+        # if there are no entities, we send an empty update list
+        # we need this because the client requires an update list to be sent when connecting
+        if len(self.entities) == 0:
+            self.send_network_updates()
+
+            print("sent empty update list")
+
+            return
+
+        # send create updates for every entity
+        for entity in self.entities:
+
+            # get string version of entity type
+            for entity_type_string, entity_type in self.entity_type_map.items():
+                if type(entity) is entity_type:
+                    break  # this isn't really clear
+
+            # get attributes of entity in dictionary form
+            data = entity.dict()
+
+            self.network_update(update_type="create", entity_id=entity.uuid, data=data, entity_type=entity_type_string)
 
     def start(self, server_ip="127.0.0.1", server_port=5560):
         # everything that needs to occur when we start a client
         # this includes creating initial objects, connecting to a server, etc.
 
+        # wait for the server to start before connecting
+        if self.is_server:
+            time.sleep(3)
+
         # connect to a server
         self.server.connect((server_ip, server_port))
 
-        # receive updates to get the client up to speed on the game state
+        print("Connected to server")
 
-    def run(self, host_server=True):
+        # receive initial create updates for game state
+        self.receive_network_updates()
+
+        print("Received initial state")
+
+    def run(self, port=5560):
         # this function starts the game and begins the game loop
 
         # if we are hosting the server, we create a separate thread for running the server
-        if host_server:
-            server_thread = threading.Thread(target=self.host_server, daemon=True)
+        if self.is_server:
+            server_process = threading.Thread(target=self.host_server, daemon=True, kwargs={"port":port})
 
-            server_thread.start()
+            server_process.start()
 
-        self.start()
+        self.start(server_port=port)
 
         while True:
             # tick the game according to its fps value
@@ -205,6 +299,8 @@ class Game:
 
             self.send_network_updates()
 
-            #self.draw_entities()
+            self.draw_entities()
 
             self.receive_network_updates()
+
+

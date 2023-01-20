@@ -1,15 +1,17 @@
-from engine import Game, Entity, headered_socket
+from engine import Game
+from player import Player
+from weapon import Weapon
+from sword import Sword
+
 
 class Fight(Game):
-    def __init__(self, fps):
-        super().__init__(fps=fps)
+    def __init__(self, fps=60, is_server=False):
+        super().__init__(fps=fps, is_server=is_server)
 
-    def handle_new_client(self, client):
-        # the procedure we follow when a new client connects to the server
-
-        super().handle_new_client(client)
-
-        # send create updates for every entity
-        for entity in self.entities:
-            self.network_update("create", entity.uuid, data, entity_type=None)
-
+        self.entity_type_map.update(
+            {
+                "player": Player,
+                "weapon": Weapon,
+                "sword": Sword
+            }
+        )

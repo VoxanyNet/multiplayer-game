@@ -1,17 +1,19 @@
 import uuid
 
 import pygame.key
-from pygame import Rect
 
 from engine import Entity, Unresolved
 
 
 class Player(Entity):
-    def __init__(self, rect, game, updater, weapon, uuid=str(uuid.uuid4()), sprite_path=None, health=100):
-        super().__init__(rect, game, updater, sprite_path)
+    def __init__(self, health=100, weapon=None, rect=None, game=None, updater=None, uuid=str(uuid.uuid4()),
+                 sprite_path=None, scale_res=None, visible=True):
+
+        super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
+                         visible=visible)
 
         # the last time this player used a weapon
-        self.last_attacked = 0
+        self.last_attack = 0
 
         self.health = health
         self.weapon = weapon
@@ -29,28 +31,19 @@ class Player(Entity):
             }
         )
 
-    @staticmethod
-    def create(update_data, entity_id, game):
-        # create a new player entity using update data dict
+        return data_dict
 
-        # we need to extract base entity attributes as well player attributes because reasons
+    @classmethod
+    def create(cls, entity_data, entity_id, game):
+        # convert json entity data to object constructor arguments
 
-        # construct a rect object from the list of values
-        rect = Rect(
-            update_data["rect"][0],
-            update_data["rect"][1],
-            update_data["rect"][2],
-            update_data["rect"][3]
-        )
-        updater = update_data["updater"]
-        sprite_path = update_data["sprite_path"]
-        health = update_data["health"]
+        entity_data["health"] = entity_data["health"]
+
         # when network updates need to reference other objects, we use its uuid
-        weapon = Unresolved(update_data["weapon"])
+        entity_data["weapon"] = Unresolved(entity_data["weapon"])
 
-        # create the actual player object
-        new_player = Player(rect=rect, game=game, updater=updater, weapon=weapon, sprite_path=sprite_path,
-                            health=health, uuid=entity_id)
+        # call the base entity create method to do its own stuff and then return the actual object!!!!!
+        new_player = super().create(entity_data, entity_id, game)
 
         return new_player
 

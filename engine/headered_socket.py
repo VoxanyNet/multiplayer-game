@@ -54,13 +54,15 @@ class HeaderedSocket(socket.socket):
 
         # read the header
 
+        print("Waiting for header")
+
         header = self.recv(header_size).decode("utf-8")
+
+        print(f"Received header {header}")
 
         if header == "":
             # the socket will return a blank string when the client has sent FIN packet
             raise Disconnected("Remote socket disconnected")
-
-            return
 
         # convert header string to int
         try:
@@ -78,11 +80,19 @@ class HeaderedSocket(socket.socket):
             # read what is currently in the buffer and add it to the constructed_data byte array
             new_data = self.recv(payload_length - len(constructed_data))
 
+            print(f"Received new data {new_data}")
+
             constructed_data.extend(new_data)
 
+            print(len(constructed_data))
+        
+        print("Finished constructing data")
+        
         return constructed_data
 
-    # accept() needs to be redefined to return PayloadSockets instead of default ones
+        
+
+    # accept() is redefined to return PayloadSockets instead of default ones
     def accept(self):
 
         fd, addr = self._accept()

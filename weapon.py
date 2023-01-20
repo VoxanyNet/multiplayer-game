@@ -5,8 +5,8 @@ import pygame.key
 from engine import Entity, Unresolved
 
 
-class ExampleEntity(Entity):
-    def __init__(self, example1=None, example2=None, rect=None, game=None, updater=None, uuid=str(uuid.uuid4()),
+class Weapon(Entity):
+    def __init__(self, wielder=None, damage=None, attack_speed=None, rect=None, game=None, updater=None, uuid=str(uuid.uuid4()),
                  sprite_path=None, scale_res=None, visible=True):
 
         # initialize base entity
@@ -14,14 +14,18 @@ class ExampleEntity(Entity):
                          visible=visible)
 
         # checking for required arguments
-        if example1 is None:
-            raise AttributeError("Missing example1 argument")
+        if wielder is None:
+            raise AttributeError("Missing wielder argument")
 
-        if example2 is None:
-            raise AttributeError("Missing example2 argument")
+        if damage is None:
+            raise AttributeError("Missing damage argument")
 
-        self.example1 = example1
-        self.example2 = example2
+        if attack_speed is None:
+            raise AttributeError("Missing attack_speed argument")
+
+        self.wielder = wielder
+        self.damage = damage
+        self.attack_speed = attack_speed
 
     def dict(self):
         # create a json serializable dictionary with all of this object's attributes
@@ -31,8 +35,9 @@ class ExampleEntity(Entity):
 
         data_dict.update(
             {
-                "example1": self.example1,
-                "example2": self.example2.uuid  # when an attribute is an entity we send its uuid
+                "wielder": self.wielder.uuid,
+                "damage": self.damage,
+                "attack_speed": self.attack_speed
             }
         )
 
@@ -42,10 +47,11 @@ class ExampleEntity(Entity):
     def create(cls, entity_data, entity_id, game):
         # convert json entity data to object constructor arguments
 
-        entity_data["example1"] = entity_data["example1"]
+        entity_data["wielder"] = Unresolved(entity_data["wielder"])
 
-        # when network updates reference an entity id, we use the "Unresolved" object
-        entity_data["example2"] = Unresolved(entity_data["example2"])
+        entity_data["damage"] = entity_data["damage"]
+
+        entity_data["attack_speed"] = entity_data["attack_speed"]
 
         # base entity create method will extract the data it needs from the dictionary, then create the object
         new_player = super().create(entity_data, entity_id, game)
@@ -64,14 +70,18 @@ class ExampleEntity(Entity):
             # we only need to check for attribute updates unique to this entity
             match attribute:
 
-                case "example1":
-                    self.example1 = update_data["example1"]
+                case "wielder":
+                    self.wielder = Unresolved(update_data["wielder"])
 
-                case "example2":
-                    # use "Unresolved" object when referencing entity id
-                    self.example2 = Unresolved(update_data["example2"])
+                case "damage":
+                    self.damage = update_data["damage"]
+
+                case "attack_speed":
+                    self.attack_speed = update_data["attack_speed"]
 
     def tick(self):
         # code to run every game tick
+
+        keys = pygame.key.get_pressed()
 
         pass
