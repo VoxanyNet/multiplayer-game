@@ -33,6 +33,8 @@ class Entity:
         self.uuid = uuid
         # the entity's game object
         self.game = game
+        self.sprite_path = sprite_path
+        self.scale_res = scale_res
 
         # adds this entity to the list of game entities
         self.game.entities[self.uuid] = self
@@ -41,26 +43,31 @@ class Entity:
         if not sprite_path:
             self.visible = False
 
+        else:
+
             # load an image as a sprite
             self.sprite = pygame.image.load(sprite_path)
 
-        # only scale the sprite if an image was passed
-        if sprite_path and scale_res:
-            self.sprite = pygame.transform.scale(self.sprite, scale_res)
+            # only scale the sprite if an image was passed
+            if sprite_path and scale_res:
+                self.sprite = pygame.transform.scale(self.sprite, scale_res)
 
     def resolve(self):
         # resolve entity ids to their actual objects
-        for attribute in self.__dict__.values():
+        for attribute_name, attribute in self.__dict__.copy().items():
 
             if type(attribute) is not Unresolved:
                 continue
 
             print(f"Resolving entity {attribute.uuid}")
 
-            # replace the attribute with the actual entity object
-            attribute = self.game.entities[
+            # fetch the actual entity
+            resolved_attribute = self.game.entities[
                 attribute.uuid
             ]
+
+            # update the attribute with actual entity
+            self.__setattr__(attribute_name, resolved_attribute)
 
     def dict(self):
         # dump just the base entity attributes to a dict
@@ -74,7 +81,8 @@ class Entity:
             ],
             "visible": self.visible,
             "updater": self.updater,
-            "sprite_path": self.sprite_path
+            "sprite_path": self.sprite_path,
+            "scale_res": self.scale_res
         }
 
         return data_dict
@@ -84,30 +92,21 @@ class Entity:
         # convert all the attributes in the entity_data dictionary to the proper argument forms
         # that explanation makes zero sense
 
-        # we only convert attributes unique to this entity type
-        for attribute in entity_data:
-            match attribute:
+        entity_data["rect"] = Rect(
+            entity_data["rect"]
+        )
 
-                case "rect":
-                    entity_data["rect"] = Rect(
-                        entity_data["rect"]
-                    )
+        # this is really stupid but, I just want to illustrate what we are doing here
+        entity_data["visible"] = entity_data["visible"]
 
-                case "visible":
-                    # this is really stupid but, I just want to illustrate what we are doing here
-                    entity_data["visible"] = entity_data["visible"]
+        entity_data["updater"] = entity_data["updater"]
 
-                case "updater":
-                    entity_data["updater"] = entity_data["updater"]
+        entity_data["sprite_path"] = entity_data["sprite_path"]
 
-                case "sprite_path":
-                    entity_data["sprite_path"] = entity_data["sprite_path"]
-
-                case "scale_res":
-                    entity_data["scale_res"] = tuple(entity_data["scale_res"])
+        entity_data["scale_res"] = entity_data["scale_res"]
 
         # pass the entity_data dictionary as keyword arguments to the object constructor
-        return cls(**entity_data)
+        return cls(game=game, uuid=entity_id, **entity_data)
 
     def update(self, update_data):
 

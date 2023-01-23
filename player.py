@@ -15,6 +15,9 @@ class Player(Entity):
         # the last time this player used a weapon
         self.last_attack = 0
 
+        if health is None:
+            raise AttributeError("Missing health argument")
+
         self.health = health
         self.weapon = weapon
 
@@ -24,12 +27,13 @@ class Player(Entity):
         # create the base entity's dict, then we add our own unique attributes on top
         data_dict = super().dict()
 
-        data_dict.update(
-            {
-                "health": self.health,
-                "weapon": self.weapon.uuid  # this will be resolved to the actual object on the client
-            }
-        )
+        data_dict["health"] = self.health
+
+        # since this attribute can be two different types, we need to check
+        if self.weapon is not None:
+            data_dict["weapon"] = self.weapon.uuid
+        else:
+            data_dict["weapon"] = None
 
         return data_dict
 
@@ -40,7 +44,10 @@ class Player(Entity):
         entity_data["health"] = entity_data["health"]
 
         # when network updates need to reference other objects, we use its uuid
-        entity_data["weapon"] = Unresolved(entity_data["weapon"])
+        if entity_data["weapon"] is not None:
+            entity_data["weapon"] = Unresolved(entity_data["weapon"])
+        else:
+            entity_data["weapon"] = None
 
         # call the base entity create method to do its own stuff and then return the actual object!!!!!
         new_player = super().create(entity_data, entity_id, game)
@@ -63,9 +70,16 @@ class Player(Entity):
                     self.health = update_data["health"]
 
                 case "weapon":
-                    self.weapon = Unresolved(update_data["weapon"])
+                    # okay so this is kinda confusing
+                    # if you wanted to update the weapon object you would send an update for the weapon itself, not the player
+                    # the only case in which you would update the weapon on the player side is if the weapon has been changed or removed
+
+                    if update_data["weapon"] is not None:
+                        self.weapon = Unresolved(update_data["weapon"])
+                    else:
+                        self.weapon = None
 
     def tick(self):
         keys = pygame.key.get_pressed()
 
-        print(keys)
+        #print(keys)

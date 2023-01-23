@@ -1,7 +1,25 @@
 import random
+import argparse
+import sys
 
-from testgame import ExampleGame
+from fight import Fight
+from fightserver import FightServer
 
-game = ExampleGame(is_server=True)
+parser = argparse.ArgumentParser()
 
-game.run(port=random.randint(5000,5999))
+parser.add_argument("-s", "--server", dest="is_server", help="Run server", action="store_true")
+
+args = parser.parse_args()
+
+port = 5568
+
+if args.is_server:
+
+    server = FightServer()
+
+    server.run(port=port)
+
+else:
+    game = Fight()
+
+    game.run(server_ip="192.168.0.24",server_port=port)
