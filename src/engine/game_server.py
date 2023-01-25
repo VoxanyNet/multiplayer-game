@@ -1,6 +1,7 @@
 import socket
 import json
 from collections import defaultdict
+from copy import copy
 
 import pygame
 
@@ -21,6 +22,9 @@ class GameServer:
         self.entities = {}
 
         self.entity_type_map = {}
+
+        # this is a list of updates the server needs to load this tick
+        self.updates_to_load = []
 
         self.uuid = "server"
 
@@ -45,8 +49,7 @@ class GameServer:
     def tick(self):
         # the server needs to update its own entities too!
         # calls the tick method for every entity
-
-        for entity in self.entities:
+        for entity in self.entities.values():
 
             # we only call the tick function on objects that we own
             # this prevents two clients from updating the same entity
@@ -81,11 +84,11 @@ class GameServer:
         for destination in destinations:
             self.update_queue[destination].append(update)
 
-    def load_updates(self, updates):
+    def load_updates(self):
         # we need to read updates that come from the clients and load them to update our our entities state
 
-        for update in updates:
-
+        for update in self.updates_to_load:
+            
             match update["update_type"]:
 
                 case "create":
@@ -133,6 +136,8 @@ class GameServer:
     def handle_new_client(self, new_client):
         # operation we follow when a new client socket connects
 
+        #print(self.entities)
+
         print("New connecting client")
 
         # add new client socket to the list of sockets
@@ -153,6 +158,8 @@ class GameServer:
         else:
             # send create updates for every entity
             for entity in self.entities.values():
+
+                #print(entity)
 
                 entity_type_string = self.lookup_entity_type_string(entity)
 
@@ -181,15 +188,16 @@ class GameServer:
                 incoming_updates = json.loads(
                     sending_client.recv_headered().decode("utf-8")
                 )
-            
+
+                self.updates_to_load += incoming_updates
+
+                #print(incoming_updates)
+
             except BlockingIOError:
                 # if we dont receive anything from the client we continue to the next one
 
                 continue
-
-            # update the server's entity state with the new update
-            self.load_updates(incoming_updates)
-
+            
             # we need to ensure that players arent cheating
             #self.validate_updates
 
@@ -201,21 +209,20 @@ class GameServer:
 
                 # merge incoming updates from sending_client with updates already queued
                 self.update_queue[receiving_client] += incoming_updates
+
+            
     
     def send_client_updates(self):
         # once we have received incoming updates from all clients, we send them to other clients
         for receiving_client, updates in self.update_queue.copy().items():
-
+            
+            #print(updates)
             updates_json = json.dumps(updates)
             
             receiving_client.send_headered(
                 bytes(updates_json, "utf-8")
             )
-
-        # clear the update queue
-        self.update_queue = defaultdict(list)
             
-            #print("finished sending updates to clients")
     def run(self, host=socket.gethostname(), port=5560):
 
         self.start(host, port)
@@ -226,11 +233,17 @@ class GameServer:
 
             self.receive_client_updates() 
 
-            self.send_client_updates()           
+            self.send_client_updates()
 
+            # we need to forward the updates to clients before we load them
+            # loading updates mangles them
+            self.load_updates()
 
-            for index, entity in enumerate(self.entities.items()):
-                print(index)
-                print(f"{entity}")
+            # reset the update queue for the next tick
+            self.update_queue = defaultdict(list)
 
-            self.server_clock.tick(1)   
+            self.updates_to_load = []
+
+            self.tick()           
+
+            self.server_clock.tick(60)   

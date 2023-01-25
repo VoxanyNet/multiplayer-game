@@ -11,7 +11,7 @@ parser.add_argument("-s", "--server", dest="is_server", help="Run server", actio
 
 args = parser.parse_args()
 
-port = 5568
+port = 55627
 
 if args.is_server:
 

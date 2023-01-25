@@ -20,9 +20,6 @@ class Entity:
         if updater is None:
             raise TypeError("Missing updater argument")
 
-        if visible and sprite_path is None:
-            raise TypeError("Missing sprite_path argument")
-
         # if we should blit this entity's sprite
         self.visible = visible
 
@@ -39,17 +36,12 @@ class Entity:
         # adds this entity to the list of game entities
         self.game.entities[self.uuid] = self
 
-        # if a sprite path was not provided, then we make the entity invisible
-        if not sprite_path:
-            self.visible = False
-
-        else:
-
+        if sprite_path:
             # load an image as a sprite
             self.sprite = pygame.image.load(sprite_path)
 
             # only scale the sprite if an image was passed
-            if sprite_path and scale_res:
+            if scale_res:
                 self.sprite = pygame.transform.scale(self.sprite, scale_res)
 
     def resolve(self):
@@ -73,12 +65,7 @@ class Entity:
         # dump just the base entity attributes to a dict
 
         data_dict = {
-            "rect": [
-                self.rect.x,
-                self.rect.y,
-                self.rect.width,
-                self.rect.height
-            ],
+            "rect": list(self.rect),
             "visible": self.visible,
             "updater": self.updater,
             "sprite_path": self.sprite_path,
@@ -119,6 +106,7 @@ class Entity:
                     self.visible = update_data["visible"]
 
                 case "rect":
+                    print(f"Moving to {update_data['rect']}")
                     self.rect.update(
                         update_data["rect"]
                     )
@@ -132,3 +120,8 @@ class Entity:
     def tick(self):
         # this function runs every tick
         pass
+
+    def draw(self):
+        # default drawing behaviour
+        # this can be overridden
+        self.game.screen.blit(self.sprite, self.rect)

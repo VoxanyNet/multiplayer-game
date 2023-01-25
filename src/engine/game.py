@@ -30,6 +30,8 @@ class Game:
 
         self.fps = fps
 
+        print(self.uuid)
+
     def lookup_entity_type_string(self, entity):
         # get string version of entity type
         for entity_type_string, entity_type in self.entity_type_map.items():
@@ -135,10 +137,15 @@ class Game:
 
     def draw_entities(self):
         for entity in self.entities.values():
-            self.screen.blit(entity.sprite, entity.rect)
+            if entity.visible: 
+                entity.draw()
+        
+        pygame.display.flip()
 
     def tick(self):
-        # calls the tick method for every entity
+        # calls the tick method for every entity 
+
+        self.screen.fill((0,0,0))
 
         for entity in self.entities.values():
 
@@ -162,7 +169,7 @@ class Game:
         self.receive_network_updates()
 
         # only disable blocking once we have received the initial state
-        self.server.setblocking(False)
+        #self.server.setblocking(False)
 
         print("Received initial state")
     
@@ -171,19 +178,22 @@ class Game:
 
         self.start(server_ip=server_ip, server_port=server_port)
 
-        while True:
+        running = True 
+
+        while running:
             # tick the game according to its fps value
             self.clock.tick(
                 self.fps
             )
 
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+
             self.tick()
-
-            self.send_network_updates()
-
-            self.draw_entities()
 
             self.receive_network_updates()
 
-            print(self.entities)
+            self.draw_entities()
 
+            self.send_network_updates()

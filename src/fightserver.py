@@ -1,7 +1,9 @@
-from engine.game_server import GameServer
+from engine import GameServer
 from player import Player
 from weapon import Weapon
 from sword import Sword
+from floor import Floor
+from cursor import Cursor
 
 from pygame import Rect
 
@@ -13,13 +15,19 @@ class FightServer(GameServer):
             {
                 "player": Player,
                 "weapon": Weapon,
-                "sword": Sword
+                "sword": Sword,
+                "floor": Floor,
+                "cursor": Cursor
             }
         )
     
     def start(self, host, port):
-        
-        player = Player(health=100,weapon=None,rect=Rect(1,1,1,1),game=self,updater="server",sprite_path="resources/player.png")
+
+        floor = Floor(
+            rect=Rect(100,100,100,20),
+            game=self,
+            updater="server"
+        )
 
         super().start(host, port)
 
