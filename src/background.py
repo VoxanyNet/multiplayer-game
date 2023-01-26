@@ -5,7 +5,7 @@ import pygame.key
 from engine import Entity, Unresolved
 
 
-class Cursor(Entity):
+class Background(Entity):
     def __init__(self, rect=None, game=None, updater=None, uuid=str(uuid.uuid4()),
                  sprite_path=None, scale_res=None, visible=True):
 
@@ -25,7 +25,9 @@ class Cursor(Entity):
         # convert json entity data to object constructor arguments
 
         # call the base entity create method to do its own stuff and then return the actual object!!!!!
-        return super().create(entity_data, entity_id, game)
+        new_player = super().create(entity_data, entity_id, game)
+
+        return new_player
 
     def update(self, update_data):
         # update the attributes of this object with update data
@@ -45,28 +47,4 @@ class Cursor(Entity):
     def tick(self):
         super().tick()
 
-        mouse_pos = pygame.mouse.get_pos()
-
-        self.rect.x = mouse_pos[0]
-
-        self.rect.y = mouse_pos[1]
-
-        self.game.network_update(
-            update_type="update",
-            entity_id=self.uuid,
-            data={
-                "rect": list(self.rect)
-            }
-        )
-
-        #print("tick")
-
         #print(keys)
-
-    def draw(self):
-        # draw a white rectangle
-        pygame.draw.rect(
-            self.game.screen,
-            (255,255,255),
-            self.rect
-        )

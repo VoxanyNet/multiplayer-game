@@ -106,7 +106,7 @@ class Entity:
                     self.visible = update_data["visible"]
 
                 case "rect":
-                    print(f"Moving to {update_data['rect']}")
+                    
                     self.rect.update(
                         update_data["rect"]
                     )

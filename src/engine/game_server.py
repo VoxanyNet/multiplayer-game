@@ -30,6 +30,8 @@ class GameServer:
 
         self.server_clock = pygame.time.Clock()
 
+        self.clients_that_sent_updates = []
+
         # this is a queue of updates to be sent to clients
         # this is reset every server tick
         # {client_socket : [update1, update2] }
@@ -162,8 +164,7 @@ class GameServer:
                 #print(entity)
 
                 entity_type_string = self.lookup_entity_type_string(entity)
-
-                # get attributes of entity in dictionary form
+                
                 data = entity.dict()
 
                 self.network_update(update_type="create", entity_id=entity.uuid, data=data, entity_type=entity_type_string, destinations=[new_client])
@@ -189,10 +190,6 @@ class GameServer:
                     sending_client.recv_headered().decode("utf-8")
                 )
 
-                self.updates_to_load += incoming_updates
-
-                #print(incoming_updates)
-
             except BlockingIOError:
                 # if we dont receive anything from the client we continue to the next one
 
@@ -200,6 +197,10 @@ class GameServer:
             
             # we need to ensure that players arent cheating
             #self.validate_updates
+
+            self.updates_to_load += incoming_updates
+
+            self.clients_that_sent_updates.append(sending_client)
 
             for receiving_client in self.client_sockets:
 
@@ -216,12 +217,22 @@ class GameServer:
         # once we have received incoming updates from all clients, we send them to other clients
         for receiving_client, updates in self.update_queue.copy().items():
             
+            # we do not send updates to clients that did not send us an update
+            # this is to prevent the client's socket buffer becoming full, which might happen if the client FPS is lower than the server tick rate
+            # pretty sure this effectively doubles the latency between the server and client
+            if receiving_client not in self.clients_that_sent_updates:
+                continue 
+
             #print(updates)
             updates_json = json.dumps(updates)
             
             receiving_client.send_headered(
                 bytes(updates_json, "utf-8")
             )
+
+            # empty the update queue for this particular client
+            # clients who did not send an update this tick will receive these updates once they send an update
+            self.update_queue[receiving_client] = []
             
     def run(self, host=socket.gethostname(), port=5560):
 
@@ -239,11 +250,8 @@ class GameServer:
             # loading updates mangles them
             self.load_updates()
 
-            # reset the update queue for the next tick
-            self.update_queue = defaultdict(list)
-
             self.updates_to_load = []
 
             self.tick()           
 
-            self.server_clock.tick(60)   
+            self.server_clock.tick(120)   

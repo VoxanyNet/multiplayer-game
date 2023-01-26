@@ -88,9 +88,7 @@ class Game:
             updates_json = self.server.recv_headered().decode("utf-8")
         except BlockingIOError:
             # if this occurs it means that there was no updates from the server
-            return
-
-        print("Got new updates")
+            return False
 
         updates = json.loads(
             updates_json
@@ -134,6 +132,8 @@ class Game:
         # for all entities, resolve any uuids to actual objects
         for entity in self.entities.values():
             entity.resolve()
+        
+        return True
 
     def draw_entities(self):
         for entity in self.entities.values():
@@ -169,7 +169,7 @@ class Game:
         self.receive_network_updates()
 
         # only disable blocking once we have received the initial state
-        #self.server.setblocking(False)
+        self.server.setblocking(False)
 
         print("Received initial state")
     
@@ -191,9 +191,9 @@ class Game:
                     running = False
 
             self.tick()
-
-            self.receive_network_updates()
-
+            
             self.draw_entities()
 
             self.send_network_updates()
+
+            self.receive_network_updates()
