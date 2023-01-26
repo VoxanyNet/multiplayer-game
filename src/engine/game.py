@@ -64,9 +64,12 @@ class Game:
 
     def send_network_updates(self):
         
-        # we dont need to send updates list if there are no updates
-        if len(self.update_queue) == 0:
-            return 
+        # we must send an updates list even if there are no updates
+        # this is because the server will only give US updates if we do first
+
+        # we do not send updates to the server if we did not RECEIVE updates last tick
+        if self.waiting_for_updates:
+            return
 
         updates_json = json.dumps(
             self.update_queue
@@ -87,8 +90,12 @@ class Game:
             # a list of updates received from the server
             updates_json = self.server.recv_headered().decode("utf-8")
         except BlockingIOError:
-            # if this occurs it means that there was no updates from the server
-            return False
+            # this means that we need to wait until the next tick to receive our updates
+            # this occurs when the server didnt respond fast enough with the updates
+
+            self.waiting_for_updates = True # we use this to indicate that we should NOT send another update to the server
+            
+            return
 
         updates = json.loads(
             updates_json
@@ -133,7 +140,9 @@ class Game:
         for entity in self.entities.values():
             entity.resolve()
         
-        return True
+        self.waiting_for_updates = False # this indicates that we can safely send more updates to the server
+
+        return
 
     def draw_entities(self):
         for entity in self.entities.values():
