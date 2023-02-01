@@ -8,8 +8,8 @@ from cursor import Cursor
 from pygame import Rect
 
 class FightServer(GameServer):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, tick_rate):
+        super().__init__(tick_rate=tick_rate)
 
         self.entity_type_map.update(
             {
@@ -24,7 +24,7 @@ class FightServer(GameServer):
     def start(self, host, port):
 
         floor = Floor(
-            rect=Rect(100,100,100,20),
+            rect=Rect(0,600,1920,20),
             game=self,
             updater="server"
         )

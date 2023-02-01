@@ -44,21 +44,8 @@ class Floor(Entity):
                 case "test":
                     pass
 
-    def tick(self):
-        super().tick()
-
-        self.rect.x += 1
-
-        self.rect.y += 1
-
-        self.game.network_update(
-            update_type="update",
-            entity_id=self.uuid,
-            data={
-                "rect": list(self.rect)
-            },
-            destinations=self.game.client_sockets
-        )
+    def tick(self, trigger_entity=None):
+        super().tick(trigger_entity=trigger_entity)
 
     def draw(self):
         # draw a white rectangle

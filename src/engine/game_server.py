@@ -1,65 +1,57 @@
 import socket
 import json
 from collections import defaultdict
-from copy import copy
+from copy import deepcopy
 
 import pygame
 
 from engine import headered_socket
+from engine.headered_socket import Disconnected
 from engine import Entity
 from engine.exceptions import MalformedUpdate, InvalidUpdateType
 
 
 class GameServer:
 
-    def __init__(self):
+    def __init__(self, tick_rate):
 
         self.socket = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
 
-        self.client_sockets = []
-
-        # we need to keep track of what entities are in the state for new client
+        self.client_sockets = {}
         self.entities = {}
-
         self.entity_type_map = {}
-
-        # this is a list of updates the server needs to load this tick
         self.updates_to_load = []
-
         self.uuid = "server"
-
+        self.tick_rate = tick_rate
         self.server_clock = pygame.time.Clock()
-
         self.clients_that_sent_updates = []
-
-        # this is a queue of updates to be sent to clients
-        # this is reset every server tick
-        # {client_socket : [update1, update2] }
         self.update_queue = defaultdict(list)
+        self.event_subscriptions = defaultdict(list)
     
     def start(self, host, port):
-        # what code needs to be executed when server starts
-        # this will probably include creating the level and other initial entities
         self.socket.bind((host, port))
-
         self.socket.setblocking(False)
-
         self.socket.listen(5)
 
         print("server online...")
 
-    def tick(self):
-        # the server needs to update its own entities too!
-        # calls the tick method for every entity
-        for entity in self.entities.values():
+    def trigger_event(self, event_name, trigger_entity):
 
-            # we only call the tick function on objects that we own
-            # this prevents two clients from updating the same entity
-            if entity.updater != "server":
-                continue
+        for function in self.event_subscriptions[event_name]:
+            
+            # dont call function if the entity this function belongs to isnt ours
+            try:
+                if function.__self__.updater != self.uuid:
+                    continue
+            
+            # sometimes the function belongs to a Game object
+            except AttributeError:
 
-            entity.tick()
-    
+                if not isinstance(function.__self__, GameServer):
+                    continue
+            
+            function(trigger_entity)
+
     def network_update(self, update_type=None, entity_id=None, data=None, entity_type=None, destinations=None):
 
         if destinations is None:
@@ -71,7 +63,6 @@ class GameServer:
         if update_type == "create" and entity_type is None:
             raise MalformedUpdate("Create update requires 'entity_type' parameter")
 
-        # check that the entity type for the 'create' update actually exists
         if update_type == "create" and entity_type not in self.entity_type_map:
             raise MalformedUpdate(f"Entity type {entity_type} does not exist in the entity type map")
 
@@ -82,71 +73,64 @@ class GameServer:
             "data": data
         }
         
-        # send the update to the specified destinations
         for destination in destinations:
             self.update_queue[destination].append(update)
 
     def load_updates(self):
-        # we need to read updates that come from the clients and load them to update our our entities state
 
-        for update in self.updates_to_load:
+        for update in deepcopy(self.updates_to_load):
             
             match update["update_type"]:
 
                 case "create":
 
-                    # retrieve the matching entity type
                     entity_class = self.entity_type_map[
                         update["entity_type"]
                     ]
 
-                    # create a new entity with the update data
-                    # we also pass the game object for entity creation
                     entity_class.create(
                         update["data"], update["entity_id"], self
                     )
 
                 case "update":
 
-                    # retrieve the entity to be updated
                     updating_entity = self.entities[
                         update["entity_id"]
                     ]
 
-                    # call the entity's update function with the update data
                     updating_entity.update(
                         update["data"]
                     )
 
                 case "delete":
 
-                    # remove the entity from the dictionary
                     del self.entities[
                         update["entity_id"]
                     ]
+            
+        self.updates_to_load = []
 
-        # for all entities, resolve any uuids to actual objects
         for entity in self.entities.values():
             entity.resolve()
 
     def lookup_entity_type_string(self, entity):
-        # get string version of entity type
+
         for entity_type_string, entity_type in self.entity_type_map.items():
             if type(entity) is entity_type:
                 return entity_type_string
 
     def handle_new_client(self, new_client):
-        # operation we follow when a new client socket connects
-
-        #print(self.entities)
 
         print("New connecting client")
 
-        # add new client socket to the list of sockets
-        self.client_sockets.append(new_client)
-        
-        # if there are no entities, we send an empty update list
-        # we need this because the client requires an update list to be sent when connecting
+        self.socket.setblocking(True)
+
+        client_uuid = new_client.recv_headered().decode("utf-8")
+
+        self.socket.setblocking(False)
+
+        self.client_sockets[client_uuid] = new_client
+
         if len(self.entities) == 0:
             
             empty_update = json.dumps([])
@@ -158,19 +142,43 @@ class GameServer:
             print("no entities, sending empty update")
 
         else:
-            # send create updates for every entity
             for entity in self.entities.values():
-
-                #print(entity)
 
                 entity_type_string = self.lookup_entity_type_string(entity)
                 
                 data = entity.dict()
 
-                self.network_update(update_type="create", entity_id=entity.uuid, data=data, entity_type=entity_type_string, destinations=[new_client])
+                self.network_update(update_type="create", entity_id=entity.uuid, data=data, entity_type=entity_type_string, destinations=[client_uuid])
+                
+                self.send_client_updates(force=True)
+
     
+    def handle_client_disconnect(self, client_uuid):
+
+        for entity_uuid, entity in self.entities.copy().items():
+
+            if entity.updater == client_uuid:
+                del self.entities[entity_uuid]
+
+                self.network_update(
+                    update_type="delete",
+                    entity_id=entity_uuid,
+                    destinations=list(self.client_sockets.keys())
+                )
+        
+        print(f"{client_uuid} disconnected")
+        
+        del self.client_sockets[client_uuid]
+
+        print(self.update_queue)
+
+        del self.update_queue[client_uuid]
+
+        print(self.update_queue)
+        
+
     def accept_new_clients(self):
-        # accept new clients
+
         try:
             new_client, address = self.socket.accept()
 
@@ -181,58 +189,54 @@ class GameServer:
     
     def receive_client_updates(self):
 
-        for sending_client in self.client_sockets:
+        for sending_client_uuid, sending_client in self.client_sockets.copy().items():
 
             try:
-                
-                # these updates will be merged with updates from other users
                 incoming_updates = json.loads(
                     sending_client.recv_headered().decode("utf-8")
                 )
 
             except BlockingIOError:
-                # if we dont receive anything from the client we continue to the next one
+                continue
+                
+            except Disconnected:
+
+                self.handle_client_disconnect(sending_client_uuid)
 
                 continue
             
-            # we need to ensure that players arent cheating
             #self.validate_updates
 
             self.updates_to_load += incoming_updates
 
-            self.clients_that_sent_updates.append(sending_client)
+            self.clients_that_sent_updates.append(sending_client_uuid)
 
-            for receiving_client in self.client_sockets:
+            for receiving_client_uuid, receiving_client in self.client_sockets.items():
 
-                # we dont send a clients update to itself
-                if sending_client is receiving_client:
+                if sending_client_uuid is receiving_client_uuid:
                     continue
 
-                # merge incoming updates from sending_client with updates already queued
-                self.update_queue[receiving_client] += incoming_updates
+                self.update_queue[receiving_client_uuid] += incoming_updates
 
-            
-    
-    def send_client_updates(self):
-        # once we have received incoming updates from all clients, we send them to other clients
-        for receiving_client, updates in self.update_queue.copy().items():
+    def send_client_updates(self, force=False):
+
+        for receiving_client_uuid, updates in self.update_queue.copy().items():
             
             # we do not send updates to clients that did not send us an update
             # this is to prevent the client's socket buffer becoming full, which might happen if the client FPS is lower than the server tick rate
             # pretty sure this effectively doubles the latency between the server and client
-            if receiving_client not in self.clients_that_sent_updates:
+            if receiving_client_uuid not in self.clients_that_sent_updates and not force:
                 continue 
-
-            #print(updates)
+            
             updates_json = json.dumps(updates)
             
-            receiving_client.send_headered(
+            self.client_sockets[receiving_client_uuid].send_headered(
                 bytes(updates_json, "utf-8")
             )
+        
+            self.update_queue[receiving_client_uuid] = []
 
-            # empty the update queue for this particular client
-            # clients who did not send an update this tick will receive these updates once they send an update
-            self.update_queue[receiving_client] = []
+        self.clients_that_sent_updates = []
             
     def run(self, host=socket.gethostname(), port=5560):
 
@@ -246,12 +250,10 @@ class GameServer:
 
             self.send_client_updates()
 
-            # we need to forward the updates to clients before we load them
-            # loading updates mangles them
+            #print(self.update_queue)
+
             self.load_updates()
 
-            self.updates_to_load = []
+            self.trigger_event("tick", trigger_entity=None)
 
-            self.tick()           
-
-            self.server_clock.tick(120)   
+            self.server_clock.tick(self.tick_rate)

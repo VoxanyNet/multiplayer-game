@@ -6,40 +6,48 @@ from collections import defaultdict
 
 import pygame
 
-from engine import headered_socket
+from engine import headered_socket, Entity
+from engine.helpers import get_matching_objects
 from engine.exceptions import InvalidUpdateType, MalformedUpdate
 
 
 class Game:
     def __init__(self, fps=60):
         self.clock = pygame.time.Clock()
-        # the socket that we use to communicate with the server
         self.server = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
-        # the uuid that identifies this client among other clients connected to a server
         self.uuid = str(uuid.uuid4())
-        # list of updates to be sent next frame
         self.update_queue = []
-        # a dictionary that maps entity types to strings
         self.entity_type_map = {}
-        # dictionary mapping entity ids to the actual entity objects
         self.entities = {}
-        # all the client sockets
-        self.client_sockets = []
-
-        self.screen = pygame.display.set_mode([1280, 720])
-
+        self.event_subscriptions = defaultdict(list)
+        self.event_subscriptions["tick"].append(self.clear_screen)
+        self.tick_counter = 0
+        self.screen = pygame.display.set_mode(
+            [1280, 720],
+            pygame.RESIZABLE
+            #pygame.FULLSCREEN
+        )
         self.fps = fps
+        self.waiting_for_updates = False
+    
+    def detect_collisions(self, rect, collection):
 
-        print(self.uuid)
+        colliding_entities = []
+
+        for entity in get_matching_objects(collection, Entity):
+
+            if rect.colliderect(entity.rect):
+                colliding_entities.append(entity)
+
+        return colliding_entities
 
     def lookup_entity_type_string(self, entity):
-        # get string version of entity type
+
         for entity_type_string, entity_type in self.entity_type_map.items():
             if type(entity) is entity_type:
                 return entity_type_string
 
     def network_update(self, update_type=None, entity_id=None, data=None, entity_type=None):
-        # queues up an update to be sent on the soonest frame
 
         if update_type not in ["create", "update", "delete"]:
             raise InvalidUpdateType(f"Update type {update_type} is invalid")
@@ -47,7 +55,6 @@ class Game:
         if update_type == "create" and entity_type is None:
             raise MalformedUpdate("Create update requires 'entity_type' parameter")
 
-        # check that the entity type for the 'create' update actually exists
         if update_type == "create" and entity_type not in self.entity_type_map:
             raise MalformedUpdate(f"Entity type {entity_type} does not exist in the entity type map")
 
@@ -84,11 +91,10 @@ class Game:
         self.update_queue = []
 
     def receive_network_updates(self):
-        # receive network updates from the server
 
         try:
-            # a list of updates received from the server
             updates_json = self.server.recv_headered().decode("utf-8")
+
         except BlockingIOError:
             # this means that we need to wait until the next tick to receive our updates
             # this occurs when the server didnt respond fast enough with the updates
@@ -106,37 +112,30 @@ class Game:
             match update["update_type"]:
                 case "create":
 
-                    # retrieve the matching entity type
                     entity_class = self.entity_type_map[
                         update["entity_type"]
                     ]
 
-                    # create a new entity with the update data
-                    # we also pass the game object for entity creation
                     entity_class.create(
                         update["data"], update["entity_id"], self
                     )
 
                 case "update":
 
-                    # retrieve the entity to be updated
                     updating_entity = self.entities[
                         update["entity_id"]
                     ]
 
-                    # call the entity's update function with the update data
                     updating_entity.update(
                         update["data"]
                     )
 
                 case "delete":
 
-                    # remove the entity from the dictionary
                     del self.entities[
                         update["entity_id"]
                     ]
 
-        # for all entities, resolve any uuids to actual objects
         for entity in self.entities.values():
             entity.resolve()
         
@@ -151,46 +150,66 @@ class Game:
         
         pygame.display.flip()
 
+    def clear_screen(self, trigger_entity=None):
+
+        self.screen.fill((0,0,0))
+
     def tick(self):
-        # calls the tick method for every entity 
 
         self.screen.fill((0,0,0))
 
         for entity in self.entities.values():
 
-            # we only call the tick function on objects that we own
-            # this prevents two clients from updating the same entity
             if entity.updater != self.uuid:
                 continue
 
             entity.tick()
 
+    def trigger_event(self, event_name, trigger_entity):
+
+        for function in self.event_subscriptions[event_name]:
+            
+            # dont call function if the entity this function belongs to isnt ours
+            try:
+                if function.__self__.updater != self.uuid:
+                    continue
+            
+            # sometimes the function belongs to a Game object
+            except AttributeError:
+
+                if not isinstance(function.__self__, Game):
+                    continue
+            
+            function(trigger_entity)
+
+
     def start(self, server_ip, server_port=5560):
-        # everything that needs to occur when we start a client
-        # this includes creating initial objects, connecting to a server, etc.
+
+        pygame.init()
         
-        # connect to a server
         self.server.connect((server_ip, server_port))
         
         print("Connected to server")
-
-        # receive initial create updates for game state
+        
+        self.server.send_headered(
+            bytes(self.uuid, "utf-8")
+        )
         self.receive_network_updates()
 
-        # only disable blocking once we have received the initial state
         self.server.setblocking(False)
 
         print("Received initial state")
     
     def run(self, server_ip, server_port=5560):
-        # this function starts the game and begins the game loop
 
         self.start(server_ip=server_ip, server_port=server_port)
 
         running = True 
 
         while running:
-            # tick the game according to its fps value
+            if pygame.key.get_pressed()[pygame.K_F4]:
+                running = False
+
             self.clock.tick(
                 self.fps
             )
@@ -199,7 +218,7 @@ class Game:
                 if event.type == pygame.QUIT:
                     running = False
 
-            self.tick()
+            self.trigger_event("tick", trigger_entity=None)
             
             self.draw_entities()
 

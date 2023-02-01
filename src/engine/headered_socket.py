@@ -54,31 +54,35 @@ class HeaderedSocket(socket.socket):
 
         # read the header
 
-        header = self.recv(header_size).decode("utf-8")
-
-        if header == "":
-            # the socket will return a blank string when the client has sent FIN packet
-            raise Disconnected("Remote socket disconnected")
-
-        # convert header string to int
         try:
-            payload_length = int(header)
+            header = self.recv(header_size).decode("utf-8")
 
-        # if we cannot convert to int
-        except ValueError:
-            raise InvalidHeader(f"Sender sent header {header}, which is invalid")
+            if header == "":
+                # the socket will return a blank string when the client has sent FIN packet
+                raise Disconnected("Remote socket disconnected")
 
-        # represents the final constructed data sent
-        constructed_data = bytearray()
+            # convert header string to int
+            try:
+                payload_length = int(header)
 
-        # until we have received the full payload, we do not stop reading the buffer
-        while len(constructed_data) != payload_length:
-            # read what is currently in the buffer and add it to the constructed_data byte array
-            new_data = self.recv(payload_length - len(constructed_data))
+            # if we cannot convert to int
+            except ValueError:
+                raise InvalidHeader(f"Sender sent header {header}, which is invalid")
 
-            constructed_data.extend(new_data)
+            # represents the final constructed data sent
+            constructed_data = bytearray()
+
+            # until we have received the full payload, we do not stop reading the buffer
+            while len(constructed_data) != payload_length:
+                # read what is currently in the buffer and add it to the constructed_data byte array
+                new_data = self.recv(payload_length - len(constructed_data))
+
+                constructed_data.extend(new_data)
+            
+            return constructed_data
         
-        return constructed_data
+        except ConnectionResetError:
+            raise Disconnected("Remote socket reset connection")
 
         
 
@@ -95,3 +99,4 @@ class HeaderedSocket(socket.socket):
             sock.settimeout(0)
 
         return sock, addr
+    

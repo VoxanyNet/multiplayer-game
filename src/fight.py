@@ -1,3 +1,4 @@
+import pygame
 from pygame import Rect
 
 from engine import Game
@@ -9,9 +10,11 @@ from cursor import Cursor
 
 
 class Fight(Game):
-    def __init__(self, fps=60):
+    def __init__(self, fps=60, gravity=9.8, enable_music=False):
         super().__init__(fps=fps)
 
+        self.enable_music = enable_music
+        
         self.entity_type_map.update(
             {
                 "player": Player,
@@ -21,21 +24,31 @@ class Fight(Game):
                 "cursor": Cursor
             }
         )
+
+        self.gravity = gravity
     
     def start(self, server_ip, server_port=5560):
         super().start(server_ip=server_ip,server_port=server_port)
 
-        cursor = Cursor(
-            rect=Rect(0,0,10,10),
+        if self.enable_music:
+    
+            pygame.mixer.music.load("/opt/fightsquares/resources/music.mp3")
+
+            pygame.mixer.music.play(loops=-1)
+
+            pygame.mixer.music.set_volume(0.5)
+
+        player = Player(
+            rect=Rect(100,100,50,50),
             game=self,
-            updater=self.uuid
+            updater=self.uuid,
         )
 
         self.network_update(
             update_type="create",
-            entity_id=cursor.uuid,
-            data=cursor.dict(),
-            entity_type="cursor"
+            entity_id=player.uuid,
+            data=player.dict(),
+            entity_type="player"
         )
 
         

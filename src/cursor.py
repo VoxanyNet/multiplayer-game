@@ -45,11 +45,21 @@ class Cursor(Entity):
     def tick(self):
         super().tick()
 
+        last_tick_pos = (self.rect.x, self.rect.y)
+
         mouse_pos = pygame.mouse.get_pos()
+
+        #print(last_tick_pos)
+
+        #print(mouse_pos)
+        
+        if mouse_pos == last_tick_pos:
+            return
 
         self.rect.x = mouse_pos[0]
 
         self.rect.y = mouse_pos[1]
+
 
         self.game.network_update(
             update_type="update",
