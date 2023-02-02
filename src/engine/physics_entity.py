@@ -8,7 +8,6 @@ class PhysicsEntity(Entity):
     def __init__(self, gravity=None, velocity = Vector(0,0), max_velocity = None, friction=2, rect=None, game=None, updater=None, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None, visible=True):
 
         super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res, visible=visible)
-
         if gravity is None:
             raise TypeError("Missing gravity argument")
         
@@ -27,7 +26,13 @@ class PhysicsEntity(Entity):
         self.game.event_subscriptions["tick"] += [
             self.tick,
             self.move_x_axis,
-            self.move_y_axis
+            self.move_y_axis,
+            self.apply_gravity,
+            self.apply_friction
+        ]
+
+        self.game.event_subscriptions["landed"] += [
+            self.bounce
         ]
     
     def dict(self):
@@ -105,13 +110,13 @@ class PhysicsEntity(Entity):
 
             # entity came in moving left
             if projected_rect_x.right < colliding_entity.rect.right and self.rect.right > colliding_entity.rect.right:
-                self.rect.x = colliding_entity.rect.right
-
-                print("obama")
+                self.rect.right = colliding_entity.rect.left
             
             # entity came in moving right
             elif projected_rect_x.left > colliding_entity.rect.left and self.rect.left < colliding_entity.rect.left:
-                self.rect.x = colliding_entity.rect.left
+                self.rect.left = colliding_entity.rect.right
+
+                print("epic")
         
         else:
 
@@ -133,7 +138,7 @@ class PhysicsEntity(Entity):
             # we only use the first entity in the list for collisions
             colliding_entity = colliding_entities[0]
 
-            #  new rect bottom is lower than the colling rect's top and the old rect bottom is higher than the colliding rect top
+            #  new rect bottom is lower than the collidinng rect's top and the old rect bottom is higher than the colliding rect top
             if (projected_rect_y.bottom >= colliding_entity.rect.top) and (self.rect.bottom <= colliding_entity.rect.top):
 
                 self.rect.bottom = colliding_entity.rect.top
@@ -141,6 +146,8 @@ class PhysicsEntity(Entity):
                 self.velocity.y = 0
 
                 self.airborne = False
+
+                self.game.trigger_event("landed", self)
 
                 #sys.exit()
             
@@ -154,42 +161,31 @@ class PhysicsEntity(Entity):
 
             self.airborne = True
 
-    def apply_friction(self):
+    def apply_friction(self, trigger_entity=None):
 
         if abs(self.velocity.x) > 0:
 
             self.velocity.x *= (0.05 * self.game.clock.get_time() )
             
 
-    def apply_gravity(self):
+    def apply_gravity(self, trigger_entity=None):
 
-        self.velocity.y += (self.gravity * self.game.clock.get_time())
+        if self.airborne:
+            self.velocity.y += (self.gravity * self.game.clock.get_time())
 
-        print(self.velocity.y)
-
-        if self.velocity.y < 0.5:
-            self.velocity.y = 0
+    def bounce(self, trigger_entity=None):
+        
+        if trigger_entity.uuid != self.uuid:
+            return
+        
+        self.velocity.y *= -0.25
 
     def tick(self, trigger_entity=None):
 
-        last_tick_pos = (self.rect.x, self.rect.y)
-
-        self.move_x_axis()
-        
-        self.move_y_axis()
-
-        self.apply_gravity()
-
-        self.apply_friction()
-        
-        current_tick_pos = (self.rect.x, self.rect.y)
-
-        if last_tick_pos != current_tick_pos:
-
-            self.game.network_update(
-                update_type="update",
-                entity_id=self.uuid,
-                data= {
-                    "rect": list(self.rect)
-                }
-            )
+        self.game.network_update(
+            update_type="update",
+            entity_id=self.uuid,
+            data= {
+                "rect": list(self.rect)
+            }
+        )
