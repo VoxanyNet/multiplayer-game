@@ -2,8 +2,7 @@ import uuid
 
 import pygame.key
 
-from engine import Entity, Unresolved
-
+from engine.entity import Entity
 
 class Floor(Entity):
     def __init__(self, rect=None, game=None, updater=None, uuid=str(uuid.uuid4()),

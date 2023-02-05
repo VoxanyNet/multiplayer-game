@@ -3,8 +3,9 @@ import uuid
 import pygame.image
 from pygame import Rect
 
-from .unresolved import Unresolved
-from .helpers import get_matching_objects
+from engine.unresolved import Unresolved
+from engine.helpers import get_matching_objects
+from engine.events import TickEvent
 
 
 class Entity:
@@ -36,7 +37,7 @@ class Entity:
         if scale_res and sprite_path:
             self.sprite = pygame.transform.scale(self.sprite, scale_res)
 
-        self.game.event_subscriptions["tick"].append(self.tick)
+        self.game.event_subscriptions[TickEvent].append(self.tick)
 
     def resolve(self):
         for attribute_name, attribute in self.__dict__.copy().items():
@@ -100,7 +101,7 @@ class Entity:
                 case "sprite_path":
                     self.sprite = pygame.image.load(update_data["sprite_path"])
 
-    def tick(self, trigger_entity=None):
+    def tick(self, event):
         pass
 
     def draw(self):

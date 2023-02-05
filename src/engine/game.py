@@ -6,9 +6,11 @@ from collections import defaultdict
 
 import pygame
 
-from engine import headered_socket, Entity
+from engine import headered_socket
+from engine.entity import Entity
 from engine.helpers import get_matching_objects
 from engine.exceptions import InvalidUpdateType, MalformedUpdate
+from engine.events import TickEvent
 
 
 class Game:
@@ -20,7 +22,7 @@ class Game:
         self.entity_type_map = {}
         self.entities = {}
         self.event_subscriptions = defaultdict(list)
-        self.event_subscriptions["tick"].append(self.clear_screen)
+        self.event_subscriptions[TickEvent].append(self.clear_screen)
         self.tick_counter = 0
         self.screen = pygame.display.set_mode(
             [1280, 720],
@@ -150,7 +152,7 @@ class Game:
         
         pygame.display.flip()
 
-    def clear_screen(self, trigger_entity=None):
+    def clear_screen(self, event):
 
         self.screen.fill((0,0,0))
 
@@ -165,22 +167,26 @@ class Game:
 
             entity.tick()
 
-    def trigger_event(self, event_name, trigger_entity):
+    def trigger_event(self, event):
 
-        for function in self.event_subscriptions[event_name]:
+        for function in self.event_subscriptions[type(event)]:
             
             # dont call function if the entity this function belongs to isnt ours
             try:
                 if function.__self__.updater != self.uuid:
                     continue
             
-            # sometimes the function belongs to a Game object
+            # sometimes the function belongs to a Game object, which we dont need to check because know game methods in the subscriptions are always ours
             except AttributeError:
 
-                if not isinstance(function.__self__, Game):
-                    continue
+                if isinstance(function.__self__, Game):
+                    pass
+                
+                else:
+                    raise Exception("Only methods belonging to Game or Entity objects may be subscribers to events")
+
             
-            function(trigger_entity)
+            function(event)
 
 
     def start(self, server_ip, server_port=5560):
@@ -218,7 +224,7 @@ class Game:
                 if event.type == pygame.QUIT:
                     running = False
 
-            self.trigger_event("tick", trigger_entity=None)
+            self.trigger_event(TickEvent())
             
             self.draw_entities()
 

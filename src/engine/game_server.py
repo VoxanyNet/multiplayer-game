@@ -7,8 +7,8 @@ import pygame
 
 from engine import headered_socket
 from engine.headered_socket import Disconnected
-from engine import Entity
 from engine.exceptions import MalformedUpdate, InvalidUpdateType
+from engine.events import TickEvent
 
 
 class GameServer:
@@ -35,22 +35,25 @@ class GameServer:
 
         print("server online...")
 
-    def trigger_event(self, event_name, trigger_entity):
+    def trigger_event(self, event):
 
-        for function in self.event_subscriptions[event_name]:
+        for function in self.event_subscriptions[type(event)]:
             
             # dont call function if the entity this function belongs to isnt ours
             try:
                 if function.__self__.updater != self.uuid:
                     continue
             
-            # sometimes the function belongs to a Game object
+            # sometimes the function belongs to a Game object, which we dont need to check because know game methods in the subscriptions are always ours
             except AttributeError:
 
-                if not isinstance(function.__self__, GameServer):
-                    continue
+                if isinstance(function.__self__, GameServer):
+                    pass
+                
+                else:
+                    raise Exception("Only methods belonging to Game or Entity objects may be subscribers to events")
+
             
-            function(trigger_entity)
 
     def network_update(self, update_type=None, entity_id=None, data=None, entity_type=None, destinations=None):
 
@@ -176,7 +179,6 @@ class GameServer:
 
         print(self.update_queue)
         
-
     def accept_new_clients(self):
 
         try:
@@ -254,6 +256,6 @@ class GameServer:
 
             self.load_updates()
 
-            self.trigger_event("tick", trigger_entity=None)
+            self.trigger_event(TickEvent())
 
             self.server_clock.tick(self.tick_rate)

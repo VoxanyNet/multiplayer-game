@@ -2,11 +2,15 @@ import uuid
 
 import pygame.key
 
-from engine import Entity, Unresolved, PhysicsEntity, Vector
+from engine.physics_entity import PhysicsEntity
+from engine.vector import Vector
+from engine.unresolved import Unresolved
+from engine.events import TickEvent
+from events import JumpEvent
 
 
 class Player(PhysicsEntity):
-    def __init__(self, health=100, weapon=None, gravity=0.01, velocity = Vector(0,0), max_velocity=Vector(50,50), friction=2, rect=None, game=None, updater=None, uuid=str(uuid.uuid4()),
+    def __init__(self, health=100, weapon=None, gravity=0.05, velocity = Vector(0,0), max_velocity=Vector(50,50), friction=2, rect=None, game=None, updater=None, uuid=str(uuid.uuid4()),
                  sprite_path=None, scale_res=None, visible=True):
 
         super().__init__(gravity=gravity, velocity=velocity, max_velocity=max_velocity, friction=friction, rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
@@ -20,7 +24,7 @@ class Player(PhysicsEntity):
         self.health = health
         self.weapon = weapon
 
-        self.game.event_subscriptions["tick"].append(self.handle_keys)
+        self.game.event_subscriptions[TickEvent].append(self.handle_keys)
 
     def dict(self):
 
@@ -75,16 +79,16 @@ class Player(PhysicsEntity):
             self.rect
         )
 
-    def handle_keys(self, trigger_entity=None):
+    def handle_keys(self, event):
 
         keys = pygame.key.get_pressed()
 
         if keys[pygame.K_SPACE]:
 
-            self.game.trigger_event("jump", self)
+            self.game.trigger_event(JumpEvent)
             
             if not self.airborne:
-                self.velocity.y -= 5
+                self.velocity.y -= 10
 
         if keys[pygame.K_a]:
             self.velocity.x -= 1 * self.game.clock.get_time()

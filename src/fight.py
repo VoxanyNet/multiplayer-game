@@ -1,27 +1,23 @@
 import pygame
 from pygame import Rect
 
-from engine import Game
+from engine.game import Game
 from player import Player
-from weapon import Weapon
-from sword import Sword
 from floor import Floor
 from cursor import Cursor
-
 
 class Fight(Game):
     def __init__(self, fps=60, gravity=9.8, enable_music=False):
         super().__init__(fps=fps)
 
         self.enable_music = enable_music
+
+        pygame.mouse.set_visible(0)
         
         self.entity_type_map.update(
             {
                 "player": Player,
-                "weapon": Weapon,
-                "sword": Sword,
-                "floor": Floor,
-                "cursor": Cursor
+                "floor": Floor
             }
         )
 
@@ -37,6 +33,8 @@ class Fight(Game):
             pygame.mixer.music.play(loops=-1)
 
             pygame.mixer.music.set_volume(0.5)
+        
+        cursor = Cursor(game=self, updater=self.uuid)
 
         player = Player(
             rect=Rect(100,100,50,50),

@@ -1,14 +1,6 @@
-floor/platform entity
-
-player entity 
-
 weapon entity 
 
-pure black background, white platforms
-
 no server lists, just one big play button
-
-host dedicated server
 
 bullet entity
 
@@ -23,5 +15,3 @@ character creator
 character database
 
 character database api
-
-entities have their own draw function

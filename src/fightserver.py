@@ -1,11 +1,8 @@
-from engine import GameServer
-from player import Player
-from weapon import Weapon
-from sword import Sword
-from floor import Floor
-from cursor import Cursor
-
 from pygame import Rect
+
+from engine.game_server import GameServer
+from player import Player
+from floor import Floor
 
 class FightServer(GameServer):
     def __init__(self, tick_rate):
@@ -14,10 +11,7 @@ class FightServer(GameServer):
         self.entity_type_map.update(
             {
                 "player": Player,
-                "weapon": Weapon,
-                "sword": Sword,
-                "floor": Floor,
-                "cursor": Cursor
+                "floor": Floor
             }
         )
     
