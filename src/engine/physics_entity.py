@@ -1,8 +1,9 @@
-import sys
 import uuid
 
-from engine import Vector
-from engine import Entity
+from engine.vector import Vector
+from engine.entity import Entity
+from engine.events import TickEvent
+from engine.events import LandedEvent
 
 class PhysicsEntity(Entity):
     def __init__(self, gravity=None, velocity = Vector(0,0), max_velocity = None, friction=2, rect=None, game=None, updater=None, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None, visible=True):
@@ -23,7 +24,7 @@ class PhysicsEntity(Entity):
         self.friction = friction
         self.airborne = False
 
-        self.game.event_subscriptions["tick"] += [
+        self.game.event_subscriptions[TickEvent] += [
             self.tick,
             self.move_x_axis,
             self.move_y_axis,
@@ -31,7 +32,7 @@ class PhysicsEntity(Entity):
             self.apply_friction
         ]
 
-        self.game.event_subscriptions["landed"] += [
+        self.game.event_subscriptions[LandedEvent] += [
             self.bounce
         ]
     
@@ -109,11 +110,11 @@ class PhysicsEntity(Entity):
             print(colliding_entity)
 
             # entity came in moving left
-            if projected_rect_x.right < colliding_entity.rect.right and self.rect.right > colliding_entity.rect.right:
+            if projected_rect_x.right >= colliding_entity.rect.left and self.rect.right < colliding_entity.rect.left:
                 self.rect.right = colliding_entity.rect.left
             
             # entity came in moving right
-            elif projected_rect_x.left > colliding_entity.rect.left and self.rect.left < colliding_entity.rect.left:
+            elif projected_rect_x.left <= colliding_entity.rect.right and self.rect.left > colliding_entity.rect.right:
                 self.rect.left = colliding_entity.rect.right
 
                 print("epic")
@@ -147,7 +148,7 @@ class PhysicsEntity(Entity):
 
                 self.airborne = False
 
-                self.game.trigger_event("landed", self)
+                self.game.trigger_event(LandedEvent(self))
 
                 #sys.exit()
             
@@ -173,10 +174,12 @@ class PhysicsEntity(Entity):
         if self.airborne:
             self.velocity.y += (self.gravity * self.game.clock.get_time())
 
-    def bounce(self, trigger_entity=None):
-        
-        if trigger_entity.uuid != self.uuid:
+    def bounce(self, event):
+
+        if event.entity.uuid != self.uuid:
+            print
             return
+
         
         self.velocity.y *= -0.25
 
