@@ -1,5 +1,7 @@
 import uuid
 
+import pymunk
+
 from engine.vector import Vector
 from engine.entity import Entity
 from engine.events import TickEvent
@@ -17,7 +19,8 @@ class PhysicsEntity(Entity):
         
         if friction is None:
             raise TypeError("Missing friction argument")
-
+        
+        self.body = pymunk.Body()
         self.velocity = velocity
         self.gravity = gravity
         self.max_velocity = max_velocity

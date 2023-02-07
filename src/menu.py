@@ -5,6 +5,8 @@ from engine.game import Game
 from player import Player
 from floor import Floor
 from cursor import Cursor
+from play_button import PlayButton
+from title import Title
 
 class Menu(Game):
     def __init__(self, fps=60, enable_music=False):
@@ -16,8 +18,8 @@ class Menu(Game):
         
         self.entity_type_map.update(
             {
-                "player": Player,
-                "floor": Floor
+                "play_button": PlayButton,
+                "title": Title
             }
         )
     
@@ -31,21 +33,8 @@ class Menu(Game):
             pygame.mixer.music.play(loops=-1)
 
             pygame.mixer.music.set_volume(0.5)
-        
-        cursor = Cursor(game=self, updater=self.uuid)
 
-        player = Player(
-            rect=Rect(100,100,50,50),
-            game=self,
-            updater=self.uuid,
-        )
-
-        self.network_update(
-            update_type="create",
-            entity_id=player.uuid,
-            data=player.dict(),
-            entity_type="player"
-        )
+        play_button = PlayButton()
 
         
 

@@ -23,8 +23,8 @@ class Fight(Game):
 
         self.gravity = gravity
     
-    def start(self, server_ip, server_port=5560):
-        super().start(server_ip=server_ip,server_port=server_port)
+    def start(self):
+        super().start()
 
         if self.enable_music:
     

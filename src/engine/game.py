@@ -5,6 +5,7 @@ import json
 from collections import defaultdict
 
 import pygame
+import pymunk
 
 from engine import headered_socket
 from engine.entity import Entity
@@ -24,6 +25,8 @@ class Game:
         self.event_subscriptions = defaultdict(list)
         self.event_subscriptions[TickEvent].append(self.clear_screen)
         self.tick_counter = 0
+        self.space = pymunk.Space()
+        self.space.gravity = 0,-981
         self.screen = pygame.display.set_mode(
             [1280, 720],
             pygame.RESIZABLE
@@ -189,10 +192,12 @@ class Game:
             function(event)
 
 
-    def start(self, server_ip, server_port=5560):
+    def start(self):
 
         pygame.init()
         
+    def connect(self, server_ip, server_port=5560):
+
         self.server.connect((server_ip, server_port))
         
         print("Connected to server")
@@ -206,9 +211,12 @@ class Game:
 
         print("Received initial state")
     
+    
     def run(self, server_ip, server_port=5560):
 
-        self.start(server_ip=server_ip, server_port=server_port)
+        self.start()
+
+        self.connect(server_ip=server_ip, server_port=server_port)
 
         running = True 
 
