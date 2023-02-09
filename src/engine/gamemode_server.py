@@ -11,7 +11,7 @@ from engine.exceptions import MalformedUpdate, InvalidUpdateType
 from engine.events import TickEvent
 
 
-class GameServer:
+class GamemodeServer:
 
     def __init__(self, tick_rate):
 
@@ -47,7 +47,7 @@ class GameServer:
             # sometimes the function belongs to a Game object, which we dont need to check because know game methods in the subscriptions are always ours
             except AttributeError:
 
-                if isinstance(function.__self__, GameServer):
+                if isinstance(function.__self__, GamemodeServer):
                     pass
                 
                 else:
