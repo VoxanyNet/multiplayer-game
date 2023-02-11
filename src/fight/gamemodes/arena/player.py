@@ -10,11 +10,10 @@ from fight.gamemodes.arena.events import JumpEvent
 
 
 class Player(PhysicsEntity):
-    def __init__(self, health=100, weapon=None, gravity=0.05, velocity = Vector(0,0), max_velocity=Vector(50,50), friction=2, rect=None, game=None, updater=None, uuid=str(uuid.uuid4()),
-                 sprite_path=None, scale_res=None, visible=True):
+    def __init__(self, health=100, weapon=None, draw_pos=None, game=None, updater=None, uuid=str(uuid.uuid4()),
+                 sprite_path="./resources/square.png", scale_res=(50,50), visible=True):
 
-        super().__init__(gravity=gravity, velocity=velocity, max_velocity=max_velocity, friction=friction, rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
-                         visible=visible)
+        super().__init__(draw_pos=draw_pos, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res, visible=visible)
 
         self.last_attack = 0
 
@@ -70,28 +69,7 @@ class Player(PhysicsEntity):
                         self.weapon = Unresolved(update_data["weapon"])
                     else:
                         self.weapon = None
-    
-    def draw(self):
-
-        pygame.draw.rect(
-            self.game.screen,
-            (255,255,255),
-            self.rect
-        )
 
     def handle_keys(self, event):
 
         keys = pygame.key.get_pressed()
-
-        if keys[pygame.K_SPACE]:
-
-            self.game.trigger_event(JumpEvent)
-            
-            if not self.airborne:
-                self.velocity.y -= 10
-
-        if keys[pygame.K_a]:
-            self.velocity.x -= 1 * self.game.clock.get_time()
-
-        if keys[pygame.K_d]:
-            self.velocity.x += 1 * self.game.clock.get_time()

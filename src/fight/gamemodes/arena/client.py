@@ -1,5 +1,5 @@
 import pygame
-from pygame import Rect
+import pymunk
 
 from engine.gamemode_client import GamemodeClient
 from fight.gamemodes.arena.player import Player
@@ -7,7 +7,7 @@ from fight.gamemodes.arena.floor import Floor
 from fight.gamemodes.arena.cursor import Cursor
 
 class ArenaClient(GamemodeClient):
-    def __init__(self, fps=60, gravity=9.8, enable_music=False):
+    def __init__(self, fps=60, enable_music=False):
         super().__init__(fps=fps)
 
         self.enable_music = enable_music
@@ -19,16 +19,14 @@ class ArenaClient(GamemodeClient):
                 "player": Player,
                 "floor": Floor
             }
-        )
+        ) 
 
-        self.gravity = gravity
-    
     def start(self):
         super().start()
 
         if self.enable_music:
     
-            pygame.mixer.music.load("/opt/fightsquares/resources/music.mp3")
+            pygame.mixer.music.load("./resources/music.mp3")
 
             pygame.mixer.music.play(loops=-1)
 
@@ -37,7 +35,7 @@ class ArenaClient(GamemodeClient):
         cursor = Cursor(game=self, updater=self.uuid)
 
         player = Player(
-            rect=Rect(100,100,50,50),
+            draw_pos=(100,100),
             game=self,
             updater=self.uuid,
         )
