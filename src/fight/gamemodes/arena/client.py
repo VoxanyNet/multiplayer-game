@@ -35,7 +35,7 @@ class ArenaClient(GamemodeClient):
         cursor = Cursor(game=self, updater=self.uuid)
 
         player = Player(
-            draw_pos=(100,100),
+            pos=(100,100),
             game=self,
             updater=self.uuid,
         )

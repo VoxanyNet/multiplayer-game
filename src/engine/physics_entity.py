@@ -8,18 +8,27 @@ from engine.events import TickEvent
 from engine.events import LandedEvent
 
 class PhysicsEntity(Entity):
-    def __init__(self, draw_pos=None, game=None, updater=None, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None, visible=True):
+    def __init__(self, shape=None, mass=None, pos=None, game=None, updater=None, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None, visible=True):
 
-        super().__init__(draw_pos=draw_pos, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res, visible=visible)
+        super().__init__(pos=pos, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res, visible=visible)
         
-        self.body = pymunk.Body()
+        if shape is None:
+            raise TypeError("Missing shape argument")
+
+        if mass is None:
+            raise TypeError("Missing mass argument")
+        
+        self.body = pymunk.Body(1, body_type=pymunk.Body.KINEMATIC)
+        self.body.position = pos
+
+        self.shape = shape
 
         self.game.event_subscriptions[TickEvent] += [
             self.update_pos
         ]
 
     def update_pos(self, event):
-        self.draw_pos = self.body.position
+        self.pos = self.body.position
 
     def dict(self):
 

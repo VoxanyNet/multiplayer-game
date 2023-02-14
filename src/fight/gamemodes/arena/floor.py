@@ -5,10 +5,10 @@ import pygame.key
 from engine.entity import Entity
 
 class Floor(Entity):
-    def __init__(self, draw_pos=None, game=None, updater=None, uuid=str(uuid.uuid4()),
-                 sprite_path=None, scale_res=None, visible=True):
+    def __init__(self, pos=None, game=None, updater=None, uuid=str(uuid.uuid4()),
+                 sprite_path="./resources/block.png", scale_res=(1920,10), visible=True):
 
-        super().__init__(draw_pos=draw_pos, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
+        super().__init__(pos=pos, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
                          visible=visible)
 
     def dict(self):

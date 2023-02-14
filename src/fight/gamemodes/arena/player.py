@@ -10,10 +10,10 @@ from fight.gamemodes.arena.events import JumpEvent
 
 
 class Player(PhysicsEntity):
-    def __init__(self, health=100, weapon=None, draw_pos=None, game=None, updater=None, uuid=str(uuid.uuid4()),
+    def __init__(self, health=100, weapon=None, pos=None, game=None, updater=None, uuid=str(uuid.uuid4()),
                  sprite_path="./resources/square.png", scale_res=(50,50), visible=True):
 
-        super().__init__(draw_pos=draw_pos, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res, visible=visible)
+        super().__init__(pos=pos, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res, visible=visible)
 
         self.last_attack = 0
 

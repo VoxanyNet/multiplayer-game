@@ -12,6 +12,8 @@ class ArenaServer(GamemodeServer):
                 "floor": Floor
             }
         )
+
+        floor = Floor(pos="pog")
     
     def start(self, host, port):
 
