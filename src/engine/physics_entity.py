@@ -1,4 +1,5 @@
 import uuid
+from copy import copy
 
 import pymunk
 
@@ -8,9 +9,10 @@ from engine.events import TickEvent
 from engine.events import LandedEvent
 
 class PhysicsEntity(Entity):
-    def __init__(self, gravity=None, velocity = Vector(0,0), max_velocity = None, friction=2, rect=None, game=None, updater=None, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None, visible=True):
+    def __init__(self, gravity=None, velocity=Vector(0,0), max_velocity=None, friction=2, collidable_entities=[], rect=None, game=None, updater=None, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None, visible=True):
 
         super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res, visible=visible)
+
         if gravity is None:
             raise TypeError("Missing gravity argument")
         
@@ -20,12 +22,12 @@ class PhysicsEntity(Entity):
         if friction is None:
             raise TypeError("Missing friction argument")
         
-        self.body = pymunk.Body()
         self.velocity = velocity
         self.gravity = gravity
         self.max_velocity = max_velocity
         self.friction = friction
         self.airborne = False
+        self.collidable_entites = collidable_entities
 
         self.game.event_subscriptions[TickEvent] += [
             self.tick,
@@ -105,12 +107,15 @@ class PhysicsEntity(Entity):
         if self in colliding_entities:
             del colliding_entities[colliding_entities.index(self)]
 
+        # remove any entities that we shouldnt collide with
+        for colliding_entity in copy(colliding_entities):
+
+            if type(colliding_entity) not in self.collidable_entites:
+                del colliding_entities[colliding_entities.index(colliding_entity)]
+
         if len(colliding_entities) != 0:
 
-            # we only use the first entity in the list for collisions
             colliding_entity = colliding_entities[0]
-
-            print(colliding_entity)
 
             # entity came in moving left
             if projected_rect_x.right >= colliding_entity.rect.left and self.rect.right < colliding_entity.rect.left:
@@ -119,8 +124,6 @@ class PhysicsEntity(Entity):
             # entity came in moving right
             elif projected_rect_x.left <= colliding_entity.rect.right and self.rect.left > colliding_entity.rect.right:
                 self.rect.left = colliding_entity.rect.right
-
-                print("epic")
         
         else:
 
@@ -137,9 +140,14 @@ class PhysicsEntity(Entity):
         if self in colliding_entities:
             del colliding_entities[colliding_entities.index(self)]
 
+        # remove any entities that we shouldnt collide with
+        for colliding_entity in copy(colliding_entities):
+
+            if type(colliding_entity) not in self.collidable_entites:
+                del colliding_entities[colliding_entities.index(colliding_entity)]
+
         if len(colliding_entities) != 0:
 
-            # we only use the first entity in the list for collisions
             colliding_entity = colliding_entities[0]
 
             #  new rect bottom is lower than the collidinng rect's top and the old rect bottom is higher than the colliding rect top
@@ -150,20 +158,19 @@ class PhysicsEntity(Entity):
                 self.velocity.y = 0
 
                 self.airborne = False
-
                 self.game.trigger_event(LandedEvent(self))
 
-                #sys.exit()
-            
             # entity came in moving up
             elif projected_rect_y.top <= colliding_entity.rect.bottom and self.rect.top >= colliding_entity.rect.bottom:
                 self.rect.top = colliding_entity.rect.bottom
 
                 self.airborne = True
+                
         else:
             self.rect.y = projected_rect_y.y
 
             self.airborne = True
+
 
     def apply_friction(self, trigger_entity=None):
 

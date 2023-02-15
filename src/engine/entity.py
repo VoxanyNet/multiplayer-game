@@ -35,6 +35,7 @@ class Entity:
             self.sprite = pygame.image.load(sprite_path)
 
         if scale_res and sprite_path:
+            print("scaling")
             self.sprite = pygame.transform.scale(self.sprite, scale_res)
 
         self.game.event_subscriptions[TickEvent].append(self.tick)

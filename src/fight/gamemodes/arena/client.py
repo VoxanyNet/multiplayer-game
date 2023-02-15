@@ -5,6 +5,7 @@ from engine.gamemode_client import GamemodeClient
 from fight.gamemodes.arena.player import Player
 from fight.gamemodes.arena.floor import Floor
 from fight.gamemodes.arena.cursor import Cursor
+from fight.gamemodes.arena.shotgun import Shotgun
 
 class ArenaClient(GamemodeClient):
     def __init__(self, fps=60, gravity=9.8, enable_music=False):
@@ -17,7 +18,8 @@ class ArenaClient(GamemodeClient):
         self.entity_type_map.update(
             {
                 "player": Player,
-                "floor": Floor
+                "floor": Floor,
+                "shotgun": Shotgun
             }
         )
 
@@ -42,11 +44,27 @@ class ArenaClient(GamemodeClient):
             updater=self.uuid,
         )
 
+        shotgun = Shotgun(
+            owner=player, 
+            rect=Rect(0,0,39,11),
+            game=self,
+            updater=self.uuid
+        )
+
+        player.weapon = shotgun
+
         self.network_update(
             update_type="create",
             entity_id=player.uuid,
             data=player.dict(),
             entity_type="player"
+        )
+
+        self.network_update(
+            update_type="create",
+            entity_id=shotgun.uuid,
+            data=shotgun.dict(),
+            entity_type="shotgun"
         )
 
         

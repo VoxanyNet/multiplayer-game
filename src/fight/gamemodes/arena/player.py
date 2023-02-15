@@ -7,13 +7,14 @@ from engine.vector import Vector
 from engine.unresolved import Unresolved
 from engine.events import TickEvent
 from fight.gamemodes.arena.events import JumpEvent
+from fight.gamemodes.arena.floor import Floor
 
 
 class Player(PhysicsEntity):
-    def __init__(self, health=100, weapon=None, gravity=0.05, velocity = Vector(0,0), max_velocity=Vector(50,50), friction=2, rect=None, game=None, updater=None, uuid=str(uuid.uuid4()),
+    def __init__(self, health=100, weapon=None, gravity=0.05, velocity = Vector(0,0), max_velocity=Vector(50,50), friction=2, collidable_entities=[Floor], rect=None, game=None, updater=None, uuid=str(uuid.uuid4()),
                  sprite_path=None, scale_res=None, visible=True):
 
-        super().__init__(gravity=gravity, velocity=velocity, max_velocity=max_velocity, friction=friction, rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
+        super().__init__(gravity=gravity, velocity=velocity, max_velocity=max_velocity, friction=friction, collidable_entities=collidable_entities, rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
                          visible=visible)
 
         self.last_attack = 0
@@ -25,6 +26,7 @@ class Player(PhysicsEntity):
         self.weapon = weapon
 
         self.game.event_subscriptions[TickEvent].append(self.handle_keys)
+        
 
     def dict(self):
 
