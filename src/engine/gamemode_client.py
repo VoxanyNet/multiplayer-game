@@ -34,6 +34,17 @@ class GamemodeClient:
         )
         self.fps = fps
         self.waiting_for_updates = False
+    
+    def detect_collisions(self, rect, collection):
+
+        colliding_entities = []
+
+        for entity in get_matching_objects(collection, Entity):
+
+            if rect.colliderect(entity.rect):
+                colliding_entities.append(entity)
+
+        return colliding_entities
 
     def lookup_entity_type_string(self, entity):
 

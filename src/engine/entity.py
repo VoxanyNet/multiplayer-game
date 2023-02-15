@@ -1,6 +1,7 @@
 import uuid
 
 import pygame.image
+from pygame import Rect
 
 from engine.unresolved import Unresolved
 from engine.helpers import get_matching_objects
@@ -8,11 +9,11 @@ from engine.events import TickEvent
 
 
 class Entity:
-    def __init__(self, pos=None, game=None, updater=None, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None,
+    def __init__(self, rect=None, game=None, updater=None, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None,
                  visible=True):
 
-        if pos is None:
-            raise TypeError("Missing pos argument")
+        if rect is None:
+            raise TypeError("Missing rect argument")
 
         if game is None:
             raise TypeError("Missing game argument")
@@ -21,7 +22,7 @@ class Entity:
             raise TypeError("Missing updater argument")
 
         self.visible = visible
-        self.pos = pos
+        self.rect = rect
         self.updater = updater
         self.uuid = uuid
         self.game = game
@@ -36,10 +37,7 @@ class Entity:
         if scale_res and sprite_path:
             self.sprite = pygame.transform.scale(self.sprite, scale_res)
 
-        self.game.event_subscriptions[TickEvent] += [
-            self.tick,
-            self.draw
-        ]
+        self.game.event_subscriptions[TickEvent].append(self.tick)
 
     def resolve(self):
         for attribute_name, attribute in self.__dict__.copy().items():
@@ -56,7 +54,7 @@ class Entity:
     def dict(self):
 
         data_dict = {
-            "pos": self.pos,
+            "rect": list(self.rect),
             "visible": self.visible,
             "updater": self.updater,
             "sprite_path": self.sprite_path,
@@ -68,7 +66,9 @@ class Entity:
     @classmethod
     def create(cls, entity_data, entity_id, game):
 
-        entity_data["pos"] = entity_data["pos"]
+        entity_data["rect"] = Rect(
+            entity_data["rect"]
+        )
 
         entity_data["visible"] = entity_data["visible"]
 
@@ -89,9 +89,11 @@ class Entity:
                 case "visible":
                     self.visible = update_data["visible"]
 
-                case "pos":
+                case "rect":
                     
-                    self.pos = update_data["pos"]
+                    self.rect.update(
+                        update_data["rect"]
+                    )
 
                 case "updater":
                     self.updater = update_data["updater"]
@@ -103,5 +105,4 @@ class Entity:
         pass
 
     def draw(self):
-        self.game.screen.blit(self.sprite, self.pos)
-
+        self.game.screen.blit(self.sprite, self.rect)
