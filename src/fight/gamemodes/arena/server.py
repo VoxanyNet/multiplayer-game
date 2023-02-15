@@ -1,10 +1,10 @@
 from pygame import Rect
 
-from engine.game_server import GameServer
-from player import Player
-from floor import Floor
+from engine.gamemode_server import GamemodeServer
+from fight.gamemodes.arena.player import Player
+from fight.gamemodes.arena.floor import Floor
 
-class FightServer(GameServer):
+class FightServer(GamemodeServer):
     def __init__(self, tick_rate):
         super().__init__(tick_rate=tick_rate)
 

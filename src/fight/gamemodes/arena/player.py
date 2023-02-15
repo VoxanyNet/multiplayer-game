@@ -6,7 +6,7 @@ from engine.physics_entity import PhysicsEntity
 from engine.vector import Vector
 from engine.unresolved import Unresolved
 from engine.events import TickEvent
-from events import JumpEvent
+from fight.gamemodes.arena.events import JumpEvent
 
 
 class Player(PhysicsEntity):

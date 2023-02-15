@@ -1,12 +1,12 @@
 import pygame
 from pygame import Rect
 
-from engine.game import Game
-from player import Player
-from floor import Floor
-from cursor import Cursor
+from engine.gamemode_client import GamemodeClient
+from fight.gamemodes.arena.player import Player
+from fight.gamemodes.arena.floor import Floor
+from fight.gamemodes.arena.cursor import Cursor
 
-class Fight(Game):
+class Fight(GamemodeClient):
     def __init__(self, fps=60, gravity=9.8, enable_music=False):
         super().__init__(fps=fps)
 
@@ -50,5 +50,4 @@ class Fight(Game):
         )
 
         
-
 

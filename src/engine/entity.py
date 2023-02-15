@@ -106,4 +106,3 @@ class Entity:
 
     def draw(self):
         self.game.screen.blit(self.sprite, self.rect)
-

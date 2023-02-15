@@ -14,7 +14,7 @@ from engine.exceptions import InvalidUpdateType, MalformedUpdate
 from engine.events import TickEvent
 
 
-class Game:
+class GamemodeClient:
     def __init__(self, fps=60):
         self.clock = pygame.time.Clock()
         self.server = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
@@ -182,7 +182,7 @@ class Game:
             # sometimes the function belongs to a Game object, which we dont need to check because know game methods in the subscriptions are always ours
             except AttributeError:
 
-                if isinstance(function.__self__, Game):
+                if isinstance(function.__self__, GamemodeClient):
                     pass
                 
                 else:
