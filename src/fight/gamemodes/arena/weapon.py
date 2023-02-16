@@ -92,6 +92,14 @@ class Weapon(Entity):
     def follow_owner(self, event):
         self.rect = self.owner.rect.move(0,-50)
 
+        self.game.network_update(
+            update_type="update",
+            entity_id=self.uuid,
+            data={
+                "rect": list(self.rect)
+            }
+        )
+
     def follow_cursor(self, event):
         mouse_pos = pygame.mouse.get_pos()
 

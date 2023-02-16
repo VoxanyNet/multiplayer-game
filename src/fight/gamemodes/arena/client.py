@@ -67,5 +67,7 @@ class ArenaClient(GamemodeClient):
             entity_type="shotgun"
         )
 
+        print(self.entities)
+
         
 
