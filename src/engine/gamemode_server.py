@@ -124,121 +124,24 @@ class GamemodeServer:
 
     def handle_new_client(self, new_client):
 
-        print("New connecting client")
-
-        self.socket.setblocking(True)
-
-        client_uuid = new_client.recv_headered().decode("utf-8")
-
-        self.socket.setblocking(False)
-
-        self.client_sockets[client_uuid] = new_client
-
-        if len(self.entities) == 0:
-            
-            empty_update = json.dumps([])
-
-            new_client.send_headered(
-                bytes(empty_update, "utf-8")
-            )
-
-            print("no entities, sending empty update")
-
-        else:
-            for entity in self.entities.values():
-
-                entity_type_string = self.lookup_entity_type_string(entity)
-                
-                data = entity.dict()
-
-                self.network_update(update_type="create", entity_id=entity.uuid, data=data, entity_type=entity_type_string, destinations=[client_uuid])
-                
-                self.send_client_updates(force=True)
+        pass
 
     
     def handle_client_disconnect(self, client_uuid):
 
-        for entity_uuid, entity in self.entities.copy().items():
-
-            if entity.updater == client_uuid:
-                del self.entities[entity_uuid]
-
-                self.network_update(
-                    update_type="delete",
-                    entity_id=entity_uuid,
-                    destinations=list(self.client_sockets.keys())
-                )
-        
-        print(f"{client_uuid} disconnected")
-        
-        del self.client_sockets[client_uuid]
-
-        print(self.update_queue)
-
-        del self.update_queue[client_uuid]
-
-        print(self.update_queue)
+        pass
         
     def accept_new_clients(self):
 
-        try:
-            new_client, address = self.socket.accept()
-
-            self.handle_new_client(new_client)
-
-        except BlockingIOError: 
-            pass
+        pass
     
     def receive_client_updates(self):
 
-        for sending_client_uuid, sending_client in self.client_sockets.copy().items():
+        pass
 
-            try:
-                incoming_updates = json.loads(
-                    sending_client.recv_headered().decode("utf-8")
-                )
+    def send_client_updates(self):
 
-            except BlockingIOError:
-                continue
-                
-            except Disconnected:
-
-                self.handle_client_disconnect(sending_client_uuid)
-
-                continue
-            
-            #self.validate_updates
-
-            self.updates_to_load += incoming_updates
-
-            self.clients_that_sent_updates.append(sending_client_uuid)
-
-            for receiving_client_uuid, receiving_client in self.client_sockets.items():
-
-                if sending_client_uuid is receiving_client_uuid:
-                    continue
-
-                self.update_queue[receiving_client_uuid] += incoming_updates
-
-    def send_client_updates(self, force=False):
-
-        for receiving_client_uuid, updates in self.update_queue.copy().items():
-            
-            # we do not send updates to clients that did not send us an update
-            # this is to prevent the client's socket buffer becoming full, which might happen if the client FPS is lower than the server tick rate
-            # pretty sure this effectively doubles the latency between the server and client
-            if receiving_client_uuid not in self.clients_that_sent_updates and not force:
-                continue 
-            
-            updates_json = json.dumps(updates)
-            
-            self.client_sockets[receiving_client_uuid].send_headered(
-                bytes(updates_json, "utf-8")
-            )
-        
-            self.update_queue[receiving_client_uuid] = []
-
-        self.clients_that_sent_updates = []
+        pass
             
     def run(self, host=socket.gethostname(), port=5560):
 
