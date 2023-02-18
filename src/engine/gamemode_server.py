@@ -4,7 +4,7 @@ from collections import defaultdict
 from copy import deepcopy
 
 import pygame
-from flask import Flask, request
+from flask import Flask, request, jsonify
 
 from engine import headered_socket
 from engine.headered_socket import Disconnected
@@ -23,10 +23,13 @@ class GamemodeServer:
         self.uuid = "server"
         self.tick_rate = tick_rate
         self.server_clock = pygame.time.Clock()
-        self.update_queue = defaultdict(list)
+        self.update_queue = {}
         self.event_subscriptions = defaultdict(list)
 
-        self.flask_app.add_url_rule
+        self.flask_app.add_url_rule("/player/<string:player_uuid>", self.add_player, methods=["POST"])
+        self.flask_app.add_url_rule("/player/<string:player_uuid>", self.remove_player, methods=["DELETE"])
+        self.flask_app.add_url_rule("/updates/<string:player_uuid>", self.send_updates, methods=["PUT"])
+        self.flask_app.add_url_rule("/updates/<string:player_uuid>", self.receive_updates, methods=["GET"])
     
     def start(self, host, port):
         # initialization stuff
@@ -75,21 +78,33 @@ class GamemodeServer:
                 return entity_type_string
 
     def add_player(self, player_uuid):
-
-        pass
+        
+        # creates an entry in the update queue for the new player
+        self.update_queue[player_uuid] = []
 
     
     def remove_player(self, player_uuid):
-
-        pass
+        
+        del self.update_queue[player_uuid]
     
-    def receive_player_updates(self, player_uuid):
+    def send_updates(self, player_uuid):
 
-        pass
+        incoming_updates = json.loads(
+            request.json
+        )
 
-    def send_player_updates(self, player_uuid):
+        for receiving_player_uuid in self.update_queue.keys():
+            if receiving_player_uuid != player_uuid:
+                self.update_queue[receiving_player_uuid] += incoming_updates
 
-        pass
+    def receive_updates(self, player_uuid):
+        
+        updates = deepcopy(self.update_queue[player_uuid])
+
+        # receiving updates clears this player's update queue
+        del self.update_queue[player_uuid]
+
+        return jsonify(updates) 
             
     def run(self, host=socket.gethostname(), port=5560):
 
