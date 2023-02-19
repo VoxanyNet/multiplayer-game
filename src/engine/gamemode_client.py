@@ -6,6 +6,7 @@ from collections import defaultdict
 
 import pygame
 import pymunk
+import requests
 
 from engine import headered_socket
 from engine.entity import Entity
@@ -15,9 +16,10 @@ from engine.events import TickEvent
 
 
 class GamemodeClient:
-    def __init__(self, fps=60):
+    def __init__(self, server_address, fps=60):
         self.clock = pygame.time.Clock()
-        self.server = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server = requests.Session()
+        self.server_address = server_address
         self.uuid = str(uuid.uuid4())
         self.update_queue = []
         self.entity_type_map = {}
@@ -79,19 +81,10 @@ class GamemodeClient:
         # we must send an updates list even if there are no updates
         # this is because the server will only give US updates if we do first
 
-        # we do not send updates to the server if we did not RECEIVE updates last tick
-        if self.waiting_for_updates:
-            return
-
-        updates_json = json.dumps(
-            self.update_queue
-        )
-
-        self.server.send_headered(
-            bytes(
-                updates_json, "utf-8"
+        self.server.put(
+            f"{self.server_address}/updates/{self.uuid}"
+            json=self.update_queue
             )
-        )
 
         self.update_queue = []
 
@@ -178,7 +171,7 @@ class GamemodeClient:
             try:
                 if function.__self__.updater != self.uuid:
                     continue
-            
+        
             # sometimes the function belongs to a Game object, which we dont need to check because know game methods in the subscriptions are always ours
             except AttributeError:
 
@@ -196,27 +189,17 @@ class GamemodeClient:
 
         pygame.init()
         
-    def connect(self, server_ip, server_port=5560):
+    def connect(self):
 
-        self.server.connect((server_ip, server_port))
-        
-        print("Connected to server")
-        
-        self.server.send_headered(
-            bytes(self.uuid, "utf-8")
+        self.server.post(
+            f"{self.server_address}/player/{self.uuid}"
         )
-        self.receive_network_updates()
-
-        self.server.setblocking(False)
-
-        print("Received initial state")
-    
     
     def run(self, server_ip, server_port=5560):
 
         self.start()
 
-        self.connect(server_ip=server_ip, server_port=server_port)
+        self.connect()
 
         running = True 
 
