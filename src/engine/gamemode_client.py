@@ -82,28 +82,15 @@ class GamemodeClient:
         # this is because the server will only give US updates if we do first
 
         self.server.put(
-            f"{self.server_address}/updates/{self.uuid}"
+            f"{self.server_address}/updates/{self.uuid}",
             json=self.update_queue
-            )
+        )
 
         self.update_queue = []
 
     def receive_network_updates(self):
 
-        try:
-            updates_json = self.server.recv_headered().decode("utf-8")
-
-        except BlockingIOError:
-            # this means that we need to wait until the next tick to receive our updates
-            # this occurs when the server didnt respond fast enough with the updates
-
-            self.waiting_for_updates = True # we use this to indicate that we should NOT send another update to the server
-            
-            return
-
-        updates = json.loads(
-            updates_json
-        )
+        updates = requests.get(f"{self.server_address}/updates/{self.uuid}").json()
 
         for update in updates:
 
@@ -136,10 +123,6 @@ class GamemodeClient:
 
         for entity in self.entities.values():
             entity.resolve()
-        
-        self.waiting_for_updates = False # this indicates that we can safely send more updates to the server
-
-        return
 
     def draw_entities(self):
         for entity in self.entities.values():
@@ -195,7 +178,7 @@ class GamemodeClient:
             f"{self.server_address}/player/{self.uuid}"
         )
     
-    def run(self, server_ip, server_port=5560):
+    def run(self):
 
         self.start()
 

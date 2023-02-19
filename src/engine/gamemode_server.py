@@ -26,10 +26,10 @@ class GamemodeServer:
         self.update_queue = {}
         self.event_subscriptions = defaultdict(list)
 
-        self.flask_app.add_url_rule("/player/<string:player_uuid>", self.add_player, methods=["POST"])
-        self.flask_app.add_url_rule("/player/<string:player_uuid>", self.remove_player, methods=["DELETE"])
-        self.flask_app.add_url_rule("/updates/<string:player_uuid>", self.send_updates, methods=["PUT"])
-        self.flask_app.add_url_rule("/updates/<string:player_uuid>", self.receive_updates, methods=["GET"])
+        self.flask_app.add_url_rule("/player/<string:player_uuid>", view_func=self.add_player, methods=["POST"])
+        self.flask_app.add_url_rule("/player/<string:player_uuid>", view_func=self.remove_player, methods=["DELETE"])
+        self.flask_app.add_url_rule("/updates/<string:player_uuid>", view_func=self.send_updates, methods=["PUT"])
+        self.flask_app.add_url_rule("/updates/<string:player_uuid>", view_func=self.receive_updates, methods=["GET"])
     
     def start(self, host, port):
         # initialization stuff
@@ -38,7 +38,7 @@ class GamemodeServer:
 
     def load_updates(self, updates):
 
-        for update in deepcopy(self.updates_to_load):
+        for update in deepcopy(updates):
             
             match update["update_type"]:
 
@@ -82,10 +82,19 @@ class GamemodeServer:
         # creates an entry in the update queue for the new player
         self.update_queue[player_uuid] = []
 
+        # HEYYY add initial create updates here!!!!
+        # HEYYY add initial create updates here!!!!
+        # HEYYY add initial create updates here!!!!
+        # HEYYY add initial create updates here!!!!
+        # HEYYY add initial create updates here!!!!
+        return 201
+
     
     def remove_player(self, player_uuid):
         
         del self.update_queue[player_uuid]
+
+        return 204
     
     def send_updates(self, player_uuid):
 
@@ -96,6 +105,11 @@ class GamemodeServer:
         for receiving_player_uuid in self.update_queue.keys():
             if receiving_player_uuid != player_uuid:
                 self.update_queue[receiving_player_uuid] += incoming_updates
+        
+        # load updates on the server side so new clients can receive current state
+        self.load_updates(incoming_updates)
+
+        return 201
 
     def receive_updates(self, player_uuid):
         
