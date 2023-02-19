@@ -82,12 +82,24 @@ class GamemodeServer:
         # creates an entry in the update queue for the new player
         self.update_queue[player_uuid] = []
 
-        # HEYYY add initial create updates here!!!!
-        # HEYYY add initial create updates here!!!!
-        # HEYYY add initial create updates here!!!!
-        # HEYYY add initial create updates here!!!!
-        # HEYYY add initial create updates here!!!!
-        return 201
+        initial_updates = []
+
+        for entity in self.entities.values():
+
+            entity_type_string = self.lookup_entity_type_string(entity)
+            
+            data = entity.dict()
+
+            update = {
+                "update_type": "create",
+                "entity_id": entity.uuid,
+                "entity_type": entity_type_string,
+                "data": data
+            }
+            
+            initial_updates.append(update)
+
+        return jsonify(initial_updates)
 
     
     def remove_player(self, player_uuid):
