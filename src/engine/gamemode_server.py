@@ -21,9 +21,10 @@ class GamemodeServer:
         self.entities = {}
         self.entity_type_map = {}
         self.update_queue = {}
+        self.event_subscriptions = defaultdict(list) # entities require an event subscriptions attribute to be created
 
-        # log = logging.getLogger('werkzeug')
-        # log.disabled = True
+        log = logging.getLogger('werkzeug')
+        log.disabled = True
 
         self.flask_app.add_url_rule("/player/<string:player_uuid>", view_func=self.add_player, methods=["POST"])
         self.flask_app.add_url_rule("/player/<string:player_uuid>", view_func=self.remove_player, methods=["DELETE"])
@@ -121,14 +122,16 @@ class GamemodeServer:
         # load updates on the server side so new clients can receive current state
         self.load_updates(incoming_updates)
 
-        return 201
+        return ("received updates", 201)
 
     def receive_updates(self, player_uuid):
+
+        print(self.update_queue)
         
         updates = deepcopy(self.update_queue[player_uuid])
 
         # receiving updates clears this player's update queue
-        del self.update_queue[player_uuid]
+        self.update_queue[player_uuid] = []
 
         return jsonify(updates) 
     
