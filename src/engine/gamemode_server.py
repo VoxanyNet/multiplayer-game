@@ -3,6 +3,7 @@ import json
 from collections import defaultdict
 from copy import deepcopy
 import logging
+import sys
 
 import pygame
 from flask import Flask, request, jsonify
@@ -77,6 +78,9 @@ class GamemodeServer:
         # if there are currently no clients connected, this client becomes the master
         if len(self.update_queue) == 0:
             is_master = True 
+        
+        else:
+            is_master = False
 
         self.update_queue[player_uuid] = []
 
@@ -126,7 +130,7 @@ class GamemodeServer:
 
     def receive_updates(self, player_uuid):
 
-        print(self.update_queue)
+        #print(len(self.update_queue))
         
         updates = deepcopy(self.update_queue[player_uuid])
 

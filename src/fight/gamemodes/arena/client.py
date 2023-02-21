@@ -65,6 +65,20 @@ class ArenaClient(GamemodeClient):
             entity_type="shotgun"
         )
 
+        if self.is_master:
+            floor = Floor(
+                rect=Rect(0,600,1920,20),
+                game=self,
+                updater="server"
+            )
+
+            self.network_update(
+                update_type="create",
+                entity_id=floor.uuid,
+                data=floor.dict(),
+                entity_type="floor"
+            )
+
         print(self.entities)
 
         
