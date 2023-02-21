@@ -2,6 +2,7 @@ import socket
 import json
 from collections import defaultdict
 from copy import deepcopy
+import logging
 
 import pygame
 from flask import Flask, request, jsonify
@@ -14,27 +15,20 @@ from engine.events import TickEvent
 
 class GamemodeServer:
 
-    def __init__(self, tick_rate):
+    def __init__(self):
 
         self.flask_app = Flask(__name__)
-
         self.entities = {}
         self.entity_type_map = {}
-        self.uuid = "server"
-        self.tick_rate = tick_rate
-        self.server_clock = pygame.time.Clock()
         self.update_queue = {}
-        self.event_subscriptions = defaultdict(list)
+
+        # log = logging.getLogger('werkzeug')
+        # log.disabled = True
 
         self.flask_app.add_url_rule("/player/<string:player_uuid>", view_func=self.add_player, methods=["POST"])
         self.flask_app.add_url_rule("/player/<string:player_uuid>", view_func=self.remove_player, methods=["DELETE"])
         self.flask_app.add_url_rule("/updates/<string:player_uuid>", view_func=self.send_updates, methods=["PUT"])
         self.flask_app.add_url_rule("/updates/<string:player_uuid>", view_func=self.receive_updates, methods=["GET"])
-    
-    def start(self, host, port):
-        # initialization stuff
-
-        pass
 
     def load_updates(self, updates):
 
@@ -79,7 +73,10 @@ class GamemodeServer:
 
     def add_player(self, player_uuid):
         
-        # creates an entry in the update queue for the new player
+        # if there are currently no clients connected, this client becomes the master
+        if len(self.update_queue) == 0:
+            is_master = True 
+
         self.update_queue[player_uuid] = []
 
         initial_updates = []
@@ -98,8 +95,13 @@ class GamemodeServer:
             }
             
             initial_updates.append(update)
+        
+        response = {
+            "is_master": is_master,
+            "initial_updates": initial_updates
+        }
 
-        return jsonify(initial_updates)
+        return jsonify(response)
 
     
     def remove_player(self, player_uuid):
@@ -109,10 +111,8 @@ class GamemodeServer:
         return 204
     
     def send_updates(self, player_uuid):
-
-        incoming_updates = json.loads(
-            request.json
-        )
+        
+        incoming_updates = request.json
 
         for receiving_player_uuid in self.update_queue.keys():
             if receiving_player_uuid != player_uuid:
@@ -131,9 +131,7 @@ class GamemodeServer:
         del self.update_queue[player_uuid]
 
         return jsonify(updates) 
-            
-    def run(self, host=socket.gethostname(), port=5560):
+    
+    def run(self, host=socket.gethostbyname(socket.gethostname()), port=5560):
 
-        self.start(host, port)
-
-        self.flask_app.run()
+        self.flask_app.run(host=host, port=port)

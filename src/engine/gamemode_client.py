@@ -19,6 +19,7 @@ class GamemodeClient:
     def __init__(self, server_address, fps=60):
         self.clock = pygame.time.Clock()
         self.server = requests.Session()
+        self.is_master = True # the update server will tell the first client to connect to become master
         self.server_address = server_address
         self.uuid = str(uuid.uuid4())
         self.update_queue = []
@@ -27,15 +28,12 @@ class GamemodeClient:
         self.event_subscriptions = defaultdict(list)
         self.event_subscriptions[TickEvent].append(self.clear_screen)
         self.tick_counter = 0
-        self.space = pymunk.Space()
-        self.space.gravity = 0,-981
         self.screen = pygame.display.set_mode(
             [1280, 720],
             pygame.RESIZABLE
             #pygame.FULLSCREEN
         )
         self.fps = fps
-        self.waiting_for_updates = False
     
     def detect_collisions(self, rect, collection):
 
@@ -88,9 +86,8 @@ class GamemodeClient:
 
         self.update_queue = []
 
-    def receive_network_updates(self):
-
-        updates = requests.get(f"{self.server_address}/updates/{self.uuid}").json()
+    
+    def load_updates(self, updates):
 
         for update in updates:
 
@@ -124,6 +121,12 @@ class GamemodeClient:
         for entity in self.entities.values():
             entity.resolve()
 
+    def receive_network_updates(self):
+
+        updates = requests.get(f"{self.server_address}/updates/{self.uuid}").json()
+
+        self.load_updates(updates)
+        
     def draw_entities(self):
         for entity in self.entities.values():
             if entity.visible: 
@@ -169,20 +172,26 @@ class GamemodeClient:
 
 
     def start(self):
-
+        
         pygame.init()
         
     def connect(self):
 
-        self.server.post(
+        resp = self.server.post(
             f"{self.server_address}/player/{self.uuid}"
+        ).json()
+
+        self.is_master = resp["is_master"]
+
+        self.load_updates(
+            resp["initial_updates"]
         )
     
     def run(self):
+        
+        self.connect()
 
         self.start()
-
-        self.connect()
 
         running = True 
 

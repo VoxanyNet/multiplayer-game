@@ -18,11 +18,11 @@ port = 5593
 
 if args.is_server:
 
-    server = ArenaServer(tick_rate=60)
+    server = ArenaServer()
 
     server.run(port=port)
 
 else:
-    game = ArenaClient("http://127.0.0.1:5000", fps=200, enable_music=args.enable_music)
+    game = ArenaClient(f"http://192.168.0.24:{port}", fps=200, enable_music=args.enable_music)
 
     game.run()

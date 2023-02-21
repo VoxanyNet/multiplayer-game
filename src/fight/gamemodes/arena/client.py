@@ -8,7 +8,7 @@ from fight.gamemodes.arena.cursor import Cursor
 from fight.gamemodes.arena.shotgun import Shotgun
 
 class ArenaClient(GamemodeClient):
-    def __init__(self, server_address, fps=60, gravity=9.8, enable_music=False):
+    def __init__(self, server_address, fps=60, enable_music=False):
         super().__init__(server_address, fps=fps)
 
         self.enable_music = enable_music
@@ -22,8 +22,6 @@ class ArenaClient(GamemodeClient):
                 "shotgun": Shotgun
             }
         )
-
-        self.gravity = gravity
     
     def start(self):
         super().start()
