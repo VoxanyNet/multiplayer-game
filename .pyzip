@@ -1,5 +1,5 @@
 # default config file
 
-package_directory = "./src"
+package_directory = "./src/fight"
 
 output_path = "./pyzip/archive.pyz"
