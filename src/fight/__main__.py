@@ -1,6 +1,7 @@
 import random
 import argparse
 import sys
+import os
 
 from fight.gamemodes.arena.client import ArenaClient
 from fight.gamemodes.arena.server import ArenaServer

@@ -12,7 +12,7 @@ from fight.gamemodes.arena.floor import Floor
 
 class Player(PhysicsEntity):
     def __init__(self, health=100, weapon=None, gravity=0.05, velocity = Vector(0,0), max_velocity=Vector(50,50), friction=2, collidable_entities=[Floor], rect=None, game=None, updater=None, uuid=str(uuid.uuid4()),
-                 sprite_path=None, scale_res=None, visible=True):
+                 sprite_path="fight/resources/cat.png", scale_res=None, visible=True):
 
         super().__init__(gravity=gravity, velocity=velocity, max_velocity=max_velocity, friction=friction, collidable_entities=collidable_entities, rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
                          visible=visible)
