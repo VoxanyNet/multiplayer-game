@@ -24,6 +24,6 @@ if args.is_server:
     server.run(port=port)
 
 else:
-    game = ArenaClient(f"http://192.168.0.24:{port}", fps=200, enable_music=args.enable_music)
+    game = ArenaClient(f"http://voxany.net:{port}", fps=200, enable_music=args.enable_music)
 
     game.run()

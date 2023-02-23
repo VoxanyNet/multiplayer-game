@@ -1,14 +1,9 @@
-import time
 import uuid
-import socket
-import json
 from collections import defaultdict
 
 import pygame
-import pymunk
 import requests
 
-from engine import headered_socket
 from engine.entity import Entity
 from engine.helpers import get_matching_objects
 from engine.exceptions import InvalidUpdateType, MalformedUpdate

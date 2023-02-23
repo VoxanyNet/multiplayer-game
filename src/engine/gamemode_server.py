@@ -1,9 +1,7 @@
 import socket
-import json
 from collections import defaultdict
 from copy import deepcopy
 import logging
-import sys
 
 import pygame
 from flask import Flask, request, jsonify
