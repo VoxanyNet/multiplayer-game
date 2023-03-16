@@ -2,11 +2,14 @@ import pygame
 from pygame import Rect
 
 from engine.gamemode_client import GamemodeClient
-from fight.gamemodes.arena.entities import Player, Floor, Cursor, Shotgun
+from fight.gamemodes.arena.player import Player
+from fight.gamemodes.arena.floor import Floor
+from fight.gamemodes.arena.cursor import Cursor
+from fight.gamemodes.arena.shotgun import Shotgun
 
 class ArenaClient(GamemodeClient):
-    def __init__(self, server_address, fps=60, enable_music=False):
-        super().__init__(server_address, fps=fps)
+    def __init__(self, fps=60, gravity=9.8, enable_music=False):
+        super().__init__(fps=fps)
 
         self.enable_music = enable_music
 
@@ -19,6 +22,8 @@ class ArenaClient(GamemodeClient):
                 "shotgun": Shotgun
             }
         )
+
+        self.gravity = gravity
     
     def start(self):
         super().start()
@@ -61,20 +66,6 @@ class ArenaClient(GamemodeClient):
             data=shotgun.dict(),
             entity_type="shotgun"
         )
-
-        if self.is_master:
-            floor = Floor(
-                rect=Rect(0,600,1920,20),
-                game=self,
-                updater="server"
-            )
-
-            self.network_update(
-                update_type="create",
-                entity_id=floor.uuid,
-                data=floor.dict(),
-                entity_type="floor"
-            )
 
         print(self.entities)
 

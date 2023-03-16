@@ -1,10 +1,9 @@
 import socket
+import json
 from collections import defaultdict
 from copy import deepcopy
-import logging
 
 import pygame
-from flask import Flask, request, jsonify
 
 from engine import headered_socket
 from engine.headered_socket import Disconnected
@@ -14,17 +13,75 @@ from engine.events import TickEvent
 
 class GamemodeServer:
 
-    def __init__(self):
+    def __init__(self, tick_rate):
 
-        self.server = headered_socket.HeaderedSocket()
+        self.socket = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
+
+        self.client_sockets = {}
         self.entities = {}
         self.entity_type_map = {}
-        self.update_queue = {}
+        self.updates_to_load = []
+        self.uuid = "server"
+        self.tick_rate = tick_rate
+        self.server_clock = pygame.time.Clock()
+        self.clients_that_sent_updates = []
+        self.update_queue = defaultdict(list)
         self.event_subscriptions = defaultdict(list)
+    
+    def start(self, host, port):
+        self.socket.bind((host, port))
+        self.socket.setblocking(False)
+        self.socket.listen(5)
 
-    def load_updates(self, updates):
+        print("server online...")
 
-        for update in deepcopy(updates):
+    def trigger_event(self, event):
+
+        for function in self.event_subscriptions[type(event)]:
+            
+            # dont call function if the entity this function belongs to isnt ours
+            try:
+                if function.__self__.updater != self.uuid:
+                    continue
+            
+            # sometimes the function belongs to a Game object, which we dont need to check because know game methods in the subscriptions are always ours
+            except AttributeError:
+
+                if isinstance(function.__self__, GamemodeServer):
+                    pass
+                
+                else:
+                    raise Exception("Only methods belonging to Game or Entity objects may be subscribers to events")
+
+            
+
+    def network_update(self, update_type=None, entity_id=None, data=None, entity_type=None, destinations=None):
+
+        if destinations is None:
+            raise MalformedUpdate("Server side network updates require a destination")
+
+        if update_type not in ["create", "update", "delete"]:
+            raise InvalidUpdateType(f"Update type {update_type} is invalid")
+
+        if update_type == "create" and entity_type is None:
+            raise MalformedUpdate("Create update requires 'entity_type' parameter")
+
+        if update_type == "create" and entity_type not in self.entity_type_map:
+            raise MalformedUpdate(f"Entity type {entity_type} does not exist in the entity type map")
+
+        update = {
+            "update_type": update_type,
+            "entity_id": entity_id,
+            "entity_type": entity_type,
+            "data": data
+        }
+        
+        for destination in destinations:
+            self.update_queue[destination].append(update)
+
+    def load_updates(self):
+
+        for update in deepcopy(self.updates_to_load):
             
             match update["update_type"]:
 
@@ -53,6 +110,8 @@ class GamemodeServer:
                     del self.entities[
                         update["entity_id"]
                     ]
+            
+        self.updates_to_load = []
 
         for entity in self.entities.values():
             entity.resolve()
@@ -63,72 +122,140 @@ class GamemodeServer:
             if type(entity) is entity_type:
                 return entity_type_string
 
-    def add_player(self, player_uuid):
-        
-        # if there are currently no clients connected, this client becomes the master
-        if len(self.update_queue) == 0:
-            is_master = True 
-        
+    def handle_new_client(self, new_client):
+
+        print("New connecting client")
+
+        self.socket.setblocking(True)
+
+        client_uuid = new_client.recv_headered().decode("utf-8")
+
+        self.socket.setblocking(False)
+
+        self.client_sockets[client_uuid] = new_client
+
+        if len(self.entities) == 0:
+            
+            empty_update = json.dumps([])
+
+            new_client.send_headered(
+                bytes(empty_update, "utf-8")
+            )
+
+            print("no entities, sending empty update")
+
         else:
-            is_master = False
+            for entity in self.entities.values():
 
-        self.update_queue[player_uuid] = []
+                entity_type_string = self.lookup_entity_type_string(entity)
+                
+                data = entity.dict()
 
-        initial_updates = []
+                self.network_update(update_type="create", entity_id=entity.uuid, data=data, entity_type=entity_type_string, destinations=[client_uuid])
+                
+                self.send_client_updates(force=True)
 
-        for entity in self.entities.values():
+    
+    def handle_client_disconnect(self, client_uuid):
 
-            entity_type_string = self.lookup_entity_type_string(entity)
+        for entity_uuid, entity in self.entities.copy().items():
+
+            if entity.updater == client_uuid:
+                del self.entities[entity_uuid]
+
+                self.network_update(
+                    update_type="delete",
+                    entity_id=entity_uuid,
+                    destinations=list(self.client_sockets.keys())
+                )
+        
+        print(f"{client_uuid} disconnected")
+        
+        del self.client_sockets[client_uuid]
+
+        print(self.update_queue)
+
+        del self.update_queue[client_uuid]
+
+        print(self.update_queue)
+        
+    def accept_new_clients(self):
+
+        try:
+            new_client, address = self.socket.accept()
+
+            self.handle_new_client(new_client)
+
+        except BlockingIOError: 
+            pass
+    
+    def receive_client_updates(self):
+
+        for sending_client_uuid, sending_client in self.client_sockets.copy().items():
+
+            try:
+                incoming_updates = json.loads(
+                    sending_client.recv_headered().decode("utf-8")
+                )
+
+            except BlockingIOError:
+                continue
+                
+            except Disconnected:
+
+                self.handle_client_disconnect(sending_client_uuid)
+
+                continue
             
-            data = entity.dict()
+            #self.validate_updates
 
-            update = {
-                "update_type": "create",
-                "entity_id": entity.uuid,
-                "entity_type": entity_type_string,
-                "data": data
-            }
+            self.updates_to_load += incoming_updates
+
+            self.clients_that_sent_updates.append(sending_client_uuid)
+
+            for receiving_client_uuid, receiving_client in self.client_sockets.items():
+
+                if sending_client_uuid is receiving_client_uuid:
+                    continue
+
+                self.update_queue[receiving_client_uuid] += incoming_updates
+
+    def send_client_updates(self, force=False):
+
+        for receiving_client_uuid, updates in self.update_queue.copy().items():
             
-            initial_updates.append(update)
+            # we do not send updates to clients that did not send us an update
+            # this is to prevent the client's socket buffer becoming full, which might happen if the client FPS is lower than the server tick rate
+            # pretty sure this effectively doubles the latency between the server and client
+            if receiving_client_uuid not in self.clients_that_sent_updates and not force:
+                continue 
+            
+            updates_json = json.dumps(updates)
+            
+            self.client_sockets[receiving_client_uuid].send_headered(
+                bytes(updates_json, "utf-8")
+            )
         
-        response = {
-            "is_master": is_master,
-            "initial_updates": initial_updates
-        }
+            self.update_queue[receiving_client_uuid] = []
 
-        return jsonify(response)
+        self.clients_that_sent_updates = []
+            
+    def run(self, host=socket.gethostname(), port=5560):
 
-    
-    def remove_player(self, player_uuid):
-        
-        del self.update_queue[player_uuid]
+        self.start(host, port)
 
-        return 204
-    
-    def send_updates(self, player_uuid):
-        
-        incoming_updates = request.json
+        while True:   
+            
+            self.accept_new_clients()
 
-        for receiving_player_uuid in self.update_queue.keys():
-            if receiving_player_uuid != player_uuid:
-                self.update_queue[receiving_player_uuid] += incoming_updates
-        
-        # load updates on the server side so new clients can receive current state
-        self.load_updates(incoming_updates)
+            self.receive_client_updates() 
 
-        return ("received updates", 201)
+            self.send_client_updates()
 
-    def receive_updates(self, player_uuid):
+            #print(self.update_queue)
 
-        #print(len(self.update_queue))
-        
-        updates = deepcopy(self.update_queue[player_uuid])
+            self.load_updates()
 
-        # receiving updates clears this player's update queue
-        self.update_queue[player_uuid] = []
+            self.trigger_event(TickEvent())
 
-        return jsonify(updates) 
-    
-    def run(self, host=socket.gethostbyname(socket.gethostname()), port=5560):
-
-        self.flask_app.run(host=host, port=port)
+            self.server_clock.tick(self.tick_rate)

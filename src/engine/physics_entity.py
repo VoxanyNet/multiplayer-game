@@ -1,6 +1,8 @@
 import uuid
 from copy import copy
 
+import pymunk
+
 from engine.vector import Vector
 from engine.entity import Entity
 from engine.events import TickEvent

@@ -1,9 +1,13 @@
+import time
 import uuid
+import socket
+import json
 from collections import defaultdict
 
 import pygame
-import requests
+import pymunk
 
+from engine import headered_socket
 from engine.entity import Entity
 from engine.helpers import get_matching_objects
 from engine.exceptions import InvalidUpdateType, MalformedUpdate
@@ -11,11 +15,9 @@ from engine.events import TickEvent
 
 
 class GamemodeClient:
-    def __init__(self, server_address, fps=60):
+    def __init__(self, fps=60):
         self.clock = pygame.time.Clock()
-        self.server = requests.Session()
-        self.is_master = True # the update server will tell the first client to connect to become master
-        self.server_address = server_address
+        self.server = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
         self.uuid = str(uuid.uuid4())
         self.update_queue = []
         self.entity_type_map = {}
@@ -23,12 +25,15 @@ class GamemodeClient:
         self.event_subscriptions = defaultdict(list)
         self.event_subscriptions[TickEvent].append(self.clear_screen)
         self.tick_counter = 0
+        self.space = pymunk.Space()
+        self.space.gravity = 0,-981
         self.screen = pygame.display.set_mode(
             [1280, 720],
             pygame.RESIZABLE
             #pygame.FULLSCREEN
         )
         self.fps = fps
+        self.waiting_for_updates = False
     
     def detect_collisions(self, rect, collection):
 
@@ -74,15 +79,38 @@ class GamemodeClient:
         # we must send an updates list even if there are no updates
         # this is because the server will only give US updates if we do first
 
-        self.server.put(
-            f"{self.server_address}/updates/{self.uuid}",
-            json=self.update_queue
+        # we do not send updates to the server if we did not RECEIVE updates last tick
+        if self.waiting_for_updates:
+            return
+
+        updates_json = json.dumps(
+            self.update_queue
+        )
+
+        self.server.send_headered(
+            bytes(
+                updates_json, "utf-8"
+            )
         )
 
         self.update_queue = []
 
-    
-    def load_updates(self, updates):
+    def receive_network_updates(self):
+
+        try:
+            updates_json = self.server.recv_headered().decode("utf-8")
+
+        except BlockingIOError:
+            # this means that we need to wait until the next tick to receive our updates
+            # this occurs when the server didnt respond fast enough with the updates
+
+            self.waiting_for_updates = True # we use this to indicate that we should NOT send another update to the server
+            
+            return
+
+        updates = json.loads(
+            updates_json
+        )
 
         for update in updates:
 
@@ -115,13 +143,11 @@ class GamemodeClient:
 
         for entity in self.entities.values():
             entity.resolve()
-
-    def receive_network_updates(self):
-
-        updates = requests.get(f"{self.server_address}/updates/{self.uuid}").json()
-
-        self.load_updates(updates)
         
+        self.waiting_for_updates = False # this indicates that we can safely send more updates to the server
+
+        return
+
     def draw_entities(self):
         for entity in self.entities.values():
             if entity.visible: 
@@ -152,7 +178,7 @@ class GamemodeClient:
             try:
                 if function.__self__.updater != self.uuid:
                     continue
-        
+            
             # sometimes the function belongs to a Game object, which we dont need to check because know game methods in the subscriptions are always ours
             except AttributeError:
 
@@ -167,26 +193,30 @@ class GamemodeClient:
 
 
     def start(self):
-        
+
         pygame.init()
         
-    def connect(self):
+    def connect(self, server_ip, server_port=5560):
 
-        resp = self.server.post(
-            f"{self.server_address}/player/{self.uuid}"
-        ).json()
-
-        self.is_master = resp["is_master"]
-
-        self.load_updates(
-            resp["initial_updates"]
-        )
-    
-    def run(self):
+        self.server.connect((server_ip, server_port))
         
-        self.connect()
+        print("Connected to server")
+        
+        self.server.send_headered(
+            bytes(self.uuid, "utf-8")
+        )
+        self.receive_network_updates()
+
+        self.server.setblocking(False)
+
+        print("Received initial state")
+    
+    
+    def run(self, server_ip, server_port=5560):
 
         self.start()
+
+        self.connect(server_ip=server_ip, server_port=server_port)
 
         running = True 
 
