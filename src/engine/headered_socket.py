@@ -15,6 +15,8 @@ class PayloadTooLarge(Exception):
 
 # a socket that has the ability to add headers
 class HeaderedSocket(socket.socket):
+    def __init__(self):
+        super().__init__(socket.AF_INET, socket.SOCK_STREAM)
 
     def send_headered(self, data, header_size=7):
         # construct a payload with header from bytes

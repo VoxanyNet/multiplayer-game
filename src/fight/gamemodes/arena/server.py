@@ -1,9 +1,7 @@
 from pygame import Rect
 
 from engine.gamemode_server import GamemodeServer
-from fight.gamemodes.arena.player import Player
-from fight.gamemodes.arena.floor import Floor
-from fight.gamemodes.arena.shotgun import Shotgun
+from fight.gamemodes.arena.entities import Player, Floor, Shotgun
 
 class ArenaServer(GamemodeServer):
     def __init__(self):

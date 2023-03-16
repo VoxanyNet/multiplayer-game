@@ -16,19 +16,11 @@ class GamemodeServer:
 
     def __init__(self):
 
-        self.flask_app = Flask(__name__)
+        self.server = headered_socket.HeaderedSocket()
         self.entities = {}
         self.entity_type_map = {}
         self.update_queue = {}
-        self.event_subscriptions = defaultdict(list) # entities require an event subscriptions attribute to be created
-
-        log = logging.getLogger('werkzeug')
-        log.disabled = True
-
-        self.flask_app.add_url_rule("/player/<string:player_uuid>", view_func=self.add_player, methods=["POST"])
-        self.flask_app.add_url_rule("/player/<string:player_uuid>", view_func=self.remove_player, methods=["DELETE"])
-        self.flask_app.add_url_rule("/updates/<string:player_uuid>", view_func=self.send_updates, methods=["PUT"])
-        self.flask_app.add_url_rule("/updates/<string:player_uuid>", view_func=self.receive_updates, methods=["GET"])
+        self.event_subscriptions = defaultdict(list)
 
     def load_updates(self, updates):
 
