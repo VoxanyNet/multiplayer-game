@@ -23,6 +23,6 @@ if args.is_server:
     server.run(port=port)
 
 else:
-    game = ArenaClient(fps=200, enable_music=args.enable_music)
+    game = ArenaClient(tick_rate=20, enable_music=args.enable_music)
 
     game.run(server_ip="192.168.0.24",server_port=port)

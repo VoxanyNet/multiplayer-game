@@ -1,3 +1,5 @@
+from typing
+
 def get_matching_objects(collection, object_type):
     entities = []
 
@@ -23,3 +25,10 @@ def get_matching_objects(collection, object_type):
                 entities += new_entities
     
     return entities
+
+def dict_diff(dict1: dict, dict2: dict):
+    diff_dict = {}
+    for key in dict2.keys():
+        if key in dict1.keys() and dict1[key] != dict2[key]:
+            diff_dict[key] = dict2[key]
+    return diff_dict

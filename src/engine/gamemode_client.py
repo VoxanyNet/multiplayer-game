@@ -1,39 +1,42 @@
+import random
 import time
 import uuid
 import socket
 import json
 from collections import defaultdict
+from typing import Union, Type
 
 import pygame
-import pymunk
 
 from engine import headered_socket
 from engine.entity import Entity
-from engine.helpers import get_matching_objects
+from engine.helpers import get_matching_objects, dict_diff
 from engine.exceptions import InvalidUpdateType, MalformedUpdate
-from engine.events import TickEvent
+from engine.events import TickEvent, Event
 
 
 class GamemodeClient:
-    def __init__(self, fps=60):
-        self.clock = pygame.time.Clock()
+    def __init__(self, tick_rate=60):
         self.server = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
         self.uuid = str(uuid.uuid4())
         self.update_queue = []
         self.entity_type_map = {}
         self.entities = {}
         self.event_subscriptions = defaultdict(list)
-        self.event_subscriptions[TickEvent].append(self.clear_screen)
         self.tick_counter = 0
-        self.space = pymunk.Space()
-        self.space.gravity = 0,-981
         self.screen = pygame.display.set_mode(
             [1280, 720],
             pygame.RESIZABLE
             #pygame.FULLSCREEN
         )
-        self.fps = fps
-        self.waiting_for_updates = False
+        self.tick_rate = tick_rate
+
+        self.event_subscriptions[TickEvent] += [
+            self.clear_screen,
+            self.draw_entities,
+            self.receive_network_updates,
+            self.send_network_updates
+        ]
     
     def detect_collisions(self, rect, collection):
 
@@ -79,10 +82,6 @@ class GamemodeClient:
         # we must send an updates list even if there are no updates
         # this is because the server will only give US updates if we do first
 
-        # we do not send updates to the server if we did not RECEIVE updates last tick
-        if self.waiting_for_updates:
-            return
-
         updates_json = json.dumps(
             self.update_queue
         )
@@ -103,8 +102,6 @@ class GamemodeClient:
         except BlockingIOError:
             # this means that we need to wait until the next tick to receive our updates
             # this occurs when the server didnt respond fast enough with the updates
-
-            self.waiting_for_updates = True # we use this to indicate that we should NOT send another update to the server
             
             return
 
@@ -143,62 +140,43 @@ class GamemodeClient:
 
         for entity in self.entities.values():
             entity.resolve()
-        
-        self.waiting_for_updates = False # this indicates that we can safely send more updates to the server
 
         return
-
+    
     def draw_entities(self):
         for entity in self.entities.values():
+            entity: Entity
             if entity.visible: 
                 entity.draw()
         
         pygame.display.flip()
 
-    def clear_screen(self, event):
+    def clear_screen(self, event: TickEvent):
 
         self.screen.fill((0,0,0))
 
-    def tick(self):
-
-        self.screen.fill((0,0,0))
-
-        for entity in self.entities.values():
-
-            if entity.updater != self.uuid:
-                continue
-
-            entity.tick()
-
-    def trigger_event(self, event):
+    def trigger(self, event: Type[Event]):
 
         for function in self.event_subscriptions[type(event)]:
             
             # dont call function if the entity this function belongs to isnt ours
-            try:
-                if function.__self__.updater != self.uuid:
-                    continue
-            
-            # sometimes the function belongs to a Game object, which we dont need to check because know game methods in the subscriptions are always ours
-            except AttributeError:
-
-                if isinstance(function.__self__, GamemodeClient):
-                    pass
-                
-                else:
-                    raise Exception("Only methods belonging to Game or Entity objects may be subscribers to events")
-
+            if function.__self__.updater != self.uuid:
+                continue
             
             function(event)
 
-
     def start(self):
+
+        """
+        Procedure to follow when a new client is starting\n
+        This could include creating initial client entities
+        """
 
         pygame.init()
         
     def connect(self, server_ip, server_port=5560):
 
-        self.server.connect((server_ip, server_port))
+        self.server.connect((server_ip, server_port),  timeout=5)
         
         print("Connected to server")
         
@@ -210,8 +188,7 @@ class GamemodeClient:
         self.server.setblocking(False)
 
         print("Received initial state")
-    
-    
+   
     def run(self, server_ip, server_port=5560):
 
         self.start()
@@ -220,22 +197,30 @@ class GamemodeClient:
 
         running = True 
 
+        last_tick = 0
+
         while running:
+
+            # draw as fast as possible
+            # only tick at specified tick rate
+
             if pygame.key.get_pressed()[pygame.K_F4]:
                 running = False
-
-            self.clock.tick(
-                self.fps
-            )
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
-
-            self.trigger_event(TickEvent())
             
             self.draw_entities()
 
             self.send_network_updates()
 
             self.receive_network_updates()
+            
+            if time.time() - last_tick >= 1/self.tick_rate:
+
+                #print(random.randint(0,10))
+                self.trigger(TickEvent())
+            
+            else:
+                print("skipping tick")

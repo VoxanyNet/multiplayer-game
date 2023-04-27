@@ -2,14 +2,11 @@ import pygame
 from pygame import Rect
 
 from engine.gamemode_client import GamemodeClient
-from fight.gamemodes.arena.player import Player
-from fight.gamemodes.arena.floor import Floor
-from fight.gamemodes.arena.cursor import Cursor
-from fight.gamemodes.arena.shotgun import Shotgun
+from fight.gamemodes.arena.entities import Player, Floor, Cursor, Shotgun
 
 class ArenaClient(GamemodeClient):
-    def __init__(self, fps=60, gravity=9.8, enable_music=False):
-        super().__init__(fps=fps)
+    def __init__(self, tick_rate=60, gravity=9.8, enable_music=False):
+        super().__init__(tick_rate=tick_rate)
 
         self.enable_music = enable_music
 

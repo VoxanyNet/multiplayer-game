@@ -2,13 +2,15 @@ import socket
 import json
 from collections import defaultdict
 from copy import deepcopy
+from typing import Type
 
 import pygame
 
 from engine import headered_socket
 from engine.headered_socket import Disconnected
 from engine.exceptions import MalformedUpdate, InvalidUpdateType
-from engine.events import TickEvent
+from engine.events import TickEvent, Event, DisconnectedClientEvent, NewClientEvent
+from engine.entity import Entity
 
 
 class GamemodeServer:
@@ -19,14 +21,21 @@ class GamemodeServer:
 
         self.client_sockets = {}
         self.entities = {}
-        self.entity_type_map = {}
+        self.entity_type_map = {
+            "entity": Entity
+        }
         self.updates_to_load = []
         self.uuid = "server"
         self.tick_rate = tick_rate
         self.server_clock = pygame.time.Clock()
-        self.clients_that_sent_updates = []
         self.update_queue = defaultdict(list)
         self.event_subscriptions = defaultdict(list)
+
+        self.event_subscriptions[TickEvent].append(
+            self.accept_new_clients,
+            self.receive_client_updates,
+            self.send_client_updates
+        )
     
     def start(self, host, port):
         self.socket.bind((host, port))
@@ -35,25 +44,15 @@ class GamemodeServer:
 
         print("server online...")
 
-    def trigger_event(self, event):
+    def trigger(self, event: Type[Event]):
 
         for function in self.event_subscriptions[type(event)]:
             
             # dont call function if the entity this function belongs to isnt ours
-            try:
-                if function.__self__.updater != self.uuid:
-                    continue
+            if function.__self__.updater != self.uuid:
+                continue
             
-            # sometimes the function belongs to a Game object, which we dont need to check because know game methods in the subscriptions are always ours
-            except AttributeError:
-
-                if isinstance(function.__self__, GamemodeServer):
-                    pass
-                
-                else:
-                    raise Exception("Only methods belonging to Game or Entity objects may be subscribers to events")
-
-            
+            function(event)     
 
     def network_update(self, update_type=None, entity_id=None, data=None, entity_type=None, destinations=None):
 
@@ -79,7 +78,7 @@ class GamemodeServer:
         for destination in destinations:
             self.update_queue[destination].append(update)
 
-    def load_updates(self):
+    def load_updates(self, event: TickEvent):
 
         for update in deepcopy(self.updates_to_load):
             
@@ -114,6 +113,8 @@ class GamemodeServer:
         self.updates_to_load = []
 
         for entity in self.entities.values():
+            entity: Entity
+
             entity.resolve()
 
     def lookup_entity_type_string(self, entity):
@@ -122,23 +123,24 @@ class GamemodeServer:
             if type(entity) is entity_type:
                 return entity_type_string
 
-    def handle_new_client(self, new_client):
+    def handle_new_client(self, event: NewClientEvent):
 
         print("New connecting client")
 
+        # make server socket blocking temporarily, because we need this data now
         self.socket.setblocking(True)
 
-        client_uuid = new_client.recv_headered().decode("utf-8")
+        client_uuid = event.new_client.recv_headered().decode("utf-8")
 
         self.socket.setblocking(False)
 
-        self.client_sockets[client_uuid] = new_client
+        self.client_sockets[client_uuid] = event.new_client
 
         if len(self.entities) == 0:
             
             empty_update = json.dumps([])
 
-            new_client.send_headered(
+            event.new_client.send_headered(
                 bytes(empty_update, "utf-8")
             )
 
@@ -146,6 +148,8 @@ class GamemodeServer:
 
         else:
             for entity in self.entities.values():
+
+                entity: Entity
 
                 entity_type_string = self.lookup_entity_type_string(entity)
                 
@@ -155,9 +159,10 @@ class GamemodeServer:
                 
                 self.send_client_updates(force=True)
 
-    
-    def handle_client_disconnect(self, client_uuid):
-
+    def handle_client_disconnect(self, event: DisconnectedClientEvent):
+        
+        client_uuid = event.disconnected_client_uuid
+        
         for entity_uuid, entity in self.entities.copy().items():
 
             if entity.updater == client_uuid:
@@ -179,7 +184,7 @@ class GamemodeServer:
 
         print(self.update_queue)
         
-    def accept_new_clients(self):
+    def accept_new_clients(self, event: TickEvent):
 
         try:
             new_client, address = self.socket.accept()
@@ -189,10 +194,12 @@ class GamemodeServer:
         except BlockingIOError: 
             pass
     
-    def receive_client_updates(self):
+    def receive_client_updates(self, event: TickEvent):
 
         for sending_client_uuid, sending_client in self.client_sockets.copy().items():
-
+            
+            sending_client: headered_socket.HeaderedSocket
+            
             try:
                 incoming_updates = json.loads(
                     sending_client.recv_headered().decode("utf-8")
@@ -203,15 +210,13 @@ class GamemodeServer:
                 
             except Disconnected:
 
-                self.handle_client_disconnect(sending_client_uuid)
+                self.trigger(DisconnectedClientEvent(sending_client))
 
                 continue
             
             #self.validate_updates
 
             self.updates_to_load += incoming_updates
-
-            self.clients_that_sent_updates.append(sending_client_uuid)
 
             for receiving_client_uuid, receiving_client in self.client_sockets.items():
 
@@ -220,15 +225,9 @@ class GamemodeServer:
 
                 self.update_queue[receiving_client_uuid] += incoming_updates
 
-    def send_client_updates(self, force=False):
+    def send_client_updates(self, event: TickEvent):
 
         for receiving_client_uuid, updates in self.update_queue.copy().items():
-            
-            # we do not send updates to clients that did not send us an update
-            # this is to prevent the client's socket buffer becoming full, which might happen if the client FPS is lower than the server tick rate
-            # pretty sure this effectively doubles the latency between the server and client
-            if receiving_client_uuid not in self.clients_that_sent_updates and not force:
-                continue 
             
             updates_json = json.dumps(updates)
             
@@ -237,25 +236,19 @@ class GamemodeServer:
             )
         
             self.update_queue[receiving_client_uuid] = []
-
-        self.clients_that_sent_updates = []
             
     def run(self, host=socket.gethostname(), port=5560):
 
         self.start(host, port)
 
         while True:   
+
+            # receive and relay client updates as fast as possible
+            # only tick at the specified tick rate
             
-            self.accept_new_clients()
-
-            self.receive_client_updates() 
-
-            self.send_client_updates()
-
-            #print(self.update_queue)
-
             self.load_updates()
 
-            self.trigger_event(TickEvent())
+            if self.server_clock.get_time() >= 1/self.tick_rate:
+                self.trigger(TickEvent())
 
-            self.server_clock.tick(self.tick_rate)
+                self.server_clock.tick()

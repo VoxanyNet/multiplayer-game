@@ -1,4 +1,5 @@
 import uuid
+from typing import TYPE_CHECKING
 
 import pygame.image
 from pygame import Rect
@@ -7,9 +8,12 @@ from engine.unresolved import Unresolved
 from engine.helpers import get_matching_objects
 from engine.events import TickEvent
 
+if TYPE_CHECKING:
+    from gamemode_client import GamemodeClient
+
 
 class Entity:
-    def __init__(self, rect=None, game=None, updater=None, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None,
+    def __init__(self, rect: Rect=None, game: "GamemodeClient"  = None, updater=None, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None,
                  visible=True):
 
         if rect is None:
@@ -102,8 +106,11 @@ class Entity:
                 case "sprite_path":
                     self.sprite = pygame.image.load(update_data["sprite_path"])
 
-    def tick(self, event):
-        pass
+    def send_updates(self, event: TickEvent):
+        
+        
 
+        return 
+        
     def draw(self):
         self.game.screen.blit(self.sprite, self.rect)

@@ -1,5 +1,6 @@
 import uuid
 from copy import copy
+from typing import TYPE_CHECKING
 
 import pymunk
 
@@ -8,8 +9,11 @@ from engine.entity import Entity
 from engine.events import TickEvent
 from engine.events import LandedEvent
 
+if TYPE_CHECKING:
+    from gamemode_client import GamemodeClient
+
 class PhysicsEntity(Entity):
-    def __init__(self, gravity=None, velocity=Vector(0,0), max_velocity=None, friction=2, collidable_entities=[], rect=None, game=None, updater=None, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None, visible=True):
+    def __init__(self, gravity=None, velocity: Vector = Vector(0,0), max_velocity=None, friction=2, collidable_entities=[], rect=None, game: "GamemodeClient" = None, updater=None, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None, visible=True):
 
         super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res, visible=visible)
 
@@ -56,7 +60,7 @@ class PhysicsEntity(Entity):
         return data_dict
     
     @classmethod
-    def create(cls, entity_data, entity_id, game):
+    def create(cls, entity_data, entity_id, game: "GamemodeClient"):
         # convert json entity data to object constructor arguments
 
         entity_data["velocity"] = Vector(
@@ -91,12 +95,12 @@ class PhysicsEntity(Entity):
                 case "gravity":
                     
                     self.gravity = update_data["gravity"]
-
+                    
                 case "friction":
                     
                     self.friction = update_data["friction"]
 
-    def move_x_axis(self, trigger_entity=None):
+    def move_x_axis(self, event: TickEvent):
 
         projected_rect_x = self.rect.move(
             Vector(self.velocity.x, 0)
@@ -129,7 +133,7 @@ class PhysicsEntity(Entity):
 
             self.rect.x = projected_rect_x.x
 
-    def move_y_axis(self, trigger_entity=None):
+    def move_y_axis(self, event: TickEvent):
         
         projected_rect_y = self.rect.move(
             Vector(0, self.velocity.y)
@@ -158,7 +162,7 @@ class PhysicsEntity(Entity):
                 self.velocity.y = 0
 
                 self.airborne = False
-                self.game.trigger_event(LandedEvent(self))
+                self.game.trigger(LandedEvent(self))
 
             # entity came in moving up
             elif projected_rect_y.top <= colliding_entity.rect.bottom and self.rect.top >= colliding_entity.rect.bottom:
@@ -172,19 +176,19 @@ class PhysicsEntity(Entity):
             self.airborne = True
 
 
-    def apply_friction(self, trigger_entity=None):
+    def apply_friction(self, event: TickEvent):
 
         if abs(self.velocity.x) > 0:
 
-            self.velocity.x *= (0.05 * self.game.clock.get_time() )
+            self.velocity.x *= 0.05
             
 
-    def apply_gravity(self, trigger_entity=None):
+    def apply_gravity(self, event: TickEvent):
 
         if self.airborne:
-            self.velocity.y += (self.gravity * self.game.clock.get_time())
+            self.velocity.y += self.gravity
 
-    def bounce(self, event):
+    def bounce(self, event: LandedEvent):
 
         if event.entity.uuid != self.uuid:
             print
@@ -192,13 +196,3 @@ class PhysicsEntity(Entity):
 
         
         self.velocity.y *= -0.25
-
-    def tick(self, trigger_entity=None):
-
-        self.game.network_update(
-            update_type="update",
-            entity_id=self.uuid,
-            data= {
-                "rect": list(self.rect)
-            }
-        )
