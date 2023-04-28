@@ -1,6 +1,6 @@
-from typing
+from typing import Union
 
-def get_matching_objects(collection, object_type):
+def get_matching_objects(collection: Union[dict, list], object_type):
     entities = []
 
     if collection.__class__ == dict: 

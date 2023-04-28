@@ -4,9 +4,10 @@ import uuid
 import socket
 import json
 from collections import defaultdict
-from typing import Union, Type
+from typing import Union, Type, Dict, Literal, List
 
 import pygame
+from pygame import Rect
 
 from engine import headered_socket
 from engine.entity import Entity
@@ -21,7 +22,7 @@ class GamemodeClient:
         self.uuid = str(uuid.uuid4())
         self.update_queue = []
         self.entity_type_map = {}
-        self.entities = {}
+        self.entities: Dict[str, Entity] = {}
         self.event_subscriptions = defaultdict(list)
         self.tick_counter = 0
         self.screen = pygame.display.set_mode(
@@ -34,11 +35,11 @@ class GamemodeClient:
         self.event_subscriptions[TickEvent] += [
             self.clear_screen,
             self.draw_entities,
-            self.receive_network_updates,
-            self.send_network_updates
+            self.send_network_updates,
+            self.receive_network_updates
         ]
     
-    def detect_collisions(self, rect, collection):
+    def detect_collisions(self, rect: Rect, collection: Union[dict, list]) -> List[Type[Entity]]:
 
         colliding_entities = []
 
@@ -49,13 +50,13 @@ class GamemodeClient:
 
         return colliding_entities
 
-    def lookup_entity_type_string(self, entity):
+    def lookup_entity_type_string(self, entity: Entity):
 
         for entity_type_string, entity_type in self.entity_type_map.items():
             if type(entity) is entity_type:
                 return entity_type_string
 
-    def network_update(self, update_type=None, entity_id=None, data=None, entity_type=None):
+    def network_update(self, update_type: Union[Literal["create"], Literal["update"], Literal["delete"]], entity_id: str, data: dict = None, entity_type: str = None):
 
         if update_type not in ["create", "update", "delete"]:
             raise InvalidUpdateType(f"Update type {update_type} is invalid")
@@ -224,3 +225,5 @@ class GamemodeClient:
             
             else:
                 print("skipping tick")
+
+            input("Press enter to advanced to next tick...")

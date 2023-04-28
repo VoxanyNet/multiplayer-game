@@ -1,11 +1,11 @@
 import uuid
-from typing import TYPE_CHECKING
+from typing import Dict, List, TYPE_CHECKING
 
 import pygame.image
 from pygame import Rect
 
 from engine.unresolved import Unresolved
-from engine.helpers import get_matching_objects
+from engine.helpers import get_matching_objects, dict_diff
 from engine.events import TickEvent
 
 if TYPE_CHECKING:
@@ -13,17 +13,8 @@ if TYPE_CHECKING:
 
 
 class Entity:
-    def __init__(self, rect: Rect=None, game: "GamemodeClient"  = None, updater=None, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None,
+    def __init__(self, rect: Rect, game: "GamemodeClient", updater: str, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None,
                  visible=True):
-
-        if rect is None:
-            raise TypeError("Missing rect argument")
-
-        if game is None:
-            raise TypeError("Missing game argument")
-
-        if updater is None:
-            raise TypeError("Missing updater argument")
 
         self.visible = visible
         self.rect = rect
@@ -32,6 +23,7 @@ class Entity:
         self.game = game
         self.sprite_path = sprite_path
         self.scale_res = scale_res
+        self.last_tick_dict = {}
 
         self.game.entities[self.uuid] = self
 
@@ -42,8 +34,24 @@ class Entity:
             print("scaling")
             self.sprite = pygame.transform.scale(self.sprite, scale_res)
 
-        self.game.event_subscriptions[TickEvent].append(self.tick)
+        self.game.event_subscriptions[TickEvent] += [self.detect_updates]
 
+    def detect_updates(self, event: TickEvent):
+        
+        current_tick_dict = self.dict()
+        
+        if self.last_tick_dict == {}: # this indicates that this entity did not exist last tick
+            entity_type_string = self.game.lookup_entity_type_string(self)
+
+            self.game.network_update(update_type="create", entity_id=self.uuid, data=current_tick_dict, entity_type=entity_type_string)
+            
+        elif current_tick_dict != self.last_tick_dict:
+            update_data_dict = dict_diff(self.last_tick_dict, current_tick_dict)
+
+            self.game.network_update(update_type="update", entity_id=self.uuid, data=update_data_dict)
+        
+        self.last_tick_dict = current_tick_dict
+                
     def resolve(self):
         for attribute_name, attribute in self.__dict__.copy().items():
 
@@ -105,12 +113,6 @@ class Entity:
 
                 case "sprite_path":
                     self.sprite = pygame.image.load(update_data["sprite_path"])
-
-    def send_updates(self, event: TickEvent):
-        
-        
-
-        return 
         
     def draw(self):
         self.game.screen.blit(self.sprite, self.rect)

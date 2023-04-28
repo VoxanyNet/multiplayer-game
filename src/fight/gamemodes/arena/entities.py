@@ -72,9 +72,6 @@ class Floor(Entity):
                 case "test":
                     pass
 
-    def tick(self, trigger_entity=None):
-        super().tick(trigger_entity=trigger_entity)
-
     def draw(self):
         # draw a white rectangle
         pygame.draw.rect(
