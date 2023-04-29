@@ -13,7 +13,7 @@ from engine import headered_socket
 from engine.entity import Entity
 from engine.helpers import get_matching_objects, dict_diff
 from engine.exceptions import InvalidUpdateType, MalformedUpdate
-from engine.events import TickEvent, Event
+from engine.events import TickEvent, Event, GameTickComplete, GameStart, GameTickStart
 
 
 class GamemodeClient:
@@ -32,7 +32,7 @@ class GamemodeClient:
         )
         self.tick_rate = tick_rate
 
-        self.event_subscriptions[TickEvent] += [
+        self.event_subscriptions[GameTickComplete] += [
             self.clear_screen,
             self.draw_entities,
             self.send_network_updates,
@@ -144,7 +144,8 @@ class GamemodeClient:
 
         return
     
-    def draw_entities(self):
+    def draw_entities(self, event: GameTickComplete):
+
         for entity in self.entities.values():
             entity: Entity
             if entity.visible: 
@@ -152,7 +153,7 @@ class GamemodeClient:
         
         pygame.display.flip()
 
-    def clear_screen(self, event: TickEvent):
+    def clear_screen(self, event: GameTickComplete):
 
         self.screen.fill((0,0,0))
 
@@ -192,7 +193,7 @@ class GamemodeClient:
    
     def run(self, server_ip, server_port=5560):
 
-        self.start()
+        self.trigger(GameStart())
 
         self.connect(server_ip=server_ip, server_port=server_port)
 
@@ -220,8 +221,12 @@ class GamemodeClient:
             
             if time.time() - last_tick >= 1/self.tick_rate:
 
+                self.trigger(GameTickStart())
+
                 #print(random.randint(0,10))
                 self.trigger(TickEvent())
+
+                self.trigger(GameTickComplete())
             
             else:
                 print("skipping tick")

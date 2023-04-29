@@ -6,7 +6,7 @@ from pygame import Rect
 
 from engine.unresolved import Unresolved
 from engine.helpers import get_matching_objects, dict_diff
-from engine.events import TickEvent
+from engine.events import TickEvent, GameTickComplete, GameTickStart
 
 if TYPE_CHECKING:
     from gamemode_client import GamemodeClient
@@ -34,9 +34,15 @@ class Entity:
             print("scaling")
             self.sprite = pygame.transform.scale(self.sprite, scale_res)
 
-        self.game.event_subscriptions[TickEvent] += [self.detect_updates]
+        self.game.event_subscriptions[GameTickStart] += [self.set_last_tick_dict]
 
-    def detect_updates(self, event: TickEvent):
+        self.game.event_subscriptions[GameTickComplete] += [self.detect_updates] 
+
+    def set_last_tick_dict(self, event: GameTickStart):
+        """This function is used to set a sort of keyframe of the object before it ticked"""
+        self.last_tick_dict = self.dict()
+
+    def detect_updates(self, event: GameTickComplete):
         
         current_tick_dict = self.dict()
         

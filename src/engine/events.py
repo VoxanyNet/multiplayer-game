@@ -23,3 +23,12 @@ class DisconnectedClientEvent(Event):
     def __init__(self, disconnected_client: HeaderedSocket):
 
         self.disconnected_client = disconnected_client
+
+class GameTickStart(Event):
+    pass
+
+class GameTickComplete(Event):
+    pass
+
+class GameStart(Event):
+    pass 
