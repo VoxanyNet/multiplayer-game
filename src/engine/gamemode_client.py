@@ -4,15 +4,16 @@ import uuid
 import socket
 import json
 from collections import defaultdict
-from typing import Union, Type
+from typing import Union, Type, Dict, Literal, List
 
 import pygame
+from pygame import Rect
 
 from engine import headered_socket
 from engine.entity import Entity
-from engine.helpers import get_matching_objects, dict_diff
+from engine.helpers import get_matching_objects
 from engine.exceptions import InvalidUpdateType, MalformedUpdate
-from engine.events import TickEvent, Event
+from engine.events import TickEvent, Event, GameTickComplete, GameStart, GameTickStart
 
 
 class GamemodeClient:
@@ -21,7 +22,7 @@ class GamemodeClient:
         self.uuid = str(uuid.uuid4())
         self.update_queue = []
         self.entity_type_map = {}
-        self.entities = {}
+        self.entities: Dict[str, Entity] = {}
         self.event_subscriptions = defaultdict(list)
         self.tick_counter = 0
         self.screen = pygame.display.set_mode(
@@ -31,14 +32,18 @@ class GamemodeClient:
         )
         self.tick_rate = tick_rate
 
-        self.event_subscriptions[TickEvent] += [
+        self.event_subscriptions[GameTickComplete] += [
             self.clear_screen,
             self.draw_entities,
-            self.receive_network_updates,
-            self.send_network_updates
+            self.send_network_updates,
+            self.receive_network_updates
+        ]
+
+        self.event_subscriptions[GameStart] += [
+            self.start
         ]
     
-    def detect_collisions(self, rect, collection):
+    def detect_collisions(self, rect: Rect, collection: Union[dict, list]) -> List[Type[Entity]]:
 
         colliding_entities = []
 
@@ -49,13 +54,13 @@ class GamemodeClient:
 
         return colliding_entities
 
-    def lookup_entity_type_string(self, entity):
+    def lookup_entity_type_string(self, entity: Entity):
 
         for entity_type_string, entity_type in self.entity_type_map.items():
             if type(entity) is entity_type:
                 return entity_type_string
 
-    def network_update(self, update_type=None, entity_id=None, data=None, entity_type=None):
+    def network_update(self, update_type: Union[Literal["create"], Literal["update"], Literal["delete"]], entity_id: str, data: dict = None, entity_type: str = None):
 
         if update_type not in ["create", "update", "delete"]:
             raise InvalidUpdateType(f"Update type {update_type} is invalid")
@@ -143,7 +148,8 @@ class GamemodeClient:
 
         return
     
-    def draw_entities(self):
+    def draw_entities(self, event: GameTickComplete):
+
         for entity in self.entities.values():
             entity: Entity
             if entity.visible: 
@@ -151,7 +157,7 @@ class GamemodeClient:
         
         pygame.display.flip()
 
-    def clear_screen(self, event: TickEvent):
+    def clear_screen(self, event: GameTickComplete):
 
         self.screen.fill((0,0,0))
 
@@ -165,12 +171,7 @@ class GamemodeClient:
             
             function(event)
 
-    def start(self):
-
-        """
-        Procedure to follow when a new client is starting\n
-        This could include creating initial client entities
-        """
+    def start(self, event: GameStart):
 
         pygame.init()
         
@@ -191,7 +192,7 @@ class GamemodeClient:
    
     def run(self, server_ip, server_port=5560):
 
-        self.start()
+        self.trigger(GameStart())
 
         self.connect(server_ip=server_ip, server_port=server_port)
 
@@ -211,16 +212,18 @@ class GamemodeClient:
                 if event.type == pygame.QUIT:
                     running = False
             
-            self.draw_entities()
-
-            self.send_network_updates()
-
-            self.receive_network_updates()
-            
             if time.time() - last_tick >= 1/self.tick_rate:
+
+                self.trigger(GameTickStart())
 
                 #print(random.randint(0,10))
                 self.trigger(TickEvent())
+
+                self.trigger(GameTickComplete())
+
+                last_tick = time.time()
             
             else:
                 print("skipping tick")
+
+            input("Press enter to advanced to next tick...")

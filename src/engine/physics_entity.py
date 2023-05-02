@@ -2,8 +2,6 @@ import uuid
 from copy import copy
 from typing import TYPE_CHECKING
 
-import pymunk
-
 from engine.vector import Vector
 from engine.entity import Entity
 from engine.events import TickEvent
@@ -13,28 +11,17 @@ if TYPE_CHECKING:
     from gamemode_client import GamemodeClient
 
 class PhysicsEntity(Entity):
-    def __init__(self, gravity=None, velocity: Vector = Vector(0,0), max_velocity=None, friction=2, collidable_entities=[], rect=None, game: "GamemodeClient" = None, updater=None, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None, visible=True):
+    def __init__(self, game: "GamemodeClient", updater, uuid=str(uuid.uuid4()), gravity=0, velocity: Vector = Vector(0,0), max_velocity=None, friction=2, collidable_entities=[], rect=None, sprite_path=None, scale_res=None, visible=True):
 
         super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res, visible=visible)
-
-        if gravity is None:
-            raise TypeError("Missing gravity argument")
-        
-        if velocity is None:
-            raise TypeError("Missing velocity argument")
-        
-        if friction is None:
-            raise TypeError("Missing friction argument")
         
         self.velocity = velocity
         self.gravity = gravity
         self.max_velocity = max_velocity
         self.friction = friction
-        self.airborne = False
         self.collidable_entites = collidable_entities
 
         self.game.event_subscriptions[TickEvent] += [
-            self.tick,
             self.move_x_axis,
             self.move_y_axis,
             self.apply_gravity,
@@ -161,19 +148,14 @@ class PhysicsEntity(Entity):
 
                 self.velocity.y = 0
 
-                self.airborne = False
                 self.game.trigger(LandedEvent(self))
 
             # entity came in moving up
             elif projected_rect_y.top <= colliding_entity.rect.bottom and self.rect.top >= colliding_entity.rect.bottom:
                 self.rect.top = colliding_entity.rect.bottom
-
-                self.airborne = True
                 
         else:
             self.rect.y = projected_rect_y.y
-
-            self.airborne = True
 
 
     def apply_friction(self, event: TickEvent):
