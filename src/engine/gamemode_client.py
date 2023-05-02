@@ -11,7 +11,7 @@ from pygame import Rect
 
 from engine import headered_socket
 from engine.entity import Entity
-from engine.helpers import get_matching_objects, dict_diff
+from engine.helpers import get_matching_objects
 from engine.exceptions import InvalidUpdateType, MalformedUpdate
 from engine.events import TickEvent, Event, GameTickComplete, GameStart, GameTickStart
 
@@ -37,6 +37,10 @@ class GamemodeClient:
             self.draw_entities,
             self.send_network_updates,
             self.receive_network_updates
+        ]
+
+        self.event_subscriptions[GameStart] += [
+            self.start
         ]
     
     def detect_collisions(self, rect: Rect, collection: Union[dict, list]) -> List[Type[Entity]]:
@@ -167,12 +171,7 @@ class GamemodeClient:
             
             function(event)
 
-    def start(self):
-
-        """
-        Procedure to follow when a new client is starting\n
-        This could include creating initial client entities
-        """
+    def start(self, event: GameStart):
 
         pygame.init()
         
@@ -213,12 +212,6 @@ class GamemodeClient:
                 if event.type == pygame.QUIT:
                     running = False
             
-            self.draw_entities()
-
-            self.send_network_updates()
-
-            self.receive_network_updates()
-            
             if time.time() - last_tick >= 1/self.tick_rate:
 
                 self.trigger(GameTickStart())
@@ -227,6 +220,8 @@ class GamemodeClient:
                 self.trigger(TickEvent())
 
                 self.trigger(GameTickComplete())
+
+                last_tick = time.time()
             
             else:
                 print("skipping tick")

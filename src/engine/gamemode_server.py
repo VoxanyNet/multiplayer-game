@@ -117,7 +117,7 @@ class GamemodeServer:
 
             entity.resolve()
 
-    def lookup_entity_type_string(self, entity):
+    def lookup_entity_type_string(self, entity: Entity):
 
         for entity_type_string, entity_type in self.entity_type_map.items():
             if type(entity) is entity_type:
