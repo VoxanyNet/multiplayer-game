@@ -4,7 +4,7 @@ import uuid
 import socket
 import json
 from collections import defaultdict
-from typing import Union, Type, Dict, Literal, List
+from typing import Union, Type, Dict, Literal, List, Optional
 
 import pygame
 from pygame import Rect
@@ -13,12 +13,14 @@ from engine import headered_socket
 from engine.entity import Entity
 from engine.helpers import get_matching_objects
 from engine.exceptions import InvalidUpdateType, MalformedUpdate
-from engine.events import TickEvent, Event, GameTickComplete, GameStart, GameTickStart
+from engine.events import TickEvent, Event, GameTickComplete, GameStart, GameTickStart, ScreenCleared
 
 
 class GamemodeClient:
-    def __init__(self, tick_rate=60):
+    def __init__(self, tick_rate=60, server_ip: str = socket.gethostname(), server_port: int = 5560):
         self.server = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_ip = server_ip
+        self.server_port = server_port
         self.uuid = str(uuid.uuid4())
         self.update_queue = []
         self.entity_type_map = {}
@@ -34,13 +36,17 @@ class GamemodeClient:
 
         self.event_subscriptions[GameTickComplete] += [
             self.clear_screen,
-            self.draw_entities,
             self.send_network_updates,
             self.receive_network_updates
         ]
 
+        self.event_subscriptions[ScreenCleared] += [
+            self.draw_entities
+        ]
+
         self.event_subscriptions[GameStart] += [
-            self.start
+            self.start,
+            self.connect
         ]
     
     def detect_collisions(self, rect: Rect, collection: Union[dict, list]) -> List[Type[Entity]]:
@@ -82,7 +88,7 @@ class GamemodeClient:
             update
         )
 
-    def send_network_updates(self):
+    def send_network_updates(self, event: GameTickComplete):
         
         # we must send an updates list even if there are no updates
         # this is because the server will only give US updates if we do first
@@ -99,7 +105,8 @@ class GamemodeClient:
 
         self.update_queue = []
 
-    def receive_network_updates(self):
+    def receive_network_updates(self, event: Optional[GameTickComplete] = None):
+        # this method can either be directly invoked or be called by an event
 
         try:
             updates_json = self.server.recv_headered().decode("utf-8")
@@ -148,7 +155,7 @@ class GamemodeClient:
 
         return
     
-    def draw_entities(self, event: GameTickComplete):
+    def draw_entities(self, event: ScreenCleared):
 
         for entity in self.entities.values():
             entity: Entity
@@ -161,12 +168,17 @@ class GamemodeClient:
 
         self.screen.fill((0,0,0))
 
+        self.trigger(ScreenCleared())
+
     def trigger(self, event: Type[Event]):
 
         for function in self.event_subscriptions[type(event)]:
-            
+            if function.__self__.__class__.__base__ == GamemodeClient:
+                # if the object this listener function belongs to has a base class that is GamemodeClient, then we don't need to check if we should run it
+                # this is because we never receive other user's GamemodeClient objects
+                pass
             # dont call function if the entity this function belongs to isnt ours
-            if function.__self__.updater != self.uuid:
+            elif function.__self__.updater != self.uuid:
                 continue
             
             function(event)
@@ -175,9 +187,9 @@ class GamemodeClient:
 
         pygame.init()
         
-    def connect(self, server_ip, server_port=5560):
+    def connect(self, event: GameStart):
 
-        self.server.connect((server_ip, server_port),  timeout=5)
+        self.server.connect((self.server_ip, self.server_port))
         
         print("Connected to server")
         
@@ -190,11 +202,9 @@ class GamemodeClient:
 
         print("Received initial state")
    
-    def run(self, server_ip, server_port=5560):
+    def run(self):
 
         self.trigger(GameStart())
-
-        self.connect(server_ip=server_ip, server_port=server_port)
 
         running = True 
 

@@ -2,24 +2,25 @@ import socket
 import json
 from collections import defaultdict
 from copy import deepcopy
-from typing import Type
+from typing import List, Literal, Optional, Type, Dict, Union
+import time
 
 import pygame
 
 from engine import headered_socket
 from engine.headered_socket import Disconnected
 from engine.exceptions import MalformedUpdate, InvalidUpdateType
-from engine.events import TickEvent, Event, DisconnectedClientEvent, NewClientEvent
+from engine.events import TickEvent, Event, DisconnectedClientEvent, NewClientEvent, ReceivedClientUpdates, UpdatesLoaded, ServerStart, GameTickStart, GameTickComplete
 from engine.entity import Entity
 
 
 class GamemodeServer:
 
-    def __init__(self, tick_rate):
+    def __init__(self, tick_rate: int, server_ip: str = socket.gethostname(), server_port: int = 5560):
 
         self.socket = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
 
-        self.client_sockets = {}
+        self.client_sockets: Dict[str, headered_socket.HeaderedSocket] = {}
         self.entities = {}
         self.entity_type_map = {
             "entity": Entity
@@ -30,15 +31,32 @@ class GamemodeServer:
         self.server_clock = pygame.time.Clock()
         self.update_queue = defaultdict(list)
         self.event_subscriptions = defaultdict(list)
+        self.server_ip = server_ip
+        self.server_port = server_port
 
-        self.event_subscriptions[TickEvent].append(
+        self.event_subscriptions[TickEvent] += [
             self.accept_new_clients,
-            self.receive_client_updates,
+            self.receive_client_updates 
+        ]
+
+        self.event_subscriptions[ReceivedClientUpdates] += [
+            self.load_updates
+        ]
+
+        self.event_subscriptions[UpdatesLoaded] += [
             self.send_client_updates
-        )
+        ]
+
+        self.event_subscriptions[ServerStart] += [
+            self.enable_socket
+        ]
+
+        self.event_subscriptions[NewClientEvent] += [
+            self.handle_new_client
+        ]
     
-    def start(self, host, port):
-        self.socket.bind((host, port))
+    def enable_socket(self, event: ServerStart):
+        self.socket.bind((self.server_ip, self.server_port))
         self.socket.setblocking(False)
         self.socket.listen(5)
 
@@ -47,14 +65,19 @@ class GamemodeServer:
     def trigger(self, event: Type[Event]):
 
         for function in self.event_subscriptions[type(event)]:
-            
+            if function.__self__.__class__.__base__ == GamemodeServer:
+                # if the object this listener function belongs to has a base class that is GamemodeServer, then we don't need to check if we should run it
+                # this is because we never receive other user's GamemodeServer objects
+                pass
             # dont call function if the entity this function belongs to isnt ours
-            if function.__self__.updater != self.uuid:
+            elif function.__self__.updater != self.uuid:
                 continue
             
-            function(event)     
+            function(event) 
 
-    def network_update(self, update_type=None, entity_id=None, data=None, entity_type=None, destinations=None):
+    def network_update(self, update_type: Union[Literal["create"], Literal["update"], Literal["delete"]], entity_id: str, data: dict = None, entity_type: str = None, destinations: List[str]=None):
+        # update_type: Union[Literal["create"], Literal["update"], Literal["delete"]], entity_id: str, data: dict = None, entity_type: str = None
+        """Queue up a network update for specified client uuid(s)"""
 
         if destinations is None:
             raise MalformedUpdate("Server side network updates require a destination")
@@ -78,13 +101,15 @@ class GamemodeServer:
         for destination in destinations:
             self.update_queue[destination].append(update)
 
-    def load_updates(self, event: TickEvent):
+    def load_updates(self, event: ReceivedClientUpdates):
 
         for update in deepcopy(self.updates_to_load):
             
             match update["update_type"]:
 
                 case "create":
+
+                    print("Received create update")
 
                     entity_class = self.entity_type_map[
                         update["entity_type"]
@@ -116,6 +141,8 @@ class GamemodeServer:
             entity: Entity
 
             entity.resolve()
+
+        self.trigger(UpdatesLoaded())
 
     def lookup_entity_type_string(self, entity: Entity):
 
@@ -157,15 +184,17 @@ class GamemodeServer:
 
                 self.network_update(update_type="create", entity_id=entity.uuid, data=data, entity_type=entity_type_string, destinations=[client_uuid])
                 
-                self.send_client_updates(force=True)
+                self.send_client_updates()
 
     def handle_client_disconnect(self, event: DisconnectedClientEvent):
         
-        client_uuid = event.disconnected_client_uuid
+        disconnected_client_uuid = event.disconnected_client_uuid
         
         for entity_uuid, entity in self.entities.copy().items():
 
-            if entity.updater == client_uuid:
+            entity: Entity
+
+            if entity.updater == disconnected_client_uuid:
                 del self.entities[entity_uuid]
 
                 self.network_update(
@@ -174,13 +203,13 @@ class GamemodeServer:
                     destinations=list(self.client_sockets.keys())
                 )
         
-        print(f"{client_uuid} disconnected")
+        print(f"{disconnected_client_uuid} disconnected")
         
-        del self.client_sockets[client_uuid]
+        del self.client_sockets[disconnected_client_uuid]
 
         print(self.update_queue)
 
-        del self.update_queue[client_uuid]
+        del self.update_queue[disconnected_client_uuid]
 
         print(self.update_queue)
         
@@ -189,7 +218,7 @@ class GamemodeServer:
         try:
             new_client, address = self.socket.accept()
 
-            self.handle_new_client(new_client)
+            self.trigger(NewClientEvent(new_client))
 
         except BlockingIOError: 
             pass
@@ -210,7 +239,7 @@ class GamemodeServer:
                 
             except Disconnected:
 
-                self.trigger(DisconnectedClientEvent(sending_client))
+                self.trigger(DisconnectedClientEvent(sending_client_uuid))
 
                 continue
             
@@ -224,8 +253,11 @@ class GamemodeServer:
                     continue
 
                 self.update_queue[receiving_client_uuid] += incoming_updates
+        
+        self.trigger(ReceivedClientUpdates())
 
-    def send_client_updates(self, event: TickEvent):
+    def send_client_updates(self, event: Optional[ReceivedClientUpdates] = None):
+        """Actually send queued network updates"""
 
         for receiving_client_uuid, updates in self.update_queue.copy().items():
             
@@ -237,18 +269,22 @@ class GamemodeServer:
         
             self.update_queue[receiving_client_uuid] = []
             
-    def run(self, host=socket.gethostname(), port=5560):
+    def run(self):
+        
+        self.trigger(ServerStart())
 
-        self.start(host, port)
+        last_tick = 0
 
         while True:   
 
             # receive and relay client updates as fast as possible
             # only tick at the specified tick rate
-            
-            self.load_updates()
+            if time.time() - last_tick >= 1/self.tick_rate:
+                
+                self.trigger(GameTickStart())
 
-            if self.server_clock.get_time() >= 1/self.tick_rate:
                 self.trigger(TickEvent())
 
-                self.server_clock.tick()
+                self.trigger(GameTickComplete())
+
+                last_tick = time.time()

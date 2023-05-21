@@ -2,6 +2,7 @@ import pygame
 from pygame import Rect
 
 from engine.gamemode_client import GamemodeClient
+from engine.events import GameStart
 from fight.gamemodes.arena.entities import Player, Floor, Cursor, Shotgun
 
 class ArenaClient(GamemodeClient):
@@ -22,16 +23,7 @@ class ArenaClient(GamemodeClient):
 
         self.gravity = gravity
     
-    def start(self):
-        super().start()
-
-        if self.enable_music:
-    
-            pygame.mixer.music.load("/opt/fightsquares/resources/music.mp3")
-
-            pygame.mixer.music.play(loops=-1)
-
-            pygame.mixer.music.set_volume(0.5)
+    def start(self, event: GameStart):
         
         cursor = Cursor(game=self, updater=self.uuid)
 
@@ -49,20 +41,6 @@ class ArenaClient(GamemodeClient):
         )
 
         player.weapon = shotgun
-
-        self.network_update(
-            update_type="create",
-            entity_id=player.uuid,
-            data=player.dict(),
-            entity_type="player"
-        )
-
-        self.network_update(
-            update_type="create",
-            entity_id=shotgun.uuid,
-            data=shotgun.dict(),
-            entity_type="shotgun"
-        )
 
         print(self.entities)
 

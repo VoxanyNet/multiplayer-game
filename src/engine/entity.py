@@ -1,5 +1,5 @@
 import uuid
-from typing import Dict, List, TYPE_CHECKING
+from typing import Dict, List, Type, Union, TYPE_CHECKING
 
 import pygame.image
 from pygame import Rect
@@ -10,6 +10,7 @@ from engine.events import TickEvent, GameTickComplete, GameTickStart
 
 if TYPE_CHECKING:
     from gamemode_client import GamemodeClient
+    from gamemode_server import GamemodeServer
 
 
 class Entity:
@@ -34,27 +35,31 @@ class Entity:
             print("scaling")
             self.sprite = pygame.transform.scale(self.sprite, scale_res)
 
+        self.game.network_update(
+            update_type="create",
+            entity_id=self.uuid,
+            data=self.dict(),
+            entity_type=self.game.lookup_entity_type_string(self)
+        )
+
         self.game.event_subscriptions[GameTickStart] += [self.set_last_tick_dict]
 
         self.game.event_subscriptions[GameTickComplete] += [self.detect_updates] 
 
     def set_last_tick_dict(self, event: GameTickStart):
-        """This function is used to set a sort of keyframe of the object before it ticked"""
+        """This listener is used to set a sort of keyframe of the object before it ticked"""
         self.last_tick_dict = self.dict()
 
     def detect_updates(self, event: GameTickComplete):
         
         current_tick_dict = self.dict()
         
-        if self.last_tick_dict == {}: # this indicates that this entity did not exist last tick
-            entity_type_string = self.game.lookup_entity_type_string(self)
 
-            self.game.network_update(update_type="create", entity_id=self.uuid, data=current_tick_dict, entity_type=entity_type_string)
+        if current_tick_dict != self.last_tick_dict:
             
-        elif current_tick_dict != self.last_tick_dict:
             update_data_dict = dict_diff(self.last_tick_dict, current_tick_dict)
 
-            #print(update_data_dict)
+            print(update_data_dict)
 
             self.game.network_update(update_type="update", entity_id=self.uuid, data=update_data_dict)
         
@@ -85,7 +90,7 @@ class Entity:
         return data_dict
 
     @classmethod
-    def create(cls, entity_data, entity_id, game):
+    def create(cls, entity_data: Dict, entity_id: str, game: Union[Type["GamemodeClient"], Type["GamemodeServer"]]):
 
         entity_data["rect"] = Rect(
             entity_data["rect"]

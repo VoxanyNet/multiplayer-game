@@ -1,17 +1,18 @@
 import uuid
 from copy import copy
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Type, List, Union, Dict
+from pygame import Rect
 
 from engine.vector import Vector
 from engine.entity import Entity
-from engine.events import TickEvent
-from engine.events import LandedEvent
+from engine.events import LandedEvent, EntityAirborne, TickEvent
 
 if TYPE_CHECKING:
     from gamemode_client import GamemodeClient
+    from gamemode_server import GamemodeServer
 
 class PhysicsEntity(Entity):
-    def __init__(self, game: "GamemodeClient", updater, uuid=str(uuid.uuid4()), gravity=0, velocity: Vector = Vector(0,0), max_velocity=None, friction=2, collidable_entities=[], rect=None, sprite_path=None, scale_res=None, visible=True):
+    def __init__(self, rect: Rect, game: Union["GamemodeClient", "GamemodeServer"], updater: str, uuid=str(uuid.uuid4()), gravity: int = 0, velocity: Vector = Vector(0,0), max_velocity=None, friction=2, collidable_entities: List[Type[Entity]] = [], sprite_path: str = None, scale_res: tuple = None, visible: bool = True):
 
         super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res, visible=visible)
         
@@ -24,12 +25,15 @@ class PhysicsEntity(Entity):
         self.game.event_subscriptions[TickEvent] += [
             self.move_x_axis,
             self.move_y_axis,
-            self.apply_gravity,
             self.apply_friction
         ]
 
         self.game.event_subscriptions[LandedEvent] += [
             self.bounce
+        ]
+
+        self.game.event_subscriptions[EntityAirborne] += [
+            self.apply_gravity
         ]
     
     def dict(self):
@@ -47,7 +51,7 @@ class PhysicsEntity(Entity):
         return data_dict
     
     @classmethod
-    def create(cls, entity_data, entity_id, game: "GamemodeClient"):
+    def create(cls, entity_data: Dict, entity_id: str, game: Union["GamemodeClient", "GamemodeServer"]):
         # convert json entity data to object constructor arguments
 
         entity_data["velocity"] = Vector(
@@ -64,7 +68,7 @@ class PhysicsEntity(Entity):
 
         return new_player
     
-    def update(self, update_data):
+    def update(self, update_data: Dict):
 
         super().update(update_data)
 
@@ -141,7 +145,9 @@ class PhysicsEntity(Entity):
 
             colliding_entity = colliding_entities[0]
 
-            #  new rect bottom is lower than the collidinng rect's top and the old rect bottom is higher than the colliding rect top
+            colliding_entity: Type[Entity]
+
+            # new rect bottom is lower than the colliding rect's top and the old rect bottom is higher than the colliding rect top
             if (projected_rect_y.bottom >= colliding_entity.rect.top) and (self.rect.bottom <= colliding_entity.rect.top):
 
                 self.rect.bottom = colliding_entity.rect.top
@@ -157,6 +163,7 @@ class PhysicsEntity(Entity):
         else:
             self.rect.y = projected_rect_y.y
 
+            self.game.trigger(EntityAirborne(entity=self))
 
     def apply_friction(self, event: TickEvent):
 
@@ -165,9 +172,9 @@ class PhysicsEntity(Entity):
             self.velocity.x *= 0.05
             
 
-    def apply_gravity(self, event: TickEvent):
+    def apply_gravity(self, event: EntityAirborne):
 
-        if self.airborne:
+        if event.entity is self:
             self.velocity.y += self.gravity
 
     def bounce(self, event: LandedEvent):

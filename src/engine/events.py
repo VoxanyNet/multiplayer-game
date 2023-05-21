@@ -1,14 +1,16 @@
-from typing import Type
+from typing import Type, TYPE_CHECKING
 
 from engine.headered_socket import HeaderedSocket
-from engine.entity import Entity
-from engine.physics_entity import PhysicsEntity
+
+if TYPE_CHECKING:
+    from engine.entity import Entity
+    from engine.physics_entity import PhysicsEntity
 
 class Event:
     pass
 
 class LandedEvent(Event):
-    def __init__(self, entity: Type[PhysicsEntity]):
+    def __init__(self, entity: Type["PhysicsEntity"]):
         self.entity = entity
 
 class TickEvent(Event):
@@ -20,9 +22,9 @@ class NewClientEvent(Event):
         self.new_client = new_client
 
 class DisconnectedClientEvent(Event):
-    def __init__(self, disconnected_client: HeaderedSocket):
+    def __init__(self, disconnected_client_uuid: str):
 
-        self.disconnected_client = disconnected_client
+        self.disconnected_client_uuid = disconnected_client_uuid
 
 class GameTickStart(Event):
     pass
@@ -32,3 +34,20 @@ class GameTickComplete(Event):
 
 class GameStart(Event):
     pass 
+
+class ScreenCleared(Event):
+    pass 
+
+class ReceivedClientUpdates(Event):
+    pass
+
+class UpdatesLoaded(Event):
+    pass
+
+class ServerStart(Event):
+    pass
+
+class EntityAirborne(Event):
+    def __init__(self, entity: Type["PhysicsEntity"]):
+
+        self.entity = entity

@@ -3,6 +3,7 @@ import uuid
 import pygame
 import pygame.key
 from pygame import Rect
+from typing import TYPE_CHECKING, Dict, Union, List, Type
 
 from engine.entity import Entity 
 from engine.unresolved import Unresolved
@@ -11,10 +12,14 @@ from engine.vector import Vector
 from engine.events import TickEvent
 from fight.gamemodes.arena.events import JumpEvent
 
+if TYPE_CHECKING:
+    from client import ArenaClient
+    from server import ArenaServer
+
 
 class Cursor(Entity):
-    def __init__(self, rect=Rect(0,0,10,10), game=None, updater=None, uuid=str(uuid.uuid4()),
-                 sprite_path=None, scale_res=None, visible=True):
+    def __init__(self, game: Union["ArenaClient", "ArenaServer"], updater: str, rect=Rect(0,0,10,10), uuid=str(uuid.uuid4()),
+                 sprite_path: str = None, scale_res: tuple = None, visible: bool = True):
 
         super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
                          visible=visible)
@@ -29,27 +34,19 @@ class Cursor(Entity):
             self.rect
         )
 
-    def update_position(self, event):
+    def update_position(self, event: TickEvent):
 
         self.rect.center = pygame.mouse.get_pos()
 
 class Floor(Entity):
-    def __init__(self, rect=None, game=None, updater=None, uuid=str(uuid.uuid4()),
-                 sprite_path=None, scale_res=None, visible=True):
+    def __init__(self, rect: Rect, game: Union["ArenaClient", "ArenaServer"], updater: str, uuid=str(uuid.uuid4()),
+                 sprite_path: str = None, scale_res: tuple = None, visible: bool = True):
 
         super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
                          visible=visible)
 
-    def dict(self):
-        # create a json serializable dictionary with all of this object's attributes
-
-        # create the base entity's dict, then we add our own unique attributes on top
-        data_dict = super().dict()
-
-        return data_dict
-
     @classmethod
-    def create(cls, entity_data, entity_id, game):
+    def create(cls, entity_data: Dict, entity_id: str, game: Union["ArenaClient", "ArenaServer"]):
         # convert json entity data to object constructor arguments
 
         # call the base entity create method to do its own stuff and then return the actual object!!!!!
@@ -57,7 +54,7 @@ class Floor(Entity):
 
         return new_player
 
-    def update(self, update_data):
+    def update(self, update_data: Dict):
         # update the attributes of this object with update data
 
         # update base entity attributes
@@ -81,16 +78,13 @@ class Floor(Entity):
         )
 
 class Player(PhysicsEntity):
-    def __init__(self, health=100, weapon=None, gravity=0.05, velocity = Vector(0,0), max_velocity=Vector(50,50), friction=2, collidable_entities=[Floor], rect=None, game=None, updater=None, uuid=str(uuid.uuid4()),
-                 sprite_path=None, scale_res=None, visible=True):
+    def __init__(self, rect: Rect, game: Union["ArenaClient", "ArenaServer"], updater: str, health: int = 100, weapon: Type["Weapon"] = None, gravity=0.05, velocity = Vector(0,0), max_velocity: Vector = Vector(50,50), friction: int = 2, collidable_entities: List[Type[Entity]] = [Floor], uuid=str(uuid.uuid4()),
+                 sprite_path: str = None, scale_res: tuple = None, visible: bool = True):
 
         super().__init__(gravity=gravity, velocity=velocity, max_velocity=max_velocity, friction=friction, collidable_entities=collidable_entities, rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
                          visible=visible)
 
         self.last_attack = 0
-
-        if health is None:
-            raise AttributeError("Missing health argument")
 
         self.health = health
         self.weapon = weapon
@@ -98,7 +92,7 @@ class Player(PhysicsEntity):
         self.game.event_subscriptions[TickEvent].append(self.handle_keys)
         
 
-    def dict(self):
+    def dict(self) -> Dict:
 
         data_dict = super().dict()
 
@@ -108,11 +102,12 @@ class Player(PhysicsEntity):
             data_dict["weapon"] = self.weapon.uuid
         else:
             data_dict["weapon"] = None
+ 
 
         return data_dict
 
     @classmethod
-    def create(cls, entity_data, entity_id, game):
+    def create(cls, entity_data: Dict, entity_id: str, game: Union["ArenaClient", "ArenaServer"]):
 
         entity_data["health"] = entity_data["health"]
 
@@ -125,7 +120,7 @@ class Player(PhysicsEntity):
 
         return new_player
 
-    def update(self, update_data):
+    def update(self, update_data: Dict):
 
         super().update(update_data)
 
@@ -151,7 +146,7 @@ class Player(PhysicsEntity):
             self.rect
         )
 
-    def handle_keys(self, event):
+    def handle_keys(self, event: TickEvent):
 
         keys = pygame.key.get_pressed()
 
@@ -169,25 +164,11 @@ class Player(PhysicsEntity):
             self.velocity.x += 1
 
 class Weapon(Entity):
-    def __init__(self, ammo=None, max_ammo=None, attack_cooldown=None, owner=None, rect=None, game=None, updater=None, uuid=None,
-                 sprite_path=None, scale_res=None, visible=True):
-    
-        print(scale_res)
+    def __init__(self, ammo: int, max_ammo: int, attack_cooldown: int, owner: Player, rect: Rect, game: Union["ArenaClient", "ArenaServer"], updater: str, uuid: str = str(uuid.uuid4()),
+                 sprite_path: str = None, scale_res: tuple = None, visible: bool = True):
 
         super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
                          visible=visible)
-
-        if ammo is None:
-            raise TypeError("Missing ammo argument")
-        
-        if max_ammo is None:
-            raise TypeError("Missing max_ammo argument")
-        
-        if attack_cooldown is None:
-            raise TypeError("Missing attack_cooldown argument")
-        
-        if owner is None:
-            raise TypeError("Missing owner argument")
 
         self.ammo = ammo
         self.max_ammo = max_ammo
@@ -199,7 +180,7 @@ class Weapon(Entity):
             self.follow_cursor
         ]
 
-    def dict(self):
+    def dict(self) -> Dict:
         # create a json serializable dictionary with all of this object's attributes
 
         # create the base entity's dict, then we add our own unique attributes on top
@@ -213,7 +194,7 @@ class Weapon(Entity):
         return data_dict
 
     @classmethod
-    def create(cls, entity_data, entity_id, game):
+    def create(cls, entity_data: Dict, entity_id: str, game: Union["ArenaClient", "ArenaServer"]):
         # convert json entity data to object constructor arguments
 
         entity_data["ammo"] = entity_data["ammo"]
@@ -227,7 +208,7 @@ class Weapon(Entity):
 
         return new_player
 
-    def update(self, update_data):
+    def update(self, update_data: Dict):
         # update the attributes of this object with update data
 
         # update base entity attributes
@@ -251,25 +232,17 @@ class Weapon(Entity):
                 case "owner":
                     self.owner = Unresolved(update_data["owner"])
 
-    def follow_owner(self, event):
+    def follow_owner(self, event: TickEvent):
         self.rect = self.owner.rect.move(0,-50)
 
-        self.game.network_update(
-            update_type="update",
-            entity_id=self.uuid,
-            data={
-                "rect": list(self.rect)
-            }
-        )
-
-    def follow_cursor(self, event):
+    def follow_cursor(self, event: TickEvent):
         mouse_pos = pygame.mouse.get_pos()
 
         #print(mouse_pos)
 
 class Shotgun(Weapon):
-    def __init__(self, ammo=2, max_ammo=2, attack_cooldown=1, owner=None, rect=None, game=None, updater=None, uuid=None,
-                 sprite_path="resources/shotgun.png", scale_res=(68,19), visible=True):
+    def __init__(self, owner: Player, rect: Rect, game: Union["ArenaClient", "ArenaServer"], updater: str, ammo: int = 2, max_ammo: int = 2, attack_cooldown: int = 1, uuid=str(uuid.uuid4()),
+                 sprite_path: str = "resources/shotgun.png", scale_res: tuple = (68,19), visible: bool = True):
 
         super().__init__(ammo=ammo, max_ammo=max_ammo, attack_cooldown=attack_cooldown, owner=owner, rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
                          visible=visible)

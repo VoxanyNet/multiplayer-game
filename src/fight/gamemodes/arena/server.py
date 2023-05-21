@@ -1,6 +1,7 @@
 from pygame import Rect
 
 from engine.gamemode_server import GamemodeServer
+from engine.events import ServerStart
 from fight.gamemodes.arena.entities import Player, Floor, Shotgun
 
 class ArenaServer(GamemodeServer):
@@ -14,16 +15,18 @@ class ArenaServer(GamemodeServer):
                 "shotgun": Shotgun
             }
         )
+
+        self.event_subscriptions[ServerStart] += [
+            self.start
+        ]
     
-    def start(self, host, port):
+    def start(self, event: ServerStart):
 
         floor = Floor(
             rect=Rect(0,600,1920,20),
             game=self,
             updater="server"
         )
-
-        super().start(host, port)
 
 
 
