@@ -75,12 +75,9 @@ class GamemodeServer:
             
             function(event) 
 
-    def network_update(self, update_type: Union[Literal["create"], Literal["update"], Literal["delete"]], entity_id: str, data: dict = None, entity_type: str = None, destinations: List[str]=None):
+    def network_update(self, update_type: Union[Literal["create"], Literal["update"], Literal["delete"]], entity_id: str, destinations: List[str], data: dict = None, entity_type: str = None):
         # update_type: Union[Literal["create"], Literal["update"], Literal["delete"]], entity_id: str, data: dict = None, entity_type: str = None
         """Queue up a network update for specified client uuid(s)"""
-
-        if destinations is None:
-            raise MalformedUpdate("Server side network updates require a destination")
 
         if update_type not in ["create", "update", "delete"]:
             raise InvalidUpdateType(f"Update type {update_type} is invalid")

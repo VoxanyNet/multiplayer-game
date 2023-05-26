@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 
 class Entity:
-    def __init__(self, rect: Rect, game: "GamemodeClient", updater: str, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None,
+    def __init__(self, rect: Rect, game: Union["GamemodeClient", "GamemodeServer"], updater: str, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None,
                  visible=True):
 
         self.visible = visible
@@ -35,15 +35,27 @@ class Entity:
             print("scaling")
             self.sprite = pygame.transform.scale(self.sprite, scale_res)
 
-        self.game.network_update(
+        # we cannot directly check if the game type is server or client, so we just check for the error
+        try:
+
+            self.game.network_update(
+                update_type="create",
+                entity_id=self.uuid,
+                data=self.dict(),
+                entity_type=self.game.lookup_entity_type_string(self)
+            )
+        except TypeError:
+
+            self.game.network_update(
             update_type="create",
             entity_id=self.uuid,
             data=self.dict(),
-            entity_type=self.game.lookup_entity_type_string(self)
+            entity_type=self.game.lookup_entity_type_string(self),
+            destinations = self.game.client_sockets.keys()
         )
 
-        self.game.event_subscriptions[GameTickStart] += [self.set_last_tick_dict]
 
+        self.game.event_subscriptions[GameTickStart] += [self.set_last_tick_dict]
         self.game.event_subscriptions[GameTickComplete] += [self.detect_updates] 
 
     def set_last_tick_dict(self, event: GameTickStart):
