@@ -6,7 +6,7 @@ from pygame import Rect
 
 from engine.unresolved import Unresolved
 from engine.helpers import get_matching_objects, dict_diff
-from engine.events import TickEvent, GameTickComplete, GameTickStart
+from engine.events import Tick, GameTickComplete, GameTickStart
 
 if TYPE_CHECKING:
     from gamemode_client import GamemodeClient

@@ -10,7 +10,7 @@ import pygame
 from engine import headered_socket
 from engine.headered_socket import Disconnected
 from engine.exceptions import MalformedUpdate, InvalidUpdateType
-from engine.events import TickEvent, Event, DisconnectedClientEvent, NewClientEvent, ReceivedClientUpdates, UpdatesLoaded, ServerStart, GameTickStart, GameTickComplete
+from engine.events import Tick, Event, DisconnectedClient, NewClient, ReceivedClientUpdates, UpdatesLoaded, ServerStart, GameTickStart, GameTickComplete
 from engine.entity import Entity
 
 
@@ -34,7 +34,7 @@ class GamemodeServer:
         self.server_ip = server_ip
         self.server_port = server_port
 
-        self.event_subscriptions[TickEvent] += [
+        self.event_subscriptions[Tick] += [
             self.accept_new_clients,
             self.receive_client_updates 
         ]
@@ -51,7 +51,7 @@ class GamemodeServer:
             self.enable_socket
         ]
 
-        self.event_subscriptions[NewClientEvent] += [
+        self.event_subscriptions[NewClient] += [
             self.handle_new_client
         ]
     
@@ -147,7 +147,7 @@ class GamemodeServer:
             if type(entity) is entity_type:
                 return entity_type_string
 
-    def handle_new_client(self, event: NewClientEvent):
+    def handle_new_client(self, event: NewClient):
 
         print("New connecting client")
 
@@ -183,7 +183,7 @@ class GamemodeServer:
                 
                 self.send_client_updates()
 
-    def handle_client_disconnect(self, event: DisconnectedClientEvent):
+    def handle_client_disconnect(self, event: DisconnectedClient):
         
         disconnected_client_uuid = event.disconnected_client_uuid
         
@@ -210,17 +210,17 @@ class GamemodeServer:
 
         print(self.update_queue)
         
-    def accept_new_clients(self, event: TickEvent):
+    def accept_new_clients(self, event: Tick):
 
         try:
             new_client, address = self.socket.accept()
 
-            self.trigger(NewClientEvent(new_client))
+            self.trigger(NewClient(new_client))
 
         except BlockingIOError: 
             pass
     
-    def receive_client_updates(self, event: TickEvent):
+    def receive_client_updates(self, event: Tick):
 
         for sending_client_uuid, sending_client in self.client_sockets.copy().items():
             
@@ -236,7 +236,7 @@ class GamemodeServer:
                 
             except Disconnected:
 
-                self.trigger(DisconnectedClientEvent(sending_client_uuid))
+                self.trigger(DisconnectedClient(sending_client_uuid))
 
                 continue
             
@@ -280,7 +280,7 @@ class GamemodeServer:
                 
                 self.trigger(GameTickStart())
 
-                self.trigger(TickEvent())
+                self.trigger(Tick())
 
                 self.trigger(GameTickComplete())
 

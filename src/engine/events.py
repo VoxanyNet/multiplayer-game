@@ -9,19 +9,19 @@ if TYPE_CHECKING:
 class Event:
     pass
 
-class LandedEvent(Event):
+class EntityLanded(Event):
     def __init__(self, entity: Type["PhysicsEntity"]):
         self.entity = entity
 
-class TickEvent(Event):
+class Tick(Event):
     pass 
 
-class NewClientEvent(Event):
+class NewClient(Event):
     def __init__(self, new_client: HeaderedSocket):
     
         self.new_client = new_client
 
-class DisconnectedClientEvent(Event):
+class DisconnectedClient(Event):
     def __init__(self, disconnected_client_uuid: str):
 
         self.disconnected_client_uuid = disconnected_client_uuid
@@ -51,3 +51,7 @@ class EntityAirborne(Event):
     def __init__(self, entity: Type["PhysicsEntity"]):
 
         self.entity = entity
+
+class EntityCreated(Event):
+    def __init__(self, new_entity: Type["Entity"]):
+        self.new_entity = new_entity

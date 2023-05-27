@@ -9,7 +9,7 @@ from engine.entity import Entity
 from engine.unresolved import Unresolved
 from engine.physics_entity import PhysicsEntity
 from engine.vector import Vector
-from engine.events import TickEvent
+from engine.events import Tick
 from fight.gamemodes.arena.events import JumpEvent
 
 if TYPE_CHECKING:
@@ -24,7 +24,7 @@ class Cursor(Entity):
         super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
                          visible=visible)
 
-        self.game.event_subscriptions[TickEvent].append(self.update_position)
+        self.game.event_subscriptions[Tick].append(self.update_position)
     
     def draw(self):
 
@@ -34,7 +34,7 @@ class Cursor(Entity):
             self.rect
         )
 
-    def update_position(self, event: TickEvent):
+    def update_position(self, event: Tick):
 
         self.rect.center = pygame.mouse.get_pos()
 
@@ -89,7 +89,7 @@ class Player(PhysicsEntity):
         self.health = health
         self.weapon = weapon
 
-        self.game.event_subscriptions[TickEvent].append(self.handle_keys)
+        self.game.event_subscriptions[Tick].append(self.handle_keys)
         
 
     def dict(self) -> Dict:
@@ -146,7 +146,7 @@ class Player(PhysicsEntity):
             self.rect
         )
 
-    def handle_keys(self, event: TickEvent):
+    def handle_keys(self, event: Tick):
 
         keys = pygame.key.get_pressed()
 
@@ -175,7 +175,7 @@ class Weapon(Entity):
         self.attack_cooldown = attack_cooldown
         self.owner = owner
 
-        self.game.event_subscriptions[TickEvent] += [
+        self.game.event_subscriptions[Tick] += [
             self.follow_owner,
             self.follow_cursor
         ]
@@ -232,10 +232,10 @@ class Weapon(Entity):
                 case "owner":
                     self.owner = Unresolved(update_data["owner"])
 
-    def follow_owner(self, event: TickEvent):
+    def follow_owner(self, event: Tick):
         self.rect = self.owner.rect.move(0,-50)
 
-    def follow_cursor(self, event: TickEvent):
+    def follow_cursor(self, event: Tick):
         mouse_pos = pygame.mouse.get_pos()
 
         #print(mouse_pos)
