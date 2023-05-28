@@ -75,7 +75,7 @@ class GamemodeServer:
             
             function(event) 
 
-    def network_update(self, update_type: Union[Literal["create"], Literal["update"], Literal["delete"]], entity_id: str, destinations: List[str], data: dict = None, entity_type: str = None):
+    def network_update(self, update_type: Union[Literal["create"], Literal["update"], Literal["delete"]], entity_id: str, destinations: List[str] = None, data: dict = None, entity_type: str = None):
         # update_type: Union[Literal["create"], Literal["update"], Literal["delete"]], entity_id: str, data: dict = None, entity_type: str = None
         """Queue up a network update for specified client uuid(s)"""
 
@@ -87,6 +87,10 @@ class GamemodeServer:
 
         if update_type == "create" and entity_type not in self.entity_type_map:
             raise MalformedUpdate(f"Entity type {entity_type} does not exist in the entity type map")
+
+        # if no destinations are specified, we just send the update to all connected clients
+        if destinations is None:
+            destinations = self.client_sockets.keys()
 
         update = {
             "update_type": update_type,

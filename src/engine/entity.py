@@ -6,7 +6,7 @@ from pygame import Rect
 
 from engine.unresolved import Unresolved
 from engine.helpers import get_matching_objects, dict_diff
-from engine.events import Tick, GameTickComplete, GameTickStart
+from engine.events import Tick, GameTickComplete, GameTickStart, EntityCreated
 
 if TYPE_CHECKING:
     from gamemode_client import GamemodeClient
@@ -35,26 +35,6 @@ class Entity:
             print("scaling")
             self.sprite = pygame.transform.scale(self.sprite, scale_res)
 
-        # we cannot directly check if the game type is server or client, so we just check for the error
-        try:
-
-            self.game.network_update(
-                update_type="create",
-                entity_id=self.uuid,
-                data=self.dict(),
-                entity_type=self.game.lookup_entity_type_string(self)
-            )
-        except TypeError:
-
-            self.game.network_update(
-            update_type="create",
-            entity_id=self.uuid,
-            data=self.dict(),
-            entity_type=self.game.lookup_entity_type_string(self),
-            destinations = self.game.client_sockets.keys()
-        )
-
-
         self.game.event_subscriptions[GameTickStart] += [self.set_last_tick_dict]
         self.game.event_subscriptions[GameTickComplete] += [self.detect_updates] 
 
@@ -66,6 +46,18 @@ class Entity:
         
         current_tick_dict = self.dict()
         
+        # this indicates that the entity did not exist last tick
+        if self.last_tick_dict == {}:
+            self.game.network_update(
+                update_type="create",
+                entity_id=self.uuid,
+                data=self.dict(),
+                entity_type=self.game.lookup_entity_type_string(self)
+            )
+
+            self.last_tick_dict = current_tick_dict
+
+            return
 
         if current_tick_dict != self.last_tick_dict:
             
