@@ -35,15 +35,17 @@ class Entity:
             print("scaling")
             self.sprite = pygame.transform.scale(self.sprite, scale_res)
 
-        self.game.event_subscriptions[GameTickStart] += [self.set_last_tick_dict]
+        #self.game.event_subscriptions[GameTickStart] += [self.set_last_tick_dict]
         self.game.event_subscriptions[GameTickComplete] += [self.detect_updates] 
 
     def set_last_tick_dict(self, event: GameTickStart):
-        """This listener is used to set a sort of keyframe of the object before it ticked"""
+        """Set a keyframe of the serialized object before it ticked"""
+
         self.last_tick_dict = self.dict()
 
     def detect_updates(self, event: GameTickComplete):
-        
+        """Compare entity state from last tick to this tick to find differences"""
+
         current_tick_dict = self.dict()
         
         # this indicates that the entity did not exist last tick
@@ -52,8 +54,10 @@ class Entity:
                 update_type="create",
                 entity_id=self.uuid,
                 data=self.dict(),
-                entity_type=self.game.lookup_entity_type_string(self)
+                entity_type_string=self.game.lookup_entity_type_string(self)
             )
+
+            print(f"Sending create update for {self.uuid}")
 
             self.last_tick_dict = current_tick_dict
 
@@ -70,6 +74,8 @@ class Entity:
         self.last_tick_dict = current_tick_dict
                 
     def resolve(self):
+        """Convert any of the entity's attributes that are of type 'Unresolved' to the actual entity they are pointing to"""
+
         for attribute_name, attribute in self.__dict__.copy().items():
 
             if type(attribute) is not Unresolved:
@@ -81,7 +87,8 @@ class Entity:
 
             self.__setattr__(attribute_name, resolved_attribute)
 
-    def dict(self):
+    def dict(self) -> Dict[str, Union[int, bool, str, list]]:
+        """Serialize the entity's data"""
 
         data_dict = {
             "rect": list(self.rect),
@@ -94,7 +101,8 @@ class Entity:
         return data_dict
 
     @classmethod
-    def create(cls, entity_data: Dict, entity_id: str, game: Union[Type["GamemodeClient"], Type["GamemodeServer"]]):
+    def create(cls, entity_data: Dict[str, Union[int, bool, str, list]], entity_id: str, game: Union[Type["GamemodeClient"], Type["GamemodeServer"]]) -> Type["Entity"]:
+        """Use serialized entity data to create a new entity"""
 
         entity_data["rect"] = Rect(
             entity_data["rect"]
@@ -111,6 +119,7 @@ class Entity:
         return cls(game=game, uuid=entity_id, **entity_data)
 
     def update(self, update_data):
+        """Use serialized entity data to update existing entity"""
 
         for attribute in update_data:
 
@@ -132,4 +141,6 @@ class Entity:
                     self.sprite = pygame.image.load(update_data["sprite_path"])
         
     def draw(self):
+        """Draw the entity onto the game screen"""
+
         self.game.screen.blit(self.sprite, self.rect)
