@@ -245,4 +245,4 @@ class GamemodeClient:
             else:
                 print("skipping tick")
 
-            input("Press enter to advanced to next tick...")
+            #input("Press enter to advanced to next tick...")
