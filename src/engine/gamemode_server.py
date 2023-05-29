@@ -194,7 +194,7 @@ class GamemodeServer:
 
                 self.network_update(update_type="create", entity_id=entity.uuid, data=data, entity_type_string=entity_type_string, destinations=[client_uuid])
                 
-                self.send_client_updates()
+            self.send_client_updates()
 
     def handle_client_disconnect(self, event: DisconnectedClient):
         
