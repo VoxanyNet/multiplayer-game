@@ -60,27 +60,36 @@ class GamemodeClient:
 
         return colliding_entities
 
-    def lookup_entity_type_string(self, entity: Entity):
+    def lookup_entity_type_string(self, entity: Type[Entity]) -> str:
+        """Find entity type's corresponding type string in entity_type_map"""
 
-        for entity_type_string, entity_type in self.entity_type_map.items():
+        entity_type_string = None
+
+        for possible_entity_type_string, entity_type in self.entity_type_map.items():
             if type(entity) is entity_type:
-                return entity_type_string
+                entity_type_string = possible_entity_type_string
+        
+        if entity_type_string ==  None:
+            raise KeyError(f"Entity type {type(entity)} does not exist in entity type map")
+    
+        else:
+            return entity_type_string
 
-    def network_update(self, update_type: Union[Literal["create"], Literal["update"], Literal["delete"]], entity_id: str, data: dict = None, entity_type: str = None):
+    def network_update(self, update_type: Union[Literal["create"], Literal["update"], Literal["delete"]], entity_id: str, data: dict = None, entity_type_string: str = None):
 
         if update_type not in ["create", "update", "delete"]:
             raise InvalidUpdateType(f"Update type {update_type} is invalid")
 
-        if update_type == "create" and entity_type is None:
-            raise MalformedUpdate("Create update requires 'entity_type' parameter")
+        if update_type == "create" and entity_type_string is None:
+            raise MalformedUpdate("Create update requires 'entity_type_string' parameter")
 
-        if update_type == "create" and entity_type not in self.entity_type_map:
-            raise MalformedUpdate(f"Entity type {entity_type} does not exist in the entity type map")
+        if update_type == "create" and entity_type_string not in self.entity_type_map:
+            raise MalformedUpdate(f"Entity type {entity_type_string} does not exist in the entity type map")
 
         update = {
             "update_type": update_type,
             "entity_id": entity_id,
-            "entity_type": entity_type,
+            "entity_type": entity_type_string,
             "data": data
         }
 
