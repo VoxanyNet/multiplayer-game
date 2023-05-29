@@ -2,7 +2,7 @@ from pygame import Rect
 
 from engine.gamemode_server import GamemodeServer
 from engine.events import ServerStart
-from fight.gamemodes.arena.entities import Player, Floor, Shotgun
+from fight.gamemodes.arena.entities import Player, Floor, Shotgun, Cursor
 
 class ArenaServer(GamemodeServer):
     def __init__(self, tick_rate):
@@ -12,7 +12,8 @@ class ArenaServer(GamemodeServer):
             {
                 "player": Player,
                 "floor": Floor,
-                "shotgun": Shotgun
+                "shotgun": Shotgun,
+                "cursor": Cursor
             }
         )
 
