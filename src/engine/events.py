@@ -13,7 +13,7 @@ class EntityLanded(Event):
     def __init__(self, entity: Type["PhysicsEntity"]):
         self.entity = entity
 
-class Tick(Event):
+class LogicTick(Event):
     pass 
 
 class RealtimeTick(Event):
