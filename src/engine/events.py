@@ -16,6 +16,9 @@ class EntityLanded(Event):
 class Tick(Event):
     pass 
 
+class RealtimeTick(Event):
+    pass
+
 class NewClient(Event):
     def __init__(self, new_client: HeaderedSocket):
     
