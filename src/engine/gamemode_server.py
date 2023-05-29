@@ -10,7 +10,7 @@ import pygame
 from engine import headered_socket
 from engine.headered_socket import Disconnected
 from engine.exceptions import MalformedUpdate, InvalidUpdateType
-from engine.events import Tick, Event, DisconnectedClient, NewClient, ReceivedClientUpdates, UpdatesLoaded, ServerStart, GameTickStart, GameTickComplete
+from engine.events import LogicTick, Event, DisconnectedClient, NewClient, ReceivedClientUpdates, UpdatesLoaded, ServerStart, GameTickStart, GameTickComplete
 from engine.entity import Entity
 
 
@@ -32,7 +32,7 @@ class GamemodeServer:
         self.server_ip = server_ip
         self.server_port = server_port
 
-        self.event_subscriptions[Tick] += [
+        self.event_subscriptions[LogicTick] += [
             self.accept_new_clients,
             self.receive_client_updates 
         ]
@@ -217,7 +217,7 @@ class GamemodeServer:
 
         del self.update_queue[disconnected_client_uuid]
         
-    def accept_new_clients(self, event: Tick):
+    def accept_new_clients(self, event: LogicTick):
 
         try:
             new_client, address = self.socket.accept()
@@ -227,7 +227,7 @@ class GamemodeServer:
         except BlockingIOError: 
             pass
     
-    def receive_client_updates(self, event: Tick):
+    def receive_client_updates(self, event: LogicTick):
 
         for sending_client_uuid, sending_client in self.client_sockets.copy().items():
             
@@ -287,7 +287,7 @@ class GamemodeServer:
                 
                 self.trigger(GameTickStart())
 
-                self.trigger(Tick())
+                self.trigger(LogicTick())
 
                 self.trigger(GameTickComplete())
 

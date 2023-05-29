@@ -13,7 +13,7 @@ from engine import headered_socket
 from engine.entity import Entity
 from engine.helpers import get_matching_objects
 from engine.exceptions import InvalidUpdateType, MalformedUpdate
-from engine.events import Tick, Event, GameTickComplete, GameStart, GameTickStart, ScreenCleared
+from engine.events import LogicTick, Event, GameTickComplete, GameStart, GameTickStart, ScreenCleared
 
 
 class GamemodeClient:
@@ -231,12 +231,14 @@ class GamemodeClient:
                 if event.type == pygame.QUIT:
                     running = False
             
+
+            
             if time.time() - last_tick >= 1/self.tick_rate:
 
                 self.trigger(GameTickStart())
 
                 #print(random.randint(0,10))
-                self.trigger(Tick())
+                self.trigger(LogicTick())
 
                 self.trigger(GameTickComplete())
 

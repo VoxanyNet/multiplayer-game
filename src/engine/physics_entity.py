@@ -5,7 +5,7 @@ from pygame import Rect
 
 from engine.vector import Vector
 from engine.entity import Entity
-from engine.events import EntityLanded, EntityAirborne, Tick
+from engine.events import EntityLanded, EntityAirborne, LogicTick
 
 if TYPE_CHECKING:
     from gamemode_client import GamemodeClient
@@ -22,7 +22,7 @@ class PhysicsEntity(Entity):
         self.friction = friction
         self.collidable_entites = collidable_entities
 
-        self.game.event_subscriptions[Tick] += [
+        self.game.event_subscriptions[LogicTick] += [
             self.move_x_axis,
             self.move_y_axis,
             self.apply_friction
@@ -91,7 +91,7 @@ class PhysicsEntity(Entity):
                     
                     self.friction = update_data["friction"]
 
-    def move_x_axis(self, event: Tick):
+    def move_x_axis(self, event: LogicTick):
 
         projected_rect_x = self.rect.move(
             Vector(self.velocity.x, 0)
@@ -124,7 +124,7 @@ class PhysicsEntity(Entity):
 
             self.rect.x = projected_rect_x.x
 
-    def move_y_axis(self, event: Tick):
+    def move_y_axis(self, event: LogicTick):
         
         projected_rect_y = self.rect.move(
             Vector(0, self.velocity.y)
@@ -165,7 +165,7 @@ class PhysicsEntity(Entity):
 
             self.game.trigger(EntityAirborne(entity=self))
 
-    def apply_friction(self, event: Tick):
+    def apply_friction(self, event: LogicTick):
 
         if abs(self.velocity.x) > 0:
 
