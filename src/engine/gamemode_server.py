@@ -217,11 +217,7 @@ class GamemodeServer:
         
         del self.client_sockets[disconnected_client_uuid]
 
-        print(self.update_queue)
-
         del self.update_queue[disconnected_client_uuid]
-
-        print(self.update_queue)
         
     def accept_new_clients(self, event: Tick):
 

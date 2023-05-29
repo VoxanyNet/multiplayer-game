@@ -1,3 +1,5 @@
+import socket
+
 import pygame
 from pygame import Rect
 
@@ -6,8 +8,8 @@ from engine.events import GameStart
 from fight.gamemodes.arena.entities import Player, Floor, Cursor, Shotgun
 
 class ArenaClient(GamemodeClient):
-    def __init__(self, tick_rate=60, gravity=9.8, enable_music=False):
-        super().__init__(tick_rate=tick_rate)
+    def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560, tick_rate=60, gravity=9.8, enable_music=False):
+        super().__init__(server_ip=server_ip, server_port=server_port, tick_rate=tick_rate)
 
         self.enable_music = enable_music
 

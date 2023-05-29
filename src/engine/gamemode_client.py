@@ -243,6 +243,7 @@ class GamemodeClient:
                 last_tick = time.time()
             
             else:
-                print("skipping tick")
+                pass
+                #print("skipping tick")
 
             #input("Press enter to advanced to next tick...")
