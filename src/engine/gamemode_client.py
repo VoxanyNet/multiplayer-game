@@ -23,7 +23,7 @@ class GamemodeClient:
         self.server_port = server_port
         self.uuid = str(uuid.uuid4())
         self.update_queue = []
-        self.entity_type_map = {}
+        self.entity_type_map: Dict[str, Type[Entity]] = {}
         self.entities: Dict[str, Entity] = {}
         self.event_subscriptions = defaultdict(list)
         self.tick_counter = 0

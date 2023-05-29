@@ -22,9 +22,7 @@ class GamemodeServer:
 
         self.client_sockets: Dict[str, headered_socket.HeaderedSocket] = {}
         self.entities = {}
-        self.entity_type_map = {
-            "entity": Entity
-        }
+        self.entity_type_map: Dict[str, Type[Entity]] = {}
         self.updates_to_load = []
         self.uuid = "server"
         self.tick_rate = tick_rate
