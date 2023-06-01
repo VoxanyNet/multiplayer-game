@@ -10,7 +10,7 @@ import pygame
 from engine import headered_socket
 from engine.headered_socket import Disconnected
 from engine.exceptions import MalformedUpdate, InvalidUpdateType
-from engine.events import LogicTick, Event, DisconnectedClient, NewClient, ReceivedClientUpdates, UpdatesLoaded, ServerStart, GameTickStart, GameTickComplete
+from engine.events import LogicTick, Event, DisconnectedClient, NewClient, ReceivedClientUpdates, UpdatesLoaded, ServerStart, GameTickStart, GameTickComplete, RealtimeTick
 from engine.entity import Entity
 
 
@@ -32,7 +32,7 @@ class GamemodeServer:
         self.server_ip = server_ip
         self.server_port = server_port
 
-        self.event_subscriptions[LogicTick] += [
+        self.event_subscriptions[RealtimeTick] += [
             self.accept_new_clients,
             self.receive_client_updates 
         ]
@@ -217,7 +217,7 @@ class GamemodeServer:
 
         del self.update_queue[disconnected_client_uuid]
         
-    def accept_new_clients(self, event: LogicTick):
+    def accept_new_clients(self, event: RealtimeTick):
 
         try:
             new_client, address = self.socket.accept()
@@ -227,7 +227,7 @@ class GamemodeServer:
         except BlockingIOError: 
             pass
     
-    def receive_client_updates(self, event: LogicTick):
+    def receive_client_updates(self, event: RealtimeTick):
 
         for sending_client_uuid, sending_client in self.client_sockets.copy().items():
             
@@ -264,6 +264,10 @@ class GamemodeServer:
         """Actually send queued network updates"""
 
         for receiving_client_uuid, updates in self.update_queue.copy().items():
+
+            if updates == []:
+                # if there are no updates to send, dont send anything
+                continue
             
             updates_json = json.dumps(updates)
             
@@ -280,6 +284,8 @@ class GamemodeServer:
         last_tick = 0
 
         while True:   
+
+            self.trigger(RealtimeTick())
 
             # receive and relay client updates as fast as possible
             # only tick at the specified tick rate
