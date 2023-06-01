@@ -17,7 +17,7 @@ from engine.events import LogicTick, Event, GameTickComplete, GameStart, GameTic
 
 
 class GamemodeClient:
-    def __init__(self, tick_rate=60, server_ip: str = socket.gethostname(), server_port: int = 5560):
+    def __init__(self, tick_rate: int = 60, server_ip: str = socket.gethostname(), server_port: int = 5560):
         self.server = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_ip = server_ip
         self.server_port = server_port
@@ -234,15 +234,16 @@ class GamemodeClient:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
-            
-            self.trigger(GameTickStart())
 
-            self.trigger(LogicTick())
-
-            self.trigger(GameTickComplete())
-
+            self.trigger(RealtimeTick())
             
             if time.time() - last_tick >= 1/self.tick_rate:
+                
+                self.trigger(GameTickStart())
+
+                self.trigger(LogicTick())
+
+                self.trigger(GameTickComplete())
 
                 last_tick = time.time()
             

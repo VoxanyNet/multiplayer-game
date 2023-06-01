@@ -21,6 +21,6 @@ if args.is_server:
     server.run()
 
 else:
-    game = ArenaClient(tick_rate=20, enable_music=args.enable_music)
+    game = ArenaClient(tick_rate=60, enable_music=args.enable_music)
 
     game.run()
