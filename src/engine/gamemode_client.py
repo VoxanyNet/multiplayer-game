@@ -13,7 +13,7 @@ from engine import headered_socket
 from engine.entity import Entity
 from engine.helpers import get_matching_objects
 from engine.exceptions import InvalidUpdateType, MalformedUpdate
-from engine.events import LogicTick, Event, GameTickComplete, GameStart, GameTickStart, ScreenCleared
+from engine.events import LogicTick, Event, GameTickComplete, GameStart, GameTickStart, ScreenCleared, RealtimeTick
 
 
 class GamemodeClient:
@@ -35,11 +35,14 @@ class GamemodeClient:
         self.tick_rate = tick_rate
 
         self.event_subscriptions[GameTickComplete] += [
-            self.clear_screen,
             self.send_network_updates,
-            self.receive_network_updates
         ]
 
+        self.event_subscriptions[RealtimeTick] += [
+            self.clear_screen,
+            self.receive_network_updates
+        ]
+        
         self.event_subscriptions[ScreenCleared] += [
             self.draw_entities
         ]
@@ -129,7 +132,7 @@ class GamemodeClient:
         updates = json.loads(
             updates_json
         )
-
+        
         for update in updates:
 
             match update["update_type"]:
@@ -221,8 +224,9 @@ class GamemodeClient:
 
         while running:
 
-            # draw as fast as possible
-            # only tick at specified tick rate
+            # tick as fast as possible
+            # check for entity updates at a fixed rate
+            # send out updates at fixed rate
 
             if pygame.key.get_pressed()[pygame.K_F4]:
                 running = False
@@ -231,16 +235,14 @@ class GamemodeClient:
                 if event.type == pygame.QUIT:
                     running = False
             
+            self.trigger(GameTickStart())
+
+            self.trigger(LogicTick())
+
+            self.trigger(GameTickComplete())
 
             
             if time.time() - last_tick >= 1/self.tick_rate:
-
-                self.trigger(GameTickStart())
-
-                #print(random.randint(0,10))
-                self.trigger(LogicTick())
-
-                self.trigger(GameTickComplete())
 
                 last_tick = time.time()
             
