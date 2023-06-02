@@ -1,30 +1,27 @@
-from typing import Union
+from typing import Union, List, Type
 
 def get_matching_objects(collection: Union[dict, list], object_type):
-    entities = []
+    """Recursively search through a dictionary or list to find objects of given type"""
+    matching_objects: List[Type[object_type]] = []
 
     if collection.__class__ == dict: 
         for value in collection.values():
             if isinstance(value, object_type): 
-                entities.append(value)
+                matching_objects.append(value)
 
             elif value.__class__ == dict or list:
-                new_entities = get_matching_objects(value, object_type)
-
-                entities += new_entities
+                matching_objects += get_matching_objects(value, object_type)
 
     elif collection.__class__ == list:
         for value in collection:
             if isinstance(value, object_type):
-                entities.append(value)
+                matching_objects.append(value)
 
             elif value.__class__ == dict or list:
 
-                new_entities = get_matching_objects(value, object_type) 
-
-                entities += new_entities
+                matching_objects += get_matching_objects(value, object_type) 
     
-    return entities
+    return matching_objects
 
 def dict_diff(dict1: dict, dict2: dict):
     diff_dict = {}
