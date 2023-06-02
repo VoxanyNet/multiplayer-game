@@ -52,11 +52,12 @@ class GamemodeClient:
             self.connect
         ]
     
-    def detect_collisions(self, rect: Rect, collection: Union[dict, list]) -> List[Type[Entity]]:
+    def detect_collisions(self, rect: Rect) -> List[Type[Entity]]:
+        """Check if given rect collides with any entities in the given collection"""
 
-        colliding_entities = []
+        colliding_entities: List[Type[Entity]] = []
 
-        for entity in get_matching_objects(collection, Entity):
+        for entity in self.entities.values():
 
             if rect.colliderect(entity.rect):
                 colliding_entities.append(entity)
