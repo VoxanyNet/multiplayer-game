@@ -51,7 +51,7 @@ class PhysicsEntity(Entity):
         return data_dict
     
     @classmethod
-    def create(cls, entity_data: Dict, entity_id: str, game: Union["GamemodeClient", "GamemodeServer"]):
+    def create(cls, entity_data: Dict[str, Union[int, bool, str, list]], entity_id: str, game: Union["GamemodeClient", "GamemodeServer"]):
         # convert json entity data to object constructor arguments
 
         entity_data["velocity"] = Vector(
