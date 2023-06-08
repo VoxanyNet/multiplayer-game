@@ -1,5 +1,5 @@
 import uuid
-from typing import Dict, List, Type, Union, TYPE_CHECKING
+from typing import Dict, List, Type, Tuple, Union, TYPE_CHECKING
 
 import pygame.image
 from pygame import Rect
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 
 class Entity:
-    def __init__(self, rect: Rect, game: Union["GamemodeClient", "GamemodeServer"], updater: str, uuid=str(uuid.uuid4()), sprite_path=None, scale_res=None,
+    def __init__(self, rect: Rect, game: Union["GamemodeClient", "GamemodeServer"], updater: str, uuid: str = str(uuid.uuid4()), sprite_path: str = None, scale_res: Tuple[int, int] = None,
                  visible=True):
 
         self.visible = visible
@@ -57,7 +57,7 @@ class Entity:
                 entity_type_string=self.game.lookup_entity_type_string(self)
             )
 
-            print(f"Sending create update for {self.uuid}")
+            #print(f"Sending create update for {self.uuid}")
 
             self.last_tick_dict = current_tick_dict
 

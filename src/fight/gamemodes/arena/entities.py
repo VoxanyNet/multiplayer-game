@@ -3,9 +3,9 @@ import uuid
 import pygame
 import pygame.key
 from pygame import Rect
-from typing import TYPE_CHECKING, Dict, Union, List, Type
+from typing import TYPE_CHECKING, Dict, Union, List, Type, Tuple
 
-from engine.entity import Entity 
+from engine.entity import Entity
 from engine.unresolved import Unresolved
 from engine.physics_entity import PhysicsEntity
 from engine.vector import Vector
@@ -13,13 +13,23 @@ from engine.events import LogicTick
 from fight.gamemodes.arena.events import JumpEvent
 
 if TYPE_CHECKING:
-    from client import ArenaClient
-    from server import ArenaServer
+    from fight.gamemodes.arena.client import ArenaClient
+    from fight.gamemodes.arena.server import ArenaServer
+    from engine.gamemode_client import GamemodeClient
+    from engine.gamemode_server import GamemodeServer 
 
 
 class Cursor(Entity):
-    def __init__(self, game: Union["ArenaClient", "ArenaServer"], updater: str, rect=Rect(0,0,10,10), uuid=str(uuid.uuid4()),
-                 sprite_path: str = None, scale_res: tuple = None, visible: bool = True):
+    def __init__(
+        self, 
+        game: Union["ArenaClient", "ArenaServer"], 
+        updater: str, 
+        rect=Rect(0,0,10,10), 
+        uuid=str(uuid.uuid4()),
+        sprite_path: str = None, 
+        scale_res: tuple = None, 
+        visible: bool = True
+    ):
 
         super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
                          visible=visible)
@@ -39,35 +49,19 @@ class Cursor(Entity):
         self.rect.center = pygame.mouse.get_pos()
 
 class Floor(Entity):
-    def __init__(self, rect: Rect, game: Union["ArenaClient", "ArenaServer"], updater: str, uuid=str(uuid.uuid4()),
-                 sprite_path: str = None, scale_res: tuple = None, visible: bool = True):
+    def __init__(
+        self, 
+        rect: Rect, 
+        game: Union["ArenaClient", "ArenaServer"], 
+        updater: str, 
+        uuid=str(uuid.uuid4()),
+        sprite_path: str = None, 
+        scale_res: tuple = None, 
+        visible: bool = True
+    ):
 
         super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
                          visible=visible)
-
-    @classmethod
-    def create(cls, entity_data: Dict, entity_id: str, game: Union["ArenaClient", "ArenaServer"]):
-        # convert json entity data to object constructor arguments
-
-        # call the base entity create method to do its own stuff and then return the actual object!!!!!
-        new_player = super().create(entity_data, entity_id, game)
-
-        return new_player
-
-    def update(self, update_data: Dict):
-        # update the attributes of this object with update data
-
-        # update base entity attributes
-        super().update(update_data)
-
-        # loop through every attribute being updated
-        for attribute in update_data:
-
-            # we only need to check for attribute updates unique to this entity
-            match attribute:
-
-                case "test":
-                    pass
 
     def draw(self):
         # draw a white rectangle
@@ -77,9 +71,27 @@ class Floor(Entity):
             self.rect
         )
 
+class Wall(Floor):
+    # this exists for reasons trust me
+    pass
+
 class Player(PhysicsEntity):
-    def __init__(self, rect: Rect, game: Union["ArenaClient", "ArenaServer"], updater: str, health: int = 100, weapon: Type["Weapon"] = None, gravity=0.05, velocity = Vector(0,0), max_velocity: Vector = Vector(50,50), friction: int = 2, collidable_entities: List[Type[Entity]] = [Floor], uuid=str(uuid.uuid4()),
-                 sprite_path: str = None, scale_res: tuple = None, visible: bool = True):
+    def __init__(
+        self,
+        rect: Rect, 
+        game: Union["ArenaClient", "ArenaServer"], 
+        updater: str, 
+        health: int = 100, 
+        weapon: Type["Weapon"] = None, 
+        gravity=0.05, velocity = Vector(0,0), 
+        max_velocity: Vector = Vector(50,50), 
+        friction: int = 2, 
+        collidable_entities: List[Type[Entity]] = [Floor, Wall, "self"], 
+        uuid=str(uuid.uuid4()),
+        sprite_path: str = None, 
+        scale_res: tuple = None, 
+        visible: bool = True
+    ):
 
         super().__init__(gravity=gravity, velocity=velocity, max_velocity=max_velocity, friction=friction, collidable_entities=collidable_entities, rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
                          visible=visible)
@@ -107,7 +119,7 @@ class Player(PhysicsEntity):
         return data_dict
 
     @classmethod
-    def create(cls, entity_data: Dict, entity_id: str, game: Union["ArenaClient", "ArenaServer"]):
+    def create(cls, entity_data: Dict[str, Union[int, bool, str, list]], entity_id: str, game: Union["ArenaClient", "ArenaServer"]):
 
         entity_data["health"] = entity_data["health"]
 
@@ -164,8 +176,20 @@ class Player(PhysicsEntity):
             self.velocity.x += 1
 
 class Weapon(Entity):
-    def __init__(self, ammo: int, max_ammo: int, attack_cooldown: int, owner: Player, rect: Rect, game: Union["ArenaClient", "ArenaServer"], updater: str, uuid: str = str(uuid.uuid4()),
-                 sprite_path: str = None, scale_res: tuple = None, visible: bool = True):
+    def __init__(
+        self, 
+        ammo: int, 
+        max_ammo: int, 
+        attack_cooldown: int, 
+        owner: Player, 
+        rect: Rect, 
+        game: Union["ArenaClient", "ArenaServer"], 
+        updater: str, 
+        uuid: str = str(uuid.uuid4()),
+        sprite_path: str = None, 
+        scale_res: Tuple[int, int] = None, 
+        visible: bool = True
+    ):
 
         super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
                          visible=visible)
@@ -194,7 +218,12 @@ class Weapon(Entity):
         return data_dict
 
     @classmethod
-    def create(cls, entity_data: Dict, entity_id: str, game: Union["ArenaClient", "ArenaServer"]):
+    def create(
+        cls, 
+        entity_data: Dict[str, Union[int, bool, str, list]], 
+        entity_id: str, 
+        game: Union["ArenaClient", "ArenaServer"]
+    ):
         # convert json entity data to object constructor arguments
 
         entity_data["ammo"] = entity_data["ammo"]
@@ -241,8 +270,67 @@ class Weapon(Entity):
         #print(mouse_pos)
 
 class Shotgun(Weapon):
-    def __init__(self, owner: Player, rect: Rect, game: Union["ArenaClient", "ArenaServer"], updater: str, ammo: int = 2, max_ammo: int = 2, attack_cooldown: int = 1, uuid=str(uuid.uuid4()),
-                 sprite_path: str = "resources/shotgun.png", scale_res: tuple = (68,19), visible: bool = True):
+    def __init__(
+        self, 
+        owner: Player, 
+        rect: Rect, 
+        game: Union["ArenaClient", "ArenaServer"], 
+        updater: str, 
+        ammo: int = 2, 
+        max_ammo: int = 2, 
+        attack_cooldown: int = 1, 
+        uuid: str = str(uuid.uuid4()),
+        sprite_path: str = "resources/shotgun.png", scale_res: Tuple[int, int] = (68,19), visible: bool = True
+    ):
 
         super().__init__(ammo=ammo, max_ammo=max_ammo, attack_cooldown=attack_cooldown, owner=owner, rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
                          visible=visible)
+        
+class Portal(Entity):
+    def __init__(
+        self, 
+        rect: Rect, 
+        game: Union["GamemodeClient", "GamemodeServer"], 
+        updater: str, 
+        linked_portal: "Portal" = None, 
+        uuid: str = str(uuid.uuid4()), 
+        sprite_path: str = None, 
+        scale_res: Tuple[int, int] = None, 
+        visible: bool = True
+    ):
+    
+        super().__init__(rect, game, updater, uuid, sprite_path, scale_res, visible)
+
+        self.linked_portal = linked_portal
+        self.last_tick_collisions = []
+
+    def teleport_entities(self, event: LogicTick):
+
+        colliding_entities = self.game.detect_collisions(self.rect)
+
+        for entity in self.last_tick_collisions:
+            # restore collisions with walls if entity left the portal
+            if type(entity) is not PhysicsEntity:
+                continue 
+
+            if entity not in colliding_entities:
+                print(f"entity {entity} left the portal")
+                entity.collidable_entites.append(
+                    Wall
+                )
+
+        for entity in colliding_entities:
+            
+            # allow physics entities to phase through walls if colliding with portal
+            # we do this because portal entities are overlaid on top of walls
+            if type(entity) is PhysicsEntity:
+                entity.collidable_entites.remove(Wall)
+
+            # check if the entity is colliding with the portal's hitbox and jutting out to the right
+            # this indicates that the entity has entered all the way into the portal and should be teleported
+            if entity.rect.right > self.rect.right:
+                print(f"{entity} teleport!")
+        
+        self.last_tick_collisions = colliding_entities
+
+

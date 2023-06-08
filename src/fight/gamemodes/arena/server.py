@@ -2,7 +2,7 @@ from pygame import Rect
 
 from engine.gamemode_server import GamemodeServer
 from engine.events import ServerStart
-from fight.gamemodes.arena.entities import Player, Floor, Shotgun, Cursor
+from fight.gamemodes.arena.entities import Player, Floor, Shotgun, Cursor, Portal, Wall
 
 class ArenaServer(GamemodeServer):
     def __init__(self, tick_rate):
@@ -13,7 +13,8 @@ class ArenaServer(GamemodeServer):
                 "player": Player,
                 "floor": Floor,
                 "shotgun": Shotgun,
-                "cursor": Cursor
+                "cursor": Cursor,
+                "portal": Portal
             }
         )
 
@@ -27,6 +28,10 @@ class ArenaServer(GamemodeServer):
             rect=Rect(0,600,1920,20),
             game=self,
             updater="server"
+        )
+
+        wall = Wall(
+            rect=Rect()
         )
 
 
