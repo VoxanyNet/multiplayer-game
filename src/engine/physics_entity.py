@@ -22,6 +22,12 @@ class PhysicsEntity(Entity):
         self.friction = friction
         self.collidable_entites = collidable_entities
 
+        # classes cannot reference themselves in their constructor arguments, so we just resolve "self" to the class of the entity
+        if "self" in self.collidable_entites:
+            self.collidable_entites.append(self.__class__)
+        
+        self.collidable_entites.remove("self")
+
         self.game.event_subscriptions[LogicTick] += [
             self.move_x_axis,
             self.move_y_axis,
@@ -92,12 +98,13 @@ class PhysicsEntity(Entity):
                     self.friction = update_data["friction"]
 
     def move_x_axis(self, event: LogicTick):
+        """Move entity by velocity but stop if colliding into collidable entity"""
 
         projected_rect_x = self.rect.move(
             Vector(self.velocity.x, 0)
         )
 
-        colliding_entities = self.game.detect_collisions(projected_rect_x, self.game.entities)
+        colliding_entities = self.game.detect_collisions(projected_rect_x)
 
         if self in colliding_entities:
             del colliding_entities[colliding_entities.index(self)]
@@ -130,7 +137,7 @@ class PhysicsEntity(Entity):
             Vector(0, self.velocity.y)
         )
 
-        colliding_entities = self.game.detect_collisions(projected_rect_y, self.game.entities)
+        colliding_entities = self.game.detect_collisions(projected_rect_y)
 
         if self in colliding_entities:
             del colliding_entities[colliding_entities.index(self)]
