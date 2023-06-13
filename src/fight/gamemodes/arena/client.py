@@ -5,7 +5,7 @@ from pygame import Rect
 
 from engine.gamemode_client import GamemodeClient
 from engine.events import GameStart
-from fight.gamemodes.arena.entities import Player, Floor, Cursor, Shotgun, Portal
+from fight.gamemodes.arena.entities import Player, Floor, Cursor, Shotgun, Portal, Wall
 
 class ArenaClient(GamemodeClient):
     def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560, tick_rate=60, gravity=9.8, enable_music=False):
@@ -21,7 +21,8 @@ class ArenaClient(GamemodeClient):
                 "floor": Floor,
                 "shotgun": Shotgun,
                 "cursor": Cursor,
-                "portal": Portal
+                "portal": Portal,
+                "wall": Wall
             }
         )
 
@@ -45,8 +46,6 @@ class ArenaClient(GamemodeClient):
         )
 
         player.weapon = shotgun
-
-        print(self.entities)
 
         
 

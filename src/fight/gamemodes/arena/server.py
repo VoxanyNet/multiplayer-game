@@ -14,7 +14,8 @@ class ArenaServer(GamemodeServer):
                 "floor": Floor,
                 "shotgun": Shotgun,
                 "cursor": Cursor,
-                "portal": Portal
+                "portal": Portal,
+                "wall": Wall
             }
         )
 
@@ -31,7 +32,9 @@ class ArenaServer(GamemodeServer):
         )
 
         wall = Wall(
-            rect=Rect()
+            rect=Rect(600, 600, 50, 2000),
+            game=self,
+            updater="server"
         )
 
 
