@@ -143,20 +143,21 @@ class GamemodeServer:
 
         self.trigger(UpdatesLoaded())
 
-    def lookup_entity_type_string(self, entity: Entity) -> str:
+    def lookup_entity_type_string(self, entity: Union[Type[Entity], Type[type]]) -> str:
         """Find entity type's corresponding type string in entity_type_map"""
 
         entity_type_string = None
 
         for possible_entity_type_string, entity_type in self.entity_type_map.items():
-            if type(entity) is entity_type:
+            if type(entity) is entity_type or entity is entity_type: # this allows looking up an instance of an entity or just the class of an entity
                 entity_type_string = possible_entity_type_string
         
-        if entity_type_string == None:
-            raise KeyError("Entity type does not exist in entity type map")
+        if entity_type_string ==  None:
+            raise KeyError(f"Entity type {type(entity)} does not exist in entity type map")
     
         else:
             return entity_type_string
+
         
     def handle_new_client(self, event: NewClient):
 

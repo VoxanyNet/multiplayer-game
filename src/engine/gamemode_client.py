@@ -64,13 +64,13 @@ class GamemodeClient:
 
         return colliding_entities
 
-    def lookup_entity_type_string(self, entity: Type[Entity]) -> str:
+    def lookup_entity_type_string(self, entity: Union[Type[Entity], Type[type]]) -> str:
         """Find entity type's corresponding type string in entity_type_map"""
 
         entity_type_string = None
 
         for possible_entity_type_string, entity_type in self.entity_type_map.items():
-            if type(entity) is entity_type:
+            if type(entity) is entity_type or entity is entity_type: # this allows looking up an instance of an entity or just the class of an entity
                 entity_type_string = possible_entity_type_string
         
         if entity_type_string ==  None:
