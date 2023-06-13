@@ -26,7 +26,7 @@ class PhysicsEntity(Entity):
         if "self" in self.collidable_entites:
             self.collidable_entites.append(self.__class__)
         
-        self.collidable_entites.remove("self")
+            self.collidable_entites.remove("self")
 
         self.game.event_subscriptions[LogicTick] += [
             self.move_x_axis,
