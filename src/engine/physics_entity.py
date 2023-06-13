@@ -45,12 +45,23 @@ class PhysicsEntity(Entity):
     def dict(self):
 
         data_dict = super().dict()
+
+        collidable_entity_type_strings = []
+        
+        for collidable_entity_type in self.collidable_entites:
+
+            collidable_entity_type_strings.append(
+                self.game.lookup_entity_type_string(collidable_entity_type)
+            )
+
+        #input(collidable_entity_type_strings)
         
         data_dict.update(
             {
                 "velocity": [self.velocity.x, self.velocity.y],
                 "gravity": self.gravity,
-                "friction": self.friction
+                "friction": self.friction,
+                "collidable_entities": collidable_entity_type_strings
             }
         )
 
@@ -68,6 +79,18 @@ class PhysicsEntity(Entity):
         entity_data["gravity"] = entity_data["gravity"]
 
         entity_data["friction"] = entity_data["friction"]
+
+        #input(entity_data["collidable_entities"])
+
+        for collidable_entity_type_string in entity_data["collidable_entities"].copy():
+
+            # replace collidable entity type strings with the actual classes
+            #input(collidable_entity_type_string)
+            entity_data["collidable_entities"].append(
+                game.entity_type_map[collidable_entity_type_string]
+            )
+
+            entity_data["collidable_entities"].remove(collidable_entity_type_string)
 
         # call the base entity create method to do its own stuff and then return the actual object!!!!!
         new_player = super().create(entity_data, entity_id, game)
@@ -96,6 +119,20 @@ class PhysicsEntity(Entity):
                 case "friction":
                     
                     self.friction = update_data["friction"]
+
+                case "collidable_entities":
+
+                    collidable_entities = []
+
+                    for collidable_entity_type_string in update_data["collidable_entities"]:
+
+                        # replace collidable entity type strings with the actual classes
+
+                        collidable_entities.append(
+                            self.game.entity_type_map[collidable_entity_type_string]
+                        )
+
+                    self.collidable_entites = collidable_entities
 
     def move_x_axis(self, event: LogicTick):
         """Move entity by velocity but stop if colliding into collidable entity"""
