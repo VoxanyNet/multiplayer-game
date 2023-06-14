@@ -6,6 +6,7 @@ from typing import List, Literal, Optional, Type, Dict, Union
 import time
 
 import pygame
+from pygame import Rect
 
 from engine import headered_socket
 from engine.headered_socket import Disconnected
@@ -217,6 +218,18 @@ class GamemodeServer:
         del self.client_sockets[disconnected_client_uuid]
 
         del self.update_queue[disconnected_client_uuid]
+    
+    def detect_collisions(self, rect: Rect) -> List[Type[Entity]]:
+        """Check if given rect collides with any entities"""
+
+        colliding_entities: List[Type[Entity]] = []
+
+        for entity in self.entities.values():
+
+            if rect.colliderect(entity.rect):
+                colliding_entities.append(entity)
+
+        return colliding_entities
         
     def accept_new_clients(self, event: RealtimeTick):
 
