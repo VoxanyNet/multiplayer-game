@@ -75,7 +75,6 @@ class GamemodeServer:
             function(event) 
 
     def network_update(self, update_type: Union[Literal["create"], Literal["update"], Literal["delete"]], entity_id: str, destinations: List[str] = None, data: dict = None, entity_type_string: str = None):
-        # update_type: Union[Literal["create"], Literal["update"], Literal["delete"]], entity_id: str, data: dict = None, entity_type: str = None
         """Queue up a network update for specified client uuid(s)"""
 
         if update_type not in ["create", "update", "delete"]:
@@ -97,6 +96,8 @@ class GamemodeServer:
             "entity_type": entity_type_string,
             "data": data
         }
+
+        print(f"Server update: {update}")
         
         for destination in destinations:
             self.update_queue[destination].append(update)
@@ -192,7 +193,7 @@ class GamemodeServer:
                 
                 data = entity.dict()
 
-                self.network_update(update_type="create", entity_id=entity.uuid, data=data, entity_type_string=entity_type_string, destinations=[client_uuid])
+                self.network_update(update_type="create", entity_id=entity.id, data=data, entity_type_string=entity_type_string, destinations=[client_uuid])
                 
             self.send_client_updates()
 

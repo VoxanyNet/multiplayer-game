@@ -14,19 +14,20 @@ if TYPE_CHECKING:
 
 
 class Entity:
-    def __init__(self, rect: Rect, game: Union["GamemodeClient", "GamemodeServer"], updater: str, uuid: str = str(uuid.uuid4()), sprite_path: str = None, scale_res: Tuple[int, int] = None,
+    def __init__(self, rect: Rect, game: Union["GamemodeClient", "GamemodeServer"], updater: str, id: str = None, sprite_path: str = None, scale_res: Tuple[int, int] = None,
                  visible=True):
 
         self.visible = visible
         self.rect = rect
         self.updater = updater
-        self.uuid = uuid
         self.game = game
         self.sprite_path = sprite_path
         self.scale_res = scale_res
         self.last_tick_dict = {}
+        self.id = id
 
-        self.game.entities[self.uuid] = self
+        # add entity to the game state automatically
+        self.game.entities[self.id] = self
 
         if sprite_path:
             self.sprite = pygame.image.load(sprite_path)
@@ -52,12 +53,10 @@ class Entity:
         if self.last_tick_dict == {}:
             self.game.network_update(
                 update_type="create",
-                entity_id=self.uuid,
+                entity_id=self.id,
                 data=self.dict(),
                 entity_type_string=self.game.lookup_entity_type_string(self)
             )
-
-            #print(f"Sending create update for {self.uuid}")
 
             self.last_tick_dict = current_tick_dict
 
@@ -69,7 +68,7 @@ class Entity:
 
             print(update_data_dict)
 
-            self.game.network_update(update_type="update", entity_id=self.uuid, data=update_data_dict)
+            self.game.network_update(update_type="update", entity_id=self.id, data=update_data_dict)
         
         self.last_tick_dict = current_tick_dict
                 
@@ -116,7 +115,7 @@ class Entity:
 
         entity_data["scale_res"] = entity_data["scale_res"]
 
-        return cls(game=game, uuid=entity_id, **entity_data)
+        return cls(game=game, id=entity_id, **entity_data)
 
     def update(self, update_data):
         """Use serialized entity data to update existing entity"""

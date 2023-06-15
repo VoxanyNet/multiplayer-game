@@ -25,13 +25,13 @@ class Cursor(Entity):
         game: Union["ArenaClient", "ArenaServer"], 
         updater: str, 
         rect=Rect(0,0,10,10), 
-        uuid=str(uuid.uuid4()),
+        id: str = None,
         sprite_path: str = None, 
         scale_res: tuple = None, 
         visible: bool = True
     ):
 
-        super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
+        super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
                          visible=visible)
 
         self.game.event_subscriptions[LogicTick].append(self.update_position)
@@ -54,13 +54,13 @@ class Floor(Entity):
         rect: Rect, 
         game: Union["ArenaClient", "ArenaServer"], 
         updater: str, 
-        uuid=str(uuid.uuid4()),
+        id: str = None,
         sprite_path: str = None, 
         scale_res: tuple = None, 
         visible: bool = True
     ):
 
-        super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
+        super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
                          visible=visible)
 
     def draw(self):
@@ -87,13 +87,13 @@ class Player(PhysicsEntity):
         max_velocity: Vector = Vector(50,50), 
         friction: int = 2, 
         collidable_entities: List[Type[Entity]] = [Floor, Wall, "self"], 
-        uuid=str(uuid.uuid4()),
+        id: str = None,
         sprite_path: str = None, 
         scale_res: tuple = None, 
         visible: bool = True
     ):
 
-        super().__init__(gravity=gravity, velocity=velocity, max_velocity=max_velocity, friction=friction, collidable_entities=collidable_entities, rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
+        super().__init__(gravity=gravity, velocity=velocity, max_velocity=max_velocity, friction=friction, collidable_entities=collidable_entities, rect=rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
                          visible=visible)
 
         self.last_attack = 0
@@ -111,7 +111,7 @@ class Player(PhysicsEntity):
         data_dict["health"] = self.health
 
         if self.weapon is not None:
-            data_dict["weapon"] = self.weapon.uuid
+            data_dict["weapon"] = self.weapon.id
         else:
             data_dict["weapon"] = None
  
@@ -185,13 +185,13 @@ class Weapon(Entity):
         rect: Rect, 
         game: Union["ArenaClient", "ArenaServer"], 
         updater: str, 
-        uuid: str = str(uuid.uuid4()),
+        id: str = None,
         sprite_path: str = None, 
         scale_res: Tuple[int, int] = None, 
         visible: bool = True
     ):
 
-        super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
+        super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
                          visible=visible)
 
         self.ammo = ammo
@@ -213,7 +213,7 @@ class Weapon(Entity):
         data_dict["ammo"] = self.ammo
         data_dict["max_ammo"] = self.max_ammo
         data_dict["attack_cooldown"] = self.attack_cooldown
-        data_dict["owner"] = self.owner.uuid
+        data_dict["owner"] = self.owner.id
 
         return data_dict
 
@@ -279,11 +279,11 @@ class Shotgun(Weapon):
         ammo: int = 2, 
         max_ammo: int = 2, 
         attack_cooldown: int = 1, 
-        uuid: str = str(uuid.uuid4()),
+        id: str = None,
         sprite_path: str = "resources/shotgun.png", scale_res: Tuple[int, int] = (68,19), visible: bool = True
     ):
 
-        super().__init__(ammo=ammo, max_ammo=max_ammo, attack_cooldown=attack_cooldown, owner=owner, rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res,
+        super().__init__(ammo=ammo, max_ammo=max_ammo, attack_cooldown=attack_cooldown, owner=owner, rect=rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
                          visible=visible)
         
 class Portal(Entity):
@@ -293,13 +293,13 @@ class Portal(Entity):
         game: Union["GamemodeClient", "GamemodeServer"], 
         updater: str, 
         linked_portal: "Portal" = None, 
-        uuid: str = str(uuid.uuid4()), 
+        id: str = None, 
         sprite_path: str = None, 
         scale_res: Tuple[int, int] = None, 
         visible: bool = True
     ):
     
-        super().__init__(rect, game, updater, uuid, sprite_path, scale_res, visible)
+        super().__init__(rect, game, updater, id, sprite_path, scale_res, visible)
 
         self.linked_portal = linked_portal
         self.last_tick_collisions = []
