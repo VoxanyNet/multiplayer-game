@@ -1,3 +1,5 @@
+import time
+import uuid
 from pygame import Rect
 
 from engine.gamemode_server import GamemodeServer
@@ -31,12 +33,19 @@ class ArenaServer(GamemodeServer):
             updater="server"
         )
 
+        portal = Portal(
+            rect=Rect(0,600,1920,20),
+            game=self,
+            updater="server"
+        )
+        
         wall = Wall(
             rect=Rect(600, 600, 50, 2000),
             game=self,
             updater="server"
         )
 
-
+        print(wall.id)
+        print(floor.id)
 
         

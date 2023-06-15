@@ -12,9 +12,23 @@ if TYPE_CHECKING:
     from gamemode_server import GamemodeServer
 
 class PhysicsEntity(Entity):
-    def __init__(self, rect: Rect, game: Union["GamemodeClient", "GamemodeServer"], updater: str, uuid=str(uuid.uuid4()), gravity: int = 0, velocity: Vector = Vector(0,0), max_velocity=None, friction=2, collidable_entities: List[Type[Entity]] = [], sprite_path: str = None, scale_res: tuple = None, visible: bool = True):
+    def __init__(
+        self, 
+        rect: Rect, 
+        game: Union["GamemodeClient", "GamemodeServer"], 
+        updater: str, 
+        id: str = None, 
+        gravity: int = 0, 
+        velocity: Vector = Vector(0,0), 
+        max_velocity=None, 
+        friction=2, 
+        collidable_entities: List[Type[Entity]] = [], 
+        sprite_path: str = None, 
+        scale_res: tuple = None, 
+        visible: bool = True
+    ):
 
-        super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, uuid=uuid, scale_res=scale_res, visible=visible)
+        super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res, visible=visible)
         
         self.velocity = velocity
         self.gravity = gravity
@@ -31,7 +45,8 @@ class PhysicsEntity(Entity):
         self.game.event_subscriptions[LogicTick] += [
             self.move_x_axis,
             self.move_y_axis,
-            self.apply_friction
+            self.apply_friction,
+            self.round_velocity
         ]
 
         self.game.event_subscriptions[EntityLanded] += [
@@ -186,7 +201,9 @@ class PhysicsEntity(Entity):
                 del colliding_entities[colliding_entities.index(colliding_entity)]
 
         if len(colliding_entities) != 0:
-
+            
+            # only calculate collision for the first entity in list
+            # this may cause issues later when lots of entities are colliding at once
             colliding_entity = colliding_entities[0]
 
             colliding_entity: Type[Entity]
@@ -223,9 +240,13 @@ class PhysicsEntity(Entity):
 
     def bounce(self, event: EntityLanded):
 
-        if event.entity.uuid != self.uuid:
+        if event.entity.id != self.id:
             print
             return
 
         
         self.velocity.y *= -0.25
+    
+    def round_velocity(self, event: LogicTick):
+        self.velocity.x = round(self.velocity.x, 4)
+        self.velocity.y = round(self.velocity.y, 4)
