@@ -24,6 +24,10 @@ class Entity:
         self.sprite_path = sprite_path
         self.scale_res = scale_res
         self.last_tick_dict = {}
+        
+        if id is None:
+            id = str(uuid.uuid4())
+        
         self.id = id
 
         # add entity to the game state automatically
