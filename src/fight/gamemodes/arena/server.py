@@ -34,18 +34,8 @@ class ArenaServer(GamemodeServer):
         )
 
         portal = Portal(
-            rect=Rect(0,600,1920,20),
+            rect=Rect(600, 400, 20, 200),
             game=self,
             updater="server"
         )
-        
-        wall = Wall(
-            rect=Rect(600, 600, 50, 2000),
-            game=self,
-            updater="server"
-        )
-
-        print(wall.id)
-        print(floor.id)
-
         

@@ -332,5 +332,13 @@ class Portal(Entity):
                 print(f"{entity} teleport!")
         
         self.last_tick_collisions = colliding_entities
+    
+    def draw(self):
+        
+        pygame.draw.rect(
+            self.game.screen,
+            (0,0,255),
+            self.rect
+        )
 
 

@@ -70,7 +70,7 @@ class Entity:
             
             update_data_dict = dict_diff(self.last_tick_dict, current_tick_dict)
 
-            print(update_data_dict)
+            #print(update_data_dict)
 
             self.game.network_update(update_type="update", entity_id=self.id, data=update_data_dict)
         
