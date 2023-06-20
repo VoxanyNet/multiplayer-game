@@ -101,7 +101,9 @@ class Player(PhysicsEntity):
         self.health = health
         self.weapon = weapon
 
-        self.game.event_subscriptions[LogicTick].append(self.handle_keys)
+        self.game.event_subscriptions[LogicTick] += [
+            self.handle_keys
+        ]
         
 
     def dict(self) -> Dict:
@@ -303,6 +305,10 @@ class Portal(Entity):
 
         self.linked_portal = linked_portal
         self.last_tick_collisions = []
+
+        self.game.event_subscriptions[LogicTick] += [
+            self.teleport_entities
+        ]
 
     def teleport_entities(self, event: LogicTick):
 

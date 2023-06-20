@@ -51,7 +51,7 @@ class GamemodeClient:
             self.start,
             self.connect
         ]
-    
+
     def detect_collisions(self, rect: Rect) -> List[Type[Entity]]:
         """Check if given rect collides with any entities"""
 
