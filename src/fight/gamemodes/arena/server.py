@@ -1,5 +1,7 @@
 import time
 import uuid
+import socket 
+
 from pygame import Rect
 
 from engine.gamemode_server import GamemodeServer
@@ -7,7 +9,7 @@ from engine.events import ServerStart
 from fight.gamemodes.arena.entities import Player, Floor, Shotgun, Cursor, Portal, Wall
 
 class ArenaServer(GamemodeServer):
-    def __init__(self, tick_rate):
+    def __init__(self, tick_rate, server_ip: str = socket.gethostname()):
         super().__init__(tick_rate=tick_rate)
 
         self.entity_type_map.update(
@@ -35,6 +37,12 @@ class ArenaServer(GamemodeServer):
 
         portal = Portal(
             rect=Rect(600, 400, 20, 200),
+            game=self,
+            updater="server"
+        )
+
+        wall = Wall(
+            rect=Rect(610, 400, 20, 200),
             game=self,
             updater="server"
         )

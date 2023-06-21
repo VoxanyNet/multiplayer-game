@@ -1,3 +1,4 @@
+import sys
 import uuid
 
 import pygame
@@ -172,10 +173,10 @@ class Player(PhysicsEntity):
                 self.velocity.y -= 10
 
         if keys[pygame.K_a]:
-            self.velocity.x -= 1 
+            self.velocity.x -= 4 
 
         if keys[pygame.K_d]:
-            self.velocity.x += 1
+            self.velocity.x += 4
 
 class Weapon(Entity):
     def __init__(
@@ -307,37 +308,53 @@ class Portal(Entity):
         self.last_tick_collisions = []
 
         self.game.event_subscriptions[LogicTick] += [
-            self.teleport_entities
+            self.teleport_entities,
+            self.disable_wall_collisions
         ]
+    
+    def disable_wall_collisions(self, event: LogicTick):
+
+        colliding_entities = self.game.detect_collisions(self.rect)
+
+        for entity in colliding_entities:
+
+            #print(entity)
+            if not issubclass(type(entity), PhysicsEntity):
+                continue 
+            
+            entity: PhysicsEntity
+
+            if Wall in entity.collidable_entities:
+                print(f"{self.game.tick_count} removing wall collision from {entity}")
+                entity.collidable_entities.remove(Wall)
+            
+            print(entity.collidable_entities)
+
+        for entity in self.last_tick_collisions:
+            
+            if not issubclass(type(entity), PhysicsEntity):
+                continue 
+
+            if entity not in colliding_entities:
+                print(f"entity {entity} left the portal")
+                entity.collidable_entities.append(
+                    Wall
+                )
+        
+        self.last_tick_collisions = colliding_entities.copy()
+
 
     def teleport_entities(self, event: LogicTick):
 
         colliding_entities = self.game.detect_collisions(self.rect)
 
-        for entity in self.last_tick_collisions:
-            # restore collisions with walls if entity left the portal
+        for entity in colliding_entities:
+            
             if type(entity) is not PhysicsEntity:
                 continue 
 
-            if entity not in colliding_entities:
-                print(f"entity {entity} left the portal")
-                entity.collidable_entites.append(
-                    Wall
-                )
-
-        for entity in colliding_entities:
-            
-            # allow physics entities to phase through walls if colliding with portal
-            # we do this because portal entities are overlaid on top of walls
-            if type(entity) is PhysicsEntity:
-                entity.collidable_entites.remove(Wall)
-
-            # check if the entity is colliding with the portal's hitbox and jutting out to the right
-            # this indicates that the entity has entered all the way into the portal and should be teleported
             if entity.rect.right > self.rect.right:
                 print(f"{entity} teleport!")
-        
-        self.last_tick_collisions = colliding_entities
     
     def draw(self):
         
