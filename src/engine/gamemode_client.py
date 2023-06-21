@@ -26,7 +26,7 @@ class GamemodeClient:
         self.entity_type_map: Dict[str, Type[Entity]] = {}
         self.entities: Dict[str, Entity] = {}
         self.event_subscriptions = defaultdict(list)
-        self.tick_counter = 0
+        self.tick_count = 0
         self.screen = pygame.display.set_mode(
             [1280, 720],
             pygame.RESIZABLE
@@ -50,6 +50,10 @@ class GamemodeClient:
         self.event_subscriptions[GameStart] += [
             self.start,
             self.connect
+        ]
+
+        self.event_subscriptions[LogicTick] += [
+            self.increment_tick_counter
         ]
 
     def detect_collisions(self, rect: Rect) -> List[Type[Entity]]:
@@ -100,6 +104,9 @@ class GamemodeClient:
         self.update_queue.append(
             update
         )
+    
+    def increment_tick_counter(self, event: LogicTick):
+        self.tick_count += 1
 
     def send_network_updates(self, event: GameTickComplete):
         

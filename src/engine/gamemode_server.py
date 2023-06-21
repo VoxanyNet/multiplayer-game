@@ -32,6 +32,7 @@ class GamemodeServer:
         self.event_subscriptions = defaultdict(list)
         self.server_ip = server_ip
         self.server_port = server_port
+        self.tick_count = 0
 
         self.event_subscriptions[RealtimeTick] += [
             self.accept_new_clients,
@@ -52,6 +53,10 @@ class GamemodeServer:
 
         self.event_subscriptions[NewClient] += [
             self.handle_new_client
+        ]
+
+        self.event_subscriptions[LogicTick] += [
+            self.increment_tick_counter
         ]
     
     def enable_socket(self, event: ServerStart):
@@ -196,6 +201,9 @@ class GamemodeServer:
                 self.network_update(update_type="create", entity_id=entity.id, data=data, entity_type_string=entity_type_string, destinations=[client_uuid])
                 
             self.send_client_updates()
+
+    def increment_tick_counter(self, event: LogicTick):
+        self.tick_count += 1
 
     def handle_client_disconnect(self, event: DisconnectedClient):
         

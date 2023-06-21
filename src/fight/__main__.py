@@ -1,6 +1,7 @@
 import random
 import argparse
 import sys
+import atexit
 
 from fight.gamemodes.arena.client import ArenaClient
 from fight.gamemodes.arena.server import ArenaServer
@@ -12,15 +13,24 @@ parser.add_argument("-m", "--music", dest="enable_music", help="Enable game musi
 
 args = parser.parse_args()
 
-print(args.enable_music)
+def report_server_tick_at_exit():
+    print(server.tick_count)
+
+def report_game_tick_at_exit():
+    print(game.tick_count)
 
 if args.is_server:
+
+    atexit.register(report_server_tick_at_exit)
 
     server = ArenaServer(tick_rate=60)
 
     server.run()
 
 else:
+
+    atexit.register(report_game_tick_at_exit)
+    
     game = ArenaClient(tick_rate=60, enable_music=args.enable_music)
 
     game.run()

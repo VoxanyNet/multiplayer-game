@@ -1,8 +1,10 @@
 import uuid
-from typing import Dict, List, Type, Tuple, Union, TYPE_CHECKING
+import inspect
+from typing import Dict, List, Type, Tuple, Union, TYPE_CHECKING, get_type_hints, Callable
 
 import pygame.image
 from pygame import Rect
+from rich import print
 
 from engine.unresolved import Unresolved
 from engine.helpers import get_matching_objects, dict_diff
@@ -40,7 +42,6 @@ class Entity:
             print("scaling")
             self.sprite = pygame.transform.scale(self.sprite, scale_res)
 
-        #self.game.event_subscriptions[GameTickStart] += [self.set_last_tick_dict]
         self.game.event_subscriptions[GameTickComplete] += [self.detect_updates] 
 
     def set_last_tick_dict(self, event: GameTickStart):
