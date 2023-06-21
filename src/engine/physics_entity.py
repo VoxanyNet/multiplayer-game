@@ -34,13 +34,13 @@ class PhysicsEntity(Entity):
         self.gravity = gravity
         self.max_velocity = max_velocity
         self.friction = friction
-        self.collidable_entites = collidable_entities
+        self.collidable_entities = collidable_entities
 
         # classes cannot reference themselves in their constructor arguments, so we just resolve "self" to the class of the entity
-        if "self" in self.collidable_entites:
-            self.collidable_entites.append(self.__class__)
+        if "self" in self.collidable_entities:
+            self.collidable_entities.append(self.__class__)
         
-            self.collidable_entites.remove("self")
+            self.collidable_entities.remove("self")
 
         self.game.event_subscriptions[LogicTick] += [
             self.move_x_axis,
@@ -63,11 +63,13 @@ class PhysicsEntity(Entity):
 
         collidable_entity_type_strings = []
         
-        for collidable_entity_type in self.collidable_entites:
+        for collidable_entity_type in self.collidable_entities:
 
             collidable_entity_type_strings.append(
                 self.game.lookup_entity_type_string(collidable_entity_type)
             )
+
+        print(collidable_entity_type_strings)
 
         #input(collidable_entity_type_strings)
         
@@ -147,7 +149,7 @@ class PhysicsEntity(Entity):
                             self.game.entity_type_map[collidable_entity_type_string]
                         )
 
-                    self.collidable_entites = collidable_entities
+                    self.collidable_entities = collidable_entities
 
     def move_x_axis(self, event: LogicTick):
         """Move entity by velocity but stop if colliding into collidable entity"""
@@ -164,7 +166,7 @@ class PhysicsEntity(Entity):
         # remove any entities that we shouldnt collide with
         for colliding_entity in copy(colliding_entities):
 
-            if type(colliding_entity) not in self.collidable_entites:
+            if type(colliding_entity) not in self.collidable_entities:
                 del colliding_entities[colliding_entities.index(colliding_entity)]
 
         if len(colliding_entities) != 0:
@@ -197,7 +199,7 @@ class PhysicsEntity(Entity):
         # remove any entities that we shouldnt collide with
         for colliding_entity in copy(colliding_entities):
 
-            if type(colliding_entity) not in self.collidable_entites:
+            if type(colliding_entity) not in self.collidable_entities:
                 del colliding_entities[colliding_entities.index(colliding_entity)]
 
         if len(colliding_entities) != 0:
