@@ -36,6 +36,7 @@ class ArenaClient(GamemodeClient):
             rect=Rect(100,100,50,50),
             game=self,
             updater=self.uuid,
+            gravity=2
         )
 
         shotgun = Shotgun(
