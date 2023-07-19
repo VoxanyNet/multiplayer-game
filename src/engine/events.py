@@ -50,11 +50,6 @@ class UpdatesLoaded(Event):
 class ServerStart(Event):
     pass
 
-class EntityAirborne(Event):
-    def __init__(self, entity: Type["PhysicsEntity"]):
-
-        self.entity = entity
-
 class EntityCreated(Event):
     def __init__(self, new_entity: Type["Entity"]):
         self.new_entity = new_entity

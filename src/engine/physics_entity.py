@@ -5,7 +5,7 @@ from pygame import Rect
 
 from engine.vector import Vector
 from engine.entity import Entity
-from engine.events import EntityLanded, EntityAirborne, LogicTick
+from engine.events import EntityLanded, LogicTick
 
 if TYPE_CHECKING:
     from gamemode_client import GamemodeClient
@@ -46,15 +46,12 @@ class PhysicsEntity(Entity):
             self.move_x_axis,
             self.move_y_axis,
             self.apply_friction,
-            self.round_velocity
+            self.round_velocity,
+            self.apply_gravity
         ]
 
         self.game.event_subscriptions[EntityLanded] += [
             self.bounce
-        ]
-
-        self.game.event_subscriptions[EntityAirborne] += [
-            self.apply_gravity
         ]
     
     def dict(self):
@@ -226,8 +223,6 @@ class PhysicsEntity(Entity):
         else:
             self.rect.y = projected_rect_y.y
 
-            self.game.trigger(EntityAirborne(entity=self))
-
     def apply_friction(self, event: LogicTick):
 
         if abs(self.velocity.x) > 0:
@@ -235,10 +230,9 @@ class PhysicsEntity(Entity):
             self.velocity.x *= 0.05
             
 
-    def apply_gravity(self, event: EntityAirborne):
+    def apply_gravity(self, event: LogicTick):
 
-        if event.entity is self:
-            self.velocity.y += self.gravity
+        self.velocity.y += self.gravity
 
     def bounce(self, event: EntityLanded):
 
