@@ -20,12 +20,13 @@ class PhysicsEntity(Entity):
         id: str = None, 
         gravity: int = 0, 
         velocity: Vector = Vector(0,0), 
-        max_velocity=None, 
+        max_velocity: Vector = None, 
         friction=2, 
         collidable_entities: List[Type[Entity]] = [], 
         sprite_path: str = None, 
         scale_res: tuple = None, 
-        visible: bool = True
+        visible: bool = True,
+        airborne: bool = False
     ):
 
         super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res, visible=visible)
@@ -35,6 +36,7 @@ class PhysicsEntity(Entity):
         self.max_velocity = max_velocity
         self.friction = friction
         self.collidable_entities = collidable_entities
+        self.airborne = airborne
 
         # classes cannot reference themselves in their constructor arguments, so we just resolve "self" to the class of the entity
         if "self" in self.collidable_entities:
@@ -75,7 +77,8 @@ class PhysicsEntity(Entity):
                 "velocity": [self.velocity.x, self.velocity.y],
                 "gravity": self.gravity,
                 "friction": self.friction,
-                "collidable_entities": collidable_entity_type_strings
+                "collidable_entities": collidable_entity_type_strings,
+                "airborne": self.airborne
             }
         )
 
@@ -93,6 +96,8 @@ class PhysicsEntity(Entity):
         entity_data["gravity"] = entity_data["gravity"]
 
         entity_data["friction"] = entity_data["friction"]
+
+        entity_data["airborne"] = entity_data["airborne"]
 
         #input(entity_data["collidable_entities"])
 
@@ -119,6 +124,9 @@ class PhysicsEntity(Entity):
         for attribute in update_data:
 
             match attribute:
+
+                case "airborne":
+                    self.airborne = update_data["airborne"]
 
                 case "velocity":
                     self.velocity = Vector(
@@ -150,6 +158,10 @@ class PhysicsEntity(Entity):
 
     def move_x_axis(self, event: LogicTick):
         """Move entity by velocity but stop if colliding into collidable entity"""
+
+        # enforce max velocity
+        if abs(self.velocity.x) > abs(self.max_velocity.x):
+            self.velocity.x = self.max_velocity.x * self.velocity.normalize().x
 
         projected_rect_x = self.rect.move(
             Vector(self.velocity.x, 0)
@@ -184,6 +196,10 @@ class PhysicsEntity(Entity):
 
     def move_y_axis(self, event: LogicTick):
         
+        # enforce max velocity
+        if abs(self.velocity.y) > abs(self.max_velocity.y):
+            self.velocity.y = self.max_velocity.y * self.velocity.normalize().y
+        
         projected_rect_y = self.rect.move(
             Vector(0, self.velocity.y)
         )
@@ -214,20 +230,26 @@ class PhysicsEntity(Entity):
 
                 self.velocity.y = 0
 
+                self.airborne = False
+
                 self.game.trigger(EntityLanded(self))
 
             # entity came in moving up
             elif projected_rect_y.top <= colliding_entity.rect.bottom and self.rect.top >= colliding_entity.rect.bottom:
+
                 self.rect.top = colliding_entity.rect.bottom
                 
         else:
             self.rect.y = projected_rect_y.y
 
+            self.airborne = True
+
     def apply_friction(self, event: LogicTick):
-
+        
+        print(self.velocity.x)
         if abs(self.velocity.x) > 0:
-
-            self.velocity.x *= 0.05
+            
+            self.velocity.x *= 0.9
             
 
     def apply_gravity(self, event: LogicTick):

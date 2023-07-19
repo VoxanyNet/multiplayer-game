@@ -85,17 +85,18 @@ class Player(PhysicsEntity):
         health: int = 100, 
         weapon: Type["Weapon"] = None, 
         gravity=0.05, velocity = Vector(0,0), 
-        max_velocity: Vector = Vector(50,50), 
+        max_velocity: Vector = Vector(30,30), 
         friction: int = 2, 
         collidable_entities: List[Type[Entity]] = [Floor, Wall, "self"], 
         id: str = None,
         sprite_path: str = None, 
         scale_res: tuple = None, 
-        visible: bool = True
+        visible: bool = True,
+        airborne: bool = False
     ):
 
         super().__init__(gravity=gravity, velocity=velocity, max_velocity=max_velocity, friction=friction, collidable_entities=collidable_entities, rect=rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
-                         visible=visible)
+                         visible=visible, airborne=airborne)
 
         self.last_attack = 0
 
@@ -103,7 +104,8 @@ class Player(PhysicsEntity):
         self.weapon = weapon
 
         self.game.event_subscriptions[LogicTick] += [
-            self.handle_keys
+            self.handle_keys,
+            self.print_velocity
         ]
         
 
@@ -170,13 +172,16 @@ class Player(PhysicsEntity):
             self.game.trigger(JumpEvent)
             
             if not self.airborne:
-                self.velocity.y -= 10
+                self.velocity.y -= 30
 
         if keys[pygame.K_a]:
-            self.velocity.x -= 4 
+            self.velocity.x -= 1
 
         if keys[pygame.K_d]:
-            self.velocity.x += 4
+            self.velocity.x += 1
+
+    def print_velocity(self, event: LogicTick):
+        print(self.velocity)
 
 class Weapon(Entity):
     def __init__(
