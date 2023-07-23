@@ -16,6 +16,15 @@ from engine.entity import Entity
 
 
 class GamemodeServer:
+    """
+    Very similar to the GamemodeClient but with some important differences:
+    - Holds entities that wouldnt make sense for clients to create, like level elements
+    - Receives updates from individual clients and distributes them to every other client
+
+    Could be theoretically be replaced by setting one client as a "master", then using p2p networking, but that would require every client to be port forwarded
+    
+    Basically only exists to simply networking
+    """
 
     def __init__(self, tick_rate: int, server_ip: str = socket.gethostname(), server_port: int = 5560):
 
@@ -72,6 +81,8 @@ class GamemodeServer:
             if function.__self__.__class__.__base__ == GamemodeServer:
                 # if the object this listener function belongs to has a base class that is GamemodeServer, then we don't need to check if we should run it
                 # this is because we never receive other user's GamemodeServer objects
+
+                # we need to do this check because the GamemodeServer object does not have an "updater" attribute
                 pass
             # dont call function if the entity this function belongs to isnt ours
             elif function.__self__.updater != self.uuid:

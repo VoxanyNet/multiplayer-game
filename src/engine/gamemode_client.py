@@ -212,6 +212,8 @@ class GamemodeClient:
             if function.__self__.__class__.__base__ == GamemodeClient:
                 # if the object this listener function belongs to has a base class that is GamemodeClient, then we don't need to check if we should run it
                 # this is because we never receive other user's GamemodeClient objects
+
+                # we need to do this check because the GamemodeClient object does not have an "updater" attribute
                 pass
             # dont call function if the entity this function belongs to isnt ours
             elif function.__self__.updater != self.uuid:
@@ -248,9 +250,7 @@ class GamemodeClient:
 
         while running:
 
-            # tick as fast as possible
-            # check for entity updates at a fixed rate
-            # send out updates at fixed rate
+            # tick at specified tick rate
 
             if pygame.key.get_pressed()[pygame.K_F4]:
                 running = False
