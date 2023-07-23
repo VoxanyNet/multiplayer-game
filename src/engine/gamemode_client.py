@@ -61,6 +61,10 @@ class GamemodeClient:
             self.increment_tick_counter,
             self.step_space
         ]
+        
+        self.event_subscriptions[GameTickStart] + [
+            self.measure_dt
+        ]
 
     def step_space(self, event: LogicTick):
         """Simulate physics for self.dt amount of time"""
