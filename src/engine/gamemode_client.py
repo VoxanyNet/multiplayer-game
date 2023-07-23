@@ -8,6 +8,7 @@ from typing import Union, Type, Dict, Literal, List, Optional
 
 import pygame
 from pygame import Rect
+import pymunk
 
 from engine import headered_socket
 from engine.entity import Entity
@@ -27,6 +28,10 @@ class GamemodeClient:
         self.entities: Dict[str, Entity] = {}
         self.event_subscriptions = defaultdict(list)
         self.tick_count = 0
+        self.space = pymunk.Space()
+        self.space.gravity = (0, 900)
+        self.last_tick = time.time()
+        self.dt = 0.1 # i am initializing this with 0.1 instead of 0 because i think it might break stuff
         self.screen = pygame.display.set_mode(
             [1280, 720],
             pygame.RESIZABLE
@@ -53,8 +58,19 @@ class GamemodeClient:
         ]
 
         self.event_subscriptions[LogicTick] += [
-            self.increment_tick_counter
+            self.increment_tick_counter,
+            self.step_space
         ]
+
+    def step_space(self, event: LogicTick):
+        """Simulate physics for self.dt amount of time"""
+        self.space.step(self.dt)
+    
+    def measure_dt(self, event: GameTickStart):
+        """Measure the time since the last tick and update self.dt"""
+        self.dt = time.time() - self.last_tick
+
+        self.last_tick = time.time()
 
     def detect_collisions(self, rect: Rect) -> List[Type[Entity]]:
         """Check if given rect collides with any entities"""
