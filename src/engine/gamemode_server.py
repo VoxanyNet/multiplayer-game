@@ -7,6 +7,7 @@ import time
 
 import pygame
 from pygame import Rect
+import pymunk
 
 from engine import headered_socket
 from engine.headered_socket import Disconnected
@@ -42,6 +43,10 @@ class GamemodeServer:
         self.server_ip = server_ip
         self.server_port = server_port
         self.tick_count = 0
+        self.space = pymunk.Space()
+        self.space.gravity = (0, 900)
+        self.last_tick = time.time()
+        self.dt = 0.1 # i am initializing this with 0.1 instead of 0 because i think it might break stuff
 
         self.event_subscriptions[RealtimeTick] += [
             self.accept_new_clients,
@@ -65,9 +70,24 @@ class GamemodeServer:
         ]
 
         self.event_subscriptions[LogicTick] += [
-            self.increment_tick_counter
+            self.increment_tick_counter,
+            self.step_space
+        ]
+
+        self.event_subscriptions[GameTickStart] += [
+            self.measure_dt
         ]
     
+    def step_space(self, event: LogicTick):
+        """Simulate physics for self.dt amount of time"""
+        self.space.step(self.dt)
+    
+    def measure_dt(self, event: GameTickStart):
+        """Measure the time since the last tick and update self.dt"""
+        self.dt = time.time() - self.last_tick
+
+        self.last_tick = time.time()
+
     def enable_socket(self, event: ServerStart):
         self.socket.bind((self.server_ip, self.server_port))
         self.socket.setblocking(False)
