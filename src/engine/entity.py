@@ -117,14 +117,3 @@ class Entity:
 
                 case "updater":
                     self.updater = update_data["updater"]
-        
-    def draw(self):
-        """Draw the entity onto the game screen"""
-
-        #pygame.draw.rect(self.game.screen, (255, 255, 255), self.interaction_rect)
-        for tile in self.tiles:
-            pygame.draw.rect(
-                surface=self.game.screen, 
-                color=(255,255,255), 
-                rect=Rect(tile.body.position[0], tile.body.position[1], width=10, height=10)
-            )
