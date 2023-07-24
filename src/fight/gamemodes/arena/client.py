@@ -14,7 +14,7 @@ class ArenaClient(GamemodeClient):
 
         self.enable_music = enable_music
 
-        pygame.mouse.set_visible(0)
+        #pygame.mouse.set_visible(0)
         
         self.entity_type_map.update(
             {
