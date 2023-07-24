@@ -265,8 +265,9 @@ class GamemodeServer:
         colliding_entities: List[Type[Entity]] = []
 
         for entity in self.entities.values():
+            entity: Entity
 
-            if rect.colliderect(entity.rect):
+            if rect.colliderect(entity.interaction_rect):
                 colliding_entities.append(entity)
 
         return colliding_entities

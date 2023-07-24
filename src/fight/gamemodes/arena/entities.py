@@ -25,14 +25,14 @@ class Cursor(Entity):
         self, 
         game: Union["ArenaClient", "ArenaServer"], 
         updater: str, 
-        rect=Rect(0,0,10,10), 
+        interaction_rect=Rect(0,0,10,10), 
         id: str = None,
         sprite_path: str = None, 
         scale_res: tuple = None, 
         visible: bool = True
     ):
 
-        super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
+        super().__init__(interaction_rect=interaction_rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
                          visible=visible)
 
         self.game.event_subscriptions[LogicTick].append(self.update_position)
@@ -42,17 +42,17 @@ class Cursor(Entity):
         pygame.draw.rect(
             self.game.screen,
             (255,255,255),
-            self.rect
+            self.interaction_rect
         )
 
     def update_position(self, event: LogicTick):
 
-        self.rect.center = pygame.mouse.get_pos()
+        self.interaction_rect.center = pygame.mouse.get_pos()
 
 class Floor(Entity):
     def __init__(
         self, 
-        rect: Rect, 
+        interaction_rect: Rect, 
         game: Union["ArenaClient", "ArenaServer"], 
         updater: str, 
         id: str = None,
@@ -61,7 +61,7 @@ class Floor(Entity):
         visible: bool = True
     ):
 
-        super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
+        super().__init__(interaction_rect=interaction_rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
                          visible=visible)
 
     def draw(self):
@@ -69,7 +69,7 @@ class Floor(Entity):
         pygame.draw.rect(
             self.game.screen,
             (255,255,255),
-            self.rect
+            self.interaction_rect
         )
 
 class Wall(Floor):
@@ -79,7 +79,7 @@ class Wall(Floor):
 class Player(PhysicsEntity):
     def __init__(
         self,
-        rect: Rect, 
+        interaction_rect: Rect, 
         game: Union["ArenaClient", "ArenaServer"], 
         updater: str, 
         health: int = 100, 
@@ -95,7 +95,7 @@ class Player(PhysicsEntity):
         airborne: bool = False
     ):
 
-        super().__init__(gravity=gravity, velocity=velocity, max_velocity=max_velocity, friction=friction, collidable_entities=collidable_entities, rect=rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
+        super().__init__(gravity=gravity, velocity=velocity, max_velocity=max_velocity, friction=friction, collidable_entities=collidable_entities, interaction_rect=interaction_rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
                          visible=visible, airborne=airborne)
 
         self.last_attack = 0
@@ -160,7 +160,7 @@ class Player(PhysicsEntity):
         pygame.draw.rect(
             self.game.screen,
             (255,255,255),
-            self.rect
+            self.interaction_rect
         )
 
     def handle_keys(self, event: LogicTick):
@@ -190,7 +190,7 @@ class Weapon(Entity):
         max_ammo: int, 
         attack_cooldown: int, 
         owner: Player, 
-        rect: Rect, 
+        interaction_rect: Rect, 
         game: Union["ArenaClient", "ArenaServer"], 
         updater: str, 
         id: str = None,
@@ -199,7 +199,7 @@ class Weapon(Entity):
         visible: bool = True
     ):
 
-        super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
+        super().__init__(interaction_rect=interaction_rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
                          visible=visible)
 
         self.ammo = ammo
@@ -270,7 +270,7 @@ class Weapon(Entity):
                     self.owner = Unresolved(update_data["owner"])
 
     def follow_owner(self, event: LogicTick):
-        self.rect = self.owner.rect.move(0,-50)
+        self.interaction_rect = self.owner.interaction_rect.move(0,-50)
 
     def follow_cursor(self, event: LogicTick):
         mouse_pos = pygame.mouse.get_pos()
@@ -281,7 +281,7 @@ class Shotgun(Weapon):
     def __init__(
         self, 
         owner: Player, 
-        rect: Rect, 
+        interaction_rect: Rect, 
         game: Union["ArenaClient", "ArenaServer"], 
         updater: str, 
         ammo: int = 2, 
@@ -291,13 +291,13 @@ class Shotgun(Weapon):
         sprite_path: str = "resources/shotgun.png", scale_res: Tuple[int, int] = (68,19), visible: bool = True
     ):
 
-        super().__init__(ammo=ammo, max_ammo=max_ammo, attack_cooldown=attack_cooldown, owner=owner, rect=rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
+        super().__init__(ammo=ammo, max_ammo=max_ammo, attack_cooldown=attack_cooldown, owner=owner, interaction_rect=interaction_rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
                          visible=visible)
         
 class Portal(Entity):
     def __init__(
         self, 
-        rect: Rect, 
+        interaction_rect: Rect, 
         game: Union["GamemodeClient", "GamemodeServer"], 
         updater: str, 
         linked_portal: "Portal" = None, 
@@ -307,7 +307,7 @@ class Portal(Entity):
         visible: bool = True
     ):
     
-        super().__init__(rect, game, updater, id, sprite_path, scale_res, visible)
+        super().__init__(interaction_rect, game, updater, id, sprite_path, scale_res, visible)
 
         self.linked_portal = linked_portal
         self.last_tick_collisions = []
@@ -319,7 +319,7 @@ class Portal(Entity):
     
     def disable_wall_collisions(self, event: LogicTick):
 
-        colliding_entities = self.game.detect_collisions(self.rect)
+        colliding_entities = self.game.detect_collisions(self.interaction_rect)
 
         for entity in colliding_entities:
 
@@ -351,14 +351,14 @@ class Portal(Entity):
 
     def teleport_entities(self, event: LogicTick):
 
-        colliding_entities = self.game.detect_collisions(self.rect)
+        colliding_entities = self.game.detect_collisions(self.interaction_rect)
 
         for entity in colliding_entities:
             
             if type(entity) is not PhysicsEntity:
                 continue 
 
-            if entity.rect.right > self.rect.right:
+            if entity.interaction_rect.right > self.interaction_rect.right:
                 print(f"{entity} teleport!")
     
     def draw(self):
@@ -366,7 +366,7 @@ class Portal(Entity):
         pygame.draw.rect(
             self.game.screen,
             (0,0,255),
-            self.rect
+            self.interaction_rect
         )
 
 

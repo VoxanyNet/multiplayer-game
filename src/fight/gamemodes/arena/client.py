@@ -33,7 +33,7 @@ class ArenaClient(GamemodeClient):
         cursor = Cursor(game=self, updater=self.uuid)
 
         player = Player(
-            rect=Rect(100,100,50,50),
+            interaction_rect=Rect(100,100,50,50),
             game=self,
             updater=self.uuid,
             gravity=2
@@ -41,7 +41,7 @@ class ArenaClient(GamemodeClient):
 
         shotgun = Shotgun(
             owner=player, 
-            rect=Rect(0,0,39,11),
+            interaction_rect=Rect(0,0,39,11),
             game=self,
             updater=self.uuid
         )

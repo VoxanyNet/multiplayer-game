@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 class PhysicsEntity(Entity):
     def __init__(
         self, 
-        rect: Rect, 
+        interaction_rect: Rect, 
         game: Union["GamemodeClient", "GamemodeServer"], 
         updater: str, 
         id: str = None, 
@@ -29,7 +29,7 @@ class PhysicsEntity(Entity):
         airborne: bool = False
     ):
 
-        super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res, visible=visible)
+        super().__init__(interaction_rect=interaction_rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res, visible=visible)
         
         self.velocity = velocity
         self.gravity = gravity
@@ -163,7 +163,7 @@ class PhysicsEntity(Entity):
         if abs(self.velocity.x) > abs(self.max_velocity.x):
             self.velocity.x = self.max_velocity.x * self.velocity.normalize().x
 
-        projected_rect_x = self.rect.move(
+        projected_rect_x = self.interaction_rect.move(
             Vector(self.velocity.x, 0)
         )
 
@@ -183,16 +183,16 @@ class PhysicsEntity(Entity):
             colliding_entity = colliding_entities[0]
 
             # entity came in moving left
-            if projected_rect_x.right >= colliding_entity.rect.left and self.rect.right < colliding_entity.rect.left:
-                self.rect.right = colliding_entity.rect.left
+            if projected_rect_x.right >= colliding_entity.interaction_rect.left and self.interaction_rect.right < colliding_entity.interaction_rect.left:
+                self.interaction_rect.right = colliding_entity.interaction_rect.left
             
             # entity came in moving right
-            elif projected_rect_x.left <= colliding_entity.rect.right and self.rect.left > colliding_entity.rect.right:
-                self.rect.left = colliding_entity.rect.right
+            elif projected_rect_x.left <= colliding_entity.interaction_rect.right and self.interaction_rect.left > colliding_entity.interaction_rect.right:
+                self.interaction_rect.left = colliding_entity.interaction_rect.right
         
         else:
 
-            self.rect.x = projected_rect_x.x
+            self.interaction_rect.x = projected_rect_x.x
 
     def move_y_axis(self, event: LogicTick):
         
@@ -200,7 +200,7 @@ class PhysicsEntity(Entity):
         if abs(self.velocity.y) > abs(self.max_velocity.y):
             self.velocity.y = self.max_velocity.y * self.velocity.normalize().y
         
-        projected_rect_y = self.rect.move(
+        projected_rect_y = self.interaction_rect.move(
             Vector(0, self.velocity.y)
         )
 
@@ -224,9 +224,9 @@ class PhysicsEntity(Entity):
             colliding_entity: Type[Entity]
 
             # new rect bottom is lower than the colliding rect's top and the old rect bottom is higher than the colliding rect top
-            if (projected_rect_y.bottom >= colliding_entity.rect.top) and (self.rect.bottom <= colliding_entity.rect.top):
+            if (projected_rect_y.bottom >= colliding_entity.interaction_rect.top) and (self.interaction_rect.bottom <= colliding_entity.interaction_rect.top):
 
-                self.rect.bottom = colliding_entity.rect.top
+                self.interaction_rect.bottom = colliding_entity.interaction_rect.top
 
                 self.velocity.y = 0
 
@@ -235,12 +235,12 @@ class PhysicsEntity(Entity):
                 self.game.trigger(EntityLanded(self))
 
             # entity came in moving up
-            elif projected_rect_y.top <= colliding_entity.rect.bottom and self.rect.top >= colliding_entity.rect.bottom:
+            elif projected_rect_y.top <= colliding_entity.interaction_rect.bottom and self.interaction_rect.top >= colliding_entity.interaction_rect.bottom:
 
-                self.rect.top = colliding_entity.rect.bottom
+                self.interaction_rect.top = colliding_entity.interaction_rect.bottom
                 
         else:
-            self.rect.y = projected_rect_y.y
+            self.interaction_rect.y = projected_rect_y.y
 
             self.airborne = True
 

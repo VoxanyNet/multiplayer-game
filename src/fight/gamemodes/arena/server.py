@@ -30,19 +30,19 @@ class ArenaServer(GamemodeServer):
     def start(self, event: ServerStart):
 
         floor = Floor(
-            rect=Rect(0,600,1920,20),
+            interaction_rect=Rect(0,600,1920,20),
             game=self,
             updater="server"
         )
 
         portal = Portal(
-            rect=Rect(600, 400, 20, 200),
+            interaction_rect=Rect(600, 400, 20, 200),
             game=self,
             updater="server"
         )
 
         wall = Wall(
-            rect=Rect(610, 400, 20, 200),
+            interaction_rect=Rect(610, 400, 20, 200),
             game=self,
             updater="server"
         )

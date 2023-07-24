@@ -83,7 +83,7 @@ class GamemodeClient:
 
         for entity in self.entities.values():
 
-            if rect.colliderect(entity.rect):
+            if rect.colliderect(entity.interaction_rect):
                 colliding_entities.append(entity)
 
         return colliding_entities

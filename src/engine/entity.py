@@ -16,11 +16,11 @@ if TYPE_CHECKING:
 
 
 class Entity:
-    def __init__(self, rect: Rect, game: Union["GamemodeClient", "GamemodeServer"], updater: str, id: str = None, sprite_path: str = None, scale_res: Tuple[int, int] = None,
+    def __init__(self, interaction_rect: Rect, game: Union["GamemodeClient", "GamemodeServer"], updater: str, id: str = None, sprite_path: str = None, scale_res: Tuple[int, int] = None,
                  visible=True):
 
         self.visible = visible
-        self.rect = rect
+        self.interaction_rect = interaction_rect
         self.updater = updater
         self.game = game
         self.sprite_path = sprite_path
@@ -95,7 +95,7 @@ class Entity:
         """Serialize the entity's data"""
 
         data_dict = {
-            "rect": list(self.rect),
+            "interaction_rect": list(self.interaction_rect),
             "visible": self.visible,
             "updater": self.updater,
             "sprite_path": self.sprite_path,
@@ -108,8 +108,8 @@ class Entity:
     def create(cls, entity_data: Dict[str, Union[int, bool, str, list]], entity_id: str, game: Union[Type["GamemodeClient"], Type["GamemodeServer"]]) -> Type["Entity"]:
         """Use serialized entity data to create a new entity"""
 
-        entity_data["rect"] = Rect(
-            entity_data["rect"]
+        entity_data["interaction_rect"] = Rect(
+             entity_data["interaction_rect"]
         )
 
         entity_data["visible"] = entity_data["visible"]
@@ -132,10 +132,10 @@ class Entity:
                 case "visible":
                     self.visible = update_data["visible"]
 
-                case "rect":
+                case "interaction_rect":
                     
-                    self.rect.update(
-                        update_data["rect"]
+                    self.interaction_rect.update(
+                        update_data["interaction_rect"]
                     )
 
                 case "updater":
@@ -147,4 +147,10 @@ class Entity:
     def draw(self):
         """Draw the entity onto the game screen"""
 
-        self.game.screen.blit(self.sprite, self.rect)
+        self.game.screen.blit(self.sprite, self.interaction_rect)
+        # for tile in self.tiles:
+        #     pygame.draw.rect(
+        #         surface=self.game.screen, 
+        #         color=(255,255,255), 
+        #         rect=Rect(tile.body.position[0], tile.body.position[1], width=10, height=10)
+        #     )
