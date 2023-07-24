@@ -20,7 +20,6 @@ class ArenaClient(GamemodeClient):
                 "player": Player,
                 "floor": Floor,
                 "shotgun": Shotgun,
-                "cursor": Cursor,
                 "portal": Portal,
                 "wall": Wall
             }
