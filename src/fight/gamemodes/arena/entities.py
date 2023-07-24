@@ -20,33 +20,6 @@ if TYPE_CHECKING:
     from engine.gamemode_server import GamemodeServer 
 
 
-class Cursor(Entity):
-    def __init__(
-        self, 
-        game: Union["ArenaClient", "ArenaServer"], 
-        updater: str, 
-        interaction_rect=Rect(0,0,10,10), 
-        id: str = None, 
-        visible: bool = True
-    ):
-
-        super().__init__(interaction_rect=interaction_rect, game=game, updater=updater, id=id,
-                         visible=visible)
-
-        self.game.event_subscriptions[LogicTick].append(self.update_position)
-    
-    def draw(self):
-
-        pygame.draw.rect(
-            self.game.screen,
-            (255,255,255),
-            self.interaction_rect
-        )
-
-    def update_position(self, event: LogicTick):
-
-        self.interaction_rect.center = pygame.mouse.get_pos()
-
 class Floor(Entity):
     def __init__(
         self, 
