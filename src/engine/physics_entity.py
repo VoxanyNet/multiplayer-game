@@ -17,7 +17,7 @@ class PhysicsEntity(Entity):
         interaction_rect: Rect, 
         game: Union["GamemodeClient", "GamemodeServer"], 
         updater: str, 
-        id: str = None, 
+        id: str, 
         gravity: int = 0, 
         velocity: Vector = Vector(0,0), 
         max_velocity: Vector = None, 
