@@ -26,13 +26,11 @@ class Cursor(Entity):
         game: Union["ArenaClient", "ArenaServer"], 
         updater: str, 
         interaction_rect=Rect(0,0,10,10), 
-        id: str = None,
-        sprite_path: str = None, 
-        scale_res: tuple = None, 
+        id: str = None, 
         visible: bool = True
     ):
 
-        super().__init__(interaction_rect=interaction_rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
+        super().__init__(interaction_rect=interaction_rect, game=game, updater=updater, id=id,
                          visible=visible)
 
         self.game.event_subscriptions[LogicTick].append(self.update_position)
@@ -56,12 +54,10 @@ class Floor(Entity):
         game: Union["ArenaClient", "ArenaServer"], 
         updater: str, 
         id: str = None,
-        sprite_path: str = None, 
-        scale_res: tuple = None, 
         visible: bool = True
     ):
 
-        super().__init__(interaction_rect=interaction_rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
+        super().__init__(interaction_rect=interaction_rect, game=game, updater=updater, id=id,
                          visible=visible)
 
     def draw(self):
@@ -89,13 +85,11 @@ class Player(PhysicsEntity):
         friction: int = 2, 
         collidable_entities: List[Type[Entity]] = [Floor, Wall, "self"], 
         id: str = None,
-        sprite_path: str = None, 
-        scale_res: tuple = None, 
         visible: bool = True,
         airborne: bool = False
     ):
 
-        super().__init__(gravity=gravity, velocity=velocity, max_velocity=max_velocity, friction=friction, collidable_entities=collidable_entities, interaction_rect=interaction_rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
+        super().__init__(gravity=gravity, velocity=velocity, max_velocity=max_velocity, friction=friction, collidable_entities=collidable_entities, interaction_rect=interaction_rect, game=game, updater=updater, id=id,
                          visible=visible, airborne=airborne)
 
         self.last_attack = 0
@@ -194,12 +188,10 @@ class Weapon(Entity):
         game: Union["ArenaClient", "ArenaServer"], 
         updater: str, 
         id: str = None,
-        sprite_path: str = None, 
-        scale_res: Tuple[int, int] = None, 
         visible: bool = True
     ):
 
-        super().__init__(interaction_rect=interaction_rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
+        super().__init__(interaction_rect=interaction_rect, game=game, updater=updater, id=id,
                          visible=visible)
 
         self.ammo = ammo
@@ -288,10 +280,10 @@ class Shotgun(Weapon):
         max_ammo: int = 2, 
         attack_cooldown: int = 1, 
         id: str = None,
-        sprite_path: str = "resources/shotgun.png", scale_res: Tuple[int, int] = (68,19), visible: bool = True
+        visible: bool = True
     ):
 
-        super().__init__(ammo=ammo, max_ammo=max_ammo, attack_cooldown=attack_cooldown, owner=owner, interaction_rect=interaction_rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
+        super().__init__(ammo=ammo, max_ammo=max_ammo, attack_cooldown=attack_cooldown, owner=owner, interaction_rect=interaction_rect, game=game, updater=updater, id=id,
                          visible=visible)
         
 class Portal(Entity):
@@ -301,13 +293,11 @@ class Portal(Entity):
         game: Union["GamemodeClient", "GamemodeServer"], 
         updater: str, 
         linked_portal: "Portal" = None, 
-        id: str = None, 
-        sprite_path: str = None, 
-        scale_res: Tuple[int, int] = None, 
+        id: str = None,
         visible: bool = True
     ):
     
-        super().__init__(interaction_rect, game, updater, id, sprite_path, scale_res, visible)
+        super().__init__(interaction_rect, game, updater, id, visible)
 
         self.linked_portal = linked_portal
         self.last_tick_collisions = []

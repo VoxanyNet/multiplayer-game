@@ -16,15 +16,12 @@ if TYPE_CHECKING:
 
 
 class Entity:
-    def __init__(self, interaction_rect: Rect, game: Union["GamemodeClient", "GamemodeServer"], updater: str, id: str = None, sprite_path: str = None, scale_res: Tuple[int, int] = None,
-                 visible=True):
+    def __init__(self, interaction_rect: Rect, game: Union["GamemodeClient", "GamemodeServer"], updater: str, id: str = None, visible=True):
 
         self.visible = visible
         self.interaction_rect = interaction_rect
         self.updater = updater
         self.game = game
-        self.sprite_path = sprite_path
-        self.scale_res = scale_res
         self.last_tick_dict = {}
         
         if id is None:
@@ -34,13 +31,6 @@ class Entity:
 
         # add entity to the game state automatically
         self.game.entities[self.id] = self
-
-        if sprite_path:
-            self.sprite = pygame.image.load(sprite_path)
-
-        if scale_res and sprite_path:
-            print("scaling")
-            self.sprite = pygame.transform.scale(self.sprite, scale_res)
 
         self.game.event_subscriptions[GameTickComplete] += [self.detect_updates] 
 
@@ -97,9 +87,7 @@ class Entity:
         data_dict = {
             "interaction_rect": list(self.interaction_rect),
             "visible": self.visible,
-            "updater": self.updater,
-            "sprite_path": self.sprite_path,
-            "scale_res": self.scale_res
+            "updater": self.updater
         }
 
         return data_dict
@@ -115,10 +103,6 @@ class Entity:
         entity_data["visible"] = entity_data["visible"]
 
         entity_data["updater"] = entity_data["updater"]
-
-        entity_data["sprite_path"] = entity_data["sprite_path"]
-
-        entity_data["scale_res"] = entity_data["scale_res"]
 
         return cls(game=game, id=entity_id, **entity_data)
 
@@ -140,14 +124,11 @@ class Entity:
 
                 case "updater":
                     self.updater = update_data["updater"]
-
-                case "sprite_path":
-                    self.sprite = pygame.image.load(update_data["sprite_path"])
         
     def draw(self):
         """Draw the entity onto the game screen"""
 
-        self.game.screen.blit(self.sprite, self.interaction_rect)
+        pygame.draw.rect(self.game.screen, (255, 255, 255), self.interaction_rect)
         # for tile in self.tiles:
         #     pygame.draw.rect(
         #         surface=self.game.screen, 

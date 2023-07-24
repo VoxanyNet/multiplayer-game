@@ -23,13 +23,11 @@ class PhysicsEntity(Entity):
         max_velocity: Vector = None, 
         friction=2, 
         collidable_entities: List[Type[Entity]] = [], 
-        sprite_path: str = None, 
-        scale_res: tuple = None, 
         visible: bool = True,
         airborne: bool = False
     ):
 
-        super().__init__(interaction_rect=interaction_rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res, visible=visible)
+        super().__init__(interaction_rect=interaction_rect, game=game, updater=updater, id=id, visible=visible)
         
         self.velocity = velocity
         self.gravity = gravity
