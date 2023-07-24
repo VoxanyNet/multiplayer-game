@@ -199,6 +199,11 @@ class GamemodeClient:
 
         for entity in self.entities.values():
             entity: Entity
+
+            # quack
+            if not hasattr(entity, "visisble"):
+                continue 
+
             if entity.visible: 
                 entity.draw()
         

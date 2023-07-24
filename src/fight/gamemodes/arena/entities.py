@@ -30,8 +30,7 @@ class Floor(Entity):
         visible: bool = True
     ):
 
-        super().__init__(interaction_rect=interaction_rect, game=game, updater=updater, id=id,
-                         visible=visible)
+        super().__init__(interaction_rect=interaction_rect, game=game, updater=updater, id=id)
 
     def draw(self):
         # draw a white rectangle
@@ -62,8 +61,7 @@ class Player(PhysicsEntity):
         airborne: bool = False
     ):
 
-        super().__init__(gravity=gravity, velocity=velocity, max_velocity=max_velocity, friction=friction, collidable_entities=collidable_entities, interaction_rect=interaction_rect, game=game, updater=updater, id=id,
-                         visible=visible, airborne=airborne)
+        super().__init__(gravity=gravity, velocity=velocity, max_velocity=max_velocity, friction=friction, collidable_entities=collidable_entities, interaction_rect=interaction_rect, game=game, updater=updater, id=id, airborne=airborne)
 
         self.last_attack = 0
 
@@ -164,8 +162,7 @@ class Weapon(Entity):
         visible: bool = True
     ):
 
-        super().__init__(interaction_rect=interaction_rect, game=game, updater=updater, id=id,
-                         visible=visible)
+        super().__init__(interaction_rect=interaction_rect, game=game, updater=updater, id=id,)
 
         self.ammo = ammo
         self.max_ammo = max_ammo
@@ -256,8 +253,7 @@ class Shotgun(Weapon):
         visible: bool = True
     ):
 
-        super().__init__(ammo=ammo, max_ammo=max_ammo, attack_cooldown=attack_cooldown, owner=owner, interaction_rect=interaction_rect, game=game, updater=updater, id=id,
-                         visible=visible)
+        super().__init__(ammo=ammo, max_ammo=max_ammo, attack_cooldown=attack_cooldown, owner=owner, interaction_rect=interaction_rect, game=game, updater=updater, id=id)
         
 class Portal(Entity):
     def __init__(
@@ -270,7 +266,7 @@ class Portal(Entity):
         visible: bool = True
     ):
     
-        super().__init__(interaction_rect, game, updater, id, visible)
+        super().__init__(interaction_rect, game, updater, id)
 
         self.linked_portal = linked_portal
         self.last_tick_collisions = []

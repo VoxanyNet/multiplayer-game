@@ -16,9 +16,8 @@ if TYPE_CHECKING:
 
 
 class Entity:
-    def __init__(self, interaction_rect: Rect, game: Union["GamemodeClient", "GamemodeServer"], updater: str, id: str = None, visible=True):
+    def __init__(self, interaction_rect: Rect, game: Union["GamemodeClient", "GamemodeServer"], updater: str, id: str = None):
 
-        self.visible = visible
         self.interaction_rect = interaction_rect
         self.updater = updater
         self.game = game
@@ -86,7 +85,6 @@ class Entity:
 
         data_dict = {
             "interaction_rect": list(self.interaction_rect),
-            "visible": self.visible,
             "updater": self.updater
         }
 
@@ -100,8 +98,6 @@ class Entity:
              entity_data["interaction_rect"]
         )
 
-        entity_data["visible"] = entity_data["visible"]
-
         entity_data["updater"] = entity_data["updater"]
 
         return cls(game=game, id=entity_id, **entity_data)
@@ -112,9 +108,6 @@ class Entity:
         for attribute in update_data:
 
             match attribute:
-
-                case "visible":
-                    self.visible = update_data["visible"]
 
                 case "interaction_rect":
                     
@@ -128,10 +121,10 @@ class Entity:
     def draw(self):
         """Draw the entity onto the game screen"""
 
-        pygame.draw.rect(self.game.screen, (255, 255, 255), self.interaction_rect)
-        # for tile in self.tiles:
-        #     pygame.draw.rect(
-        #         surface=self.game.screen, 
-        #         color=(255,255,255), 
-        #         rect=Rect(tile.body.position[0], tile.body.position[1], width=10, height=10)
-        #     )
+        #pygame.draw.rect(self.game.screen, (255, 255, 255), self.interaction_rect)
+        for tile in self.tiles:
+            pygame.draw.rect(
+                surface=self.game.screen, 
+                color=(255,255,255), 
+                rect=Rect(tile.body.position[0], tile.body.position[1], width=10, height=10)
+            )
