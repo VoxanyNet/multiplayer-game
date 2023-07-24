@@ -6,6 +6,9 @@ import atexit
 from fight.gamemodes.arena.client import ArenaClient
 from fight.gamemodes.arena.server import ArenaServer
 
+from fight.gamemodes.test.client import TestClient
+from fight.gamemodes.test.server import TestServer
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument("-s", "--server", dest="is_server", help="Run server", action="store_true")
@@ -31,6 +34,6 @@ else:
 
     atexit.register(report_game_tick_at_exit)
     
-    game = ArenaClient(tick_rate=60, enable_music=args.enable_music)
+    game = ArenaClient(tick_rate=60)
 
     game.run()
