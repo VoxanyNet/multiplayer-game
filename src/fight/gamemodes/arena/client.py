@@ -1,4 +1,5 @@
 import socket
+import uuid
 
 import pygame
 from pygame import Rect
@@ -28,21 +29,21 @@ class ArenaClient(GamemodeClient):
         self.gravity = gravity
     
     def start(self, event: GameStart):
-        
-        cursor = Cursor(game=self, updater=self.uuid)
 
         player = Player(
             interaction_rect=Rect(100,100,50,50),
             game=self,
             updater=self.uuid,
-            gravity=2
+            gravity=2,
+            id=str(uuid.uuid4())
         )
 
         shotgun = Shotgun(
             owner=player, 
             interaction_rect=Rect(0,0,39,11),
             game=self,
-            updater=self.uuid
+            updater=self.uuid,
+            id=str(uuid.uuid4())
         )
 
         player.weapon = shotgun

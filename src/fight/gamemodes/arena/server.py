@@ -31,18 +31,21 @@ class ArenaServer(GamemodeServer):
         floor = Floor(
             interaction_rect=Rect(0,600,1920,20),
             game=self,
-            updater="server"
+            updater="server",
+            id=str(uuid.uuid4())
         )
 
         portal = Portal(
             interaction_rect=Rect(600, 400, 20, 200),
             game=self,
-            updater="server"
+            updater="server",
+            id=str(uuid.uuid4())
         )
 
         wall = Wall(
             interaction_rect=Rect(610, 400, 20, 200),
             game=self,
-            updater="server"
+            updater="server",
+            id=str(uuid.uuid4())
         )
         
