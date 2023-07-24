@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 class Entity:
     def __init__(self, interaction_rect: Rect, game: Union["GamemodeClient", "GamemodeServer"], updater: str, id: str):
 
-        self.interaction_rect = interaction_rect
+        self.interaction_rect = interaction_rect # the rectangle used for entity interactions, like a bullet hitting a player
         self.updater = updater
         self.game = game
         self.last_tick_dict = {}
