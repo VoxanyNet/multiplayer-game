@@ -201,11 +201,10 @@ class GamemodeClient:
             entity: Entity
 
             # quack
-            if not hasattr(entity, "visisble"):
+            if not hasattr(entity, "draw"):
                 continue 
-
-            if entity.visible: 
-                entity.draw()
+ 
+            entity.draw()
         
         pygame.display.flip()
 
