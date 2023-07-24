@@ -41,10 +41,10 @@ class GamemodeClient:
 
         self.event_subscriptions[GameTickComplete] += [
             self.send_network_updates,
+            self.clear_screen
         ]
 
         self.event_subscriptions[RealtimeTick] += [
-            self.clear_screen,
             self.receive_network_updates
         ]
         
