@@ -26,7 +26,7 @@ class Floor(Entity):
         interaction_rect: Rect, 
         game: Union["ArenaClient", "ArenaServer"], 
         updater: str, 
-        id: str = None,
+        id: str,
         visible: bool = True
     ):
 
@@ -50,13 +50,13 @@ class Player(PhysicsEntity):
         interaction_rect: Rect, 
         game: Union["ArenaClient", "ArenaServer"], 
         updater: str, 
+        id: str,
         health: int = 100, 
         weapon: Type["Weapon"] = None, 
         gravity=0.05, velocity = Vector(0,0), 
         max_velocity: Vector = Vector(30,30), 
         friction: int = 2, 
-        collidable_entities: List[Type[Entity]] = [Floor, Wall, "self"], 
-        id: str = None,
+        collidable_entities: List[Type[Entity]] = [Floor, Wall, "self"],
         visible: bool = True,
         airborne: bool = False
     ):
@@ -158,7 +158,7 @@ class Weapon(Entity):
         interaction_rect: Rect, 
         game: Union["ArenaClient", "ArenaServer"], 
         updater: str, 
-        id: str = None,
+        id: str,
         visible: bool = True
     ):
 
@@ -246,10 +246,10 @@ class Shotgun(Weapon):
         interaction_rect: Rect, 
         game: Union["ArenaClient", "ArenaServer"], 
         updater: str, 
+        id: str,
         ammo: int = 2, 
         max_ammo: int = 2, 
         attack_cooldown: int = 1, 
-        id: str = None,
         visible: bool = True
     ):
 
@@ -261,8 +261,8 @@ class Portal(Entity):
         interaction_rect: Rect, 
         game: Union["GamemodeClient", "GamemodeServer"], 
         updater: str, 
+        id: str,
         linked_portal: "Portal" = None, 
-        id: str = None,
         visible: bool = True
     ):
     
