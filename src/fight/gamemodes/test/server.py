@@ -6,7 +6,7 @@ from pygame import Rect
 
 from engine.gamemode_server import GamemodeServer
 from engine.events import ServerStart
-from fight.gamemodes.arena.entities import Player, Floor, Shotgun, Portal, Wall
+from fight.gamemodes.test.entities import TestDynamic
 
 class TestServer(GamemodeServer):
     def __init__(self, tick_rate, server_ip: str = socket.gethostname()):
@@ -14,6 +14,7 @@ class TestServer(GamemodeServer):
 
         self.entity_type_map.update(
             {
+                "test_dynamic": TestDynamic
             }
         )
 
