@@ -17,7 +17,5 @@ class Tile:
         self.body = body 
         self.shape = shape
 
-        self.shape = pymunk.Poly.create_box(self.body, (10,10))
-
         self.entity.game.space.add(self.body, self.shape)
     
