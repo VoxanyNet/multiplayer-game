@@ -34,6 +34,6 @@ else:
 
     atexit.register(report_game_tick_at_exit)
     
-    game = ArenaClient(tick_rate=60)
+    game = ArenaClient(tick_rate=60, server_ip="voxany.net", server_port=5560)
 
     game.run()
