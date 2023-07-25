@@ -29,10 +29,10 @@ class DisconnectedClient(Event):
 
         self.disconnected_client_uuid = disconnected_client_uuid
 
-class GameTickStart(Event):
+class LogicTickStart(Event):
     pass
 
-class GameTickComplete(Event):
+class LogicTickComplete(Event):
     pass
 
 class GameStart(Event):
