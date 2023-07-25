@@ -9,19 +9,13 @@ class Tile:
     def __init__(
             self, 
             entity: "Entity", 
-            position: Tuple[float, float],
-            body_type: Union[pymunk.Body.STATIC, pymunk.Body.DYNAMIC, pymunk.Body.KINEMATIC], 
-            velocity: Tuple[float, float] = (0,0), 
-            angular_velocity: Tuple[float, float] = (0,0)
+            body: pymunk.Body,
+            shape: pymunk.Shape
         ):
 
         self.entity = entity
-
-        self.body = pymunk.Body(body_type=body_type)
-
-        self.body.velocity = velocity
-        self.body.position = position
-        self.body.angular_velocity = angular_velocity
+        self.body = body 
+        self.shape = shape
 
         self.shape = pymunk.Poly.create_box(self.body, (10,10))
 
