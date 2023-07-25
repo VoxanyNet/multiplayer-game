@@ -14,8 +14,9 @@ class TileEntity(Entity):
     """An entity that is composed of physics tiles"""
     def __init__(self, interaction_rect: Rect, game: Union["GamemodeClient", "GamemodeServer"], updater: str, id: str, visible=True):
         
+        super().__init__(interaction_rect=interaction_rect, game=game, updater=updater, id=id)
+        
         self.visible = visible
 
         self.tiles: List[Tile] = []
          
-        super().__init__(interaction_rect=interaction_rect, game=game, updater=updater, id=id)
