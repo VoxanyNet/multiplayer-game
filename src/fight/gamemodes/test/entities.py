@@ -15,7 +15,7 @@ class TestDynamic(TileEntity):
     def __init__(self, interaction_rect: Rect, game: GamemodeClient | GamemodeServer, updater: str, id: str, visible=True):
         super().__init__(interaction_rect, game, updater, id, visible)
 
-        body = pymunk.Body(mass=2, moment=0, body_type=pymunk.Body.DYNAMIC)
+        body = pymunk.Body(mass=2, moment=1, body_type=pymunk.Body.DYNAMIC)
         body.position = (500, 500)
         shape = pymunk.Poly.create_box(body=body, size=(20,20))
 
@@ -28,6 +28,7 @@ class TestDynamic(TileEntity):
         ]
     
     def report_pos(self, event: LogicTick):
+        return
         print(f"pos: {self.tiles[0].body.position}")
     
 class TestStatic(TileEntity):
