@@ -14,7 +14,7 @@ from engine import headered_socket
 from engine.entity import Entity
 from engine.helpers import get_matching_objects
 from engine.exceptions import InvalidUpdateType, MalformedUpdate
-from engine.events import LogicTick, Event, LogicTickComplete, GameStart, LogicTickStart, ScreenCleared, RealtimeTick
+from engine.events import LogicTick, Event, GameTickComplete, GameStart, GameTickStart, ScreenCleared, RealtimeTick
 
 
 class GamemodeClient:
@@ -39,7 +39,7 @@ class GamemodeClient:
         )
         self.tick_rate = tick_rate
 
-        self.event_subscriptions[LogicTickComplete] += [
+        self.event_subscriptions[GameTickComplete] += [
             self.send_network_updates,
             self.clear_screen
         ]
@@ -62,7 +62,7 @@ class GamemodeClient:
             self.step_space
         ]
         
-        self.event_subscriptions[LogicTickStart] + [
+        self.event_subscriptions[GameTickStart] + [
             self.measure_dt
         ]
 
@@ -70,7 +70,7 @@ class GamemodeClient:
         """Simulate physics for self.dt amount of time"""
         self.space.step(self.dt)
     
-    def measure_dt(self, event: LogicTickStart):
+    def measure_dt(self, event: GameTickStart):
         """Measure the time since the last tick and update self.dt"""
         self.dt = time.time() - self.last_tick
 
@@ -128,7 +128,7 @@ class GamemodeClient:
     def increment_tick_counter(self, event: LogicTick):
         self.tick_count += 1
 
-    def send_network_updates(self, event: LogicTickComplete):
+    def send_network_updates(self, event: GameTickComplete):
         
         # we must send an updates list even if there are no updates
         # this is because the server will only give US updates if we do first
@@ -145,7 +145,7 @@ class GamemodeClient:
 
         self.update_queue = []
 
-    def receive_network_updates(self, event: Optional[LogicTickComplete] = None):
+    def receive_network_updates(self, event: Optional[GameTickComplete] = None):
         # this method can either be directly invoked or be called by an event
 
         try:
@@ -208,7 +208,7 @@ class GamemodeClient:
         
         pygame.display.flip()
 
-    def clear_screen(self, event: LogicTickComplete):
+    def clear_screen(self, event: GameTickComplete):
 
         self.screen.fill((0,0,0))
 
@@ -271,11 +271,11 @@ class GamemodeClient:
             
             if time.time() - last_tick >= 1/self.tick_rate:
                 
-                self.trigger(LogicTickStart())
+                self.trigger(GameTickStart())
 
                 self.trigger(LogicTick())
 
-                self.trigger(LogicTickComplete())
+                self.trigger(GameTickComplete())
 
                 last_tick = time.time()
             

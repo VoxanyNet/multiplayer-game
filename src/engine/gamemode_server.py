@@ -12,7 +12,7 @@ import pymunk
 from engine import headered_socket
 from engine.headered_socket import Disconnected
 from engine.exceptions import MalformedUpdate, InvalidUpdateType
-from engine.events import LogicTick, Event, DisconnectedClient, NewClient, ReceivedClientUpdates, UpdatesLoaded, ServerStart, LogicTickStart, LogicTickComplete, RealtimeTick
+from engine.events import LogicTick, Event, DisconnectedClient, NewClient, ReceivedClientUpdates, UpdatesLoaded, ServerStart, GameTickStart, GameTickComplete, RealtimeTick
 from engine.entity import Entity
 
 
@@ -74,7 +74,7 @@ class GamemodeServer:
             self.step_space
         ]
 
-        self.event_subscriptions[LogicTickStart] += [
+        self.event_subscriptions[GameTickStart] += [
             self.measure_dt
         ]
     
@@ -82,7 +82,7 @@ class GamemodeServer:
         """Simulate physics for self.dt amount of time"""
         self.space.step(self.dt)
     
-    def measure_dt(self, event: LogicTickStart):
+    def measure_dt(self, event: GameTickStart):
         """Measure the time since the last tick and update self.dt"""
         self.dt = time.time() - self.last_tick
 
@@ -346,10 +346,10 @@ class GamemodeServer:
             # only tick at the specified tick rate
             if time.time() - last_tick >= 1/self.tick_rate:
                 
-                self.trigger(LogicTickStart())
+                self.trigger(GameTickStart())
 
                 self.trigger(LogicTick())
 
-                self.trigger(LogicTickComplete())
+                self.trigger(GameTickComplete())
 
                 last_tick = time.time()
