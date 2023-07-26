@@ -1,6 +1,7 @@
 from typing import Union, List, TYPE_CHECKING
 
 from pygame import Rect
+import pygame
 import pymunk
 
 from engine.entity import Entity
@@ -19,4 +20,19 @@ class TileEntity(Entity):
         self.visible = visible
 
         self.tiles: List[Tile] = []
-         
+
+
+    
+    def draw(self):
+        print(self.tiles[0].body.position.x)
+        print(self.tiles[0].body.position.y)
+        pygame.draw.rect(
+            self.game.screen,
+            (255,255,255),
+            [
+                self.tiles[0].body.position.x,
+                self.tiles[0].body.position.y,
+                20,
+                20
+            ]
+        )
