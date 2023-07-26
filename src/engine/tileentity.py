@@ -21,7 +21,7 @@ class TileEntity(Entity):
 
         self.tiles: List[Tile] = []
 
-
+    def load_tile_map
     
     def draw(self):
         print(self.tiles[0].body.position.x)
