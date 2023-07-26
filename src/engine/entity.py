@@ -8,7 +8,7 @@ from rich import print
 
 from engine.unresolved import Unresolved
 from engine.helpers import get_matching_objects, dict_diff
-from engine.events import LogicTick, GameTickComplete, GameTickStart, EntityCreated
+from engine.events import LogicTick, LogicTickComplete, LogicTickStart, EntityCreated
 
 if TYPE_CHECKING:
     from gamemode_client import GamemodeClient
@@ -31,14 +31,14 @@ class Entity:
         # add entity to the game state automatically
         self.game.entities[self.id] = self
 
-        self.game.event_subscriptions[GameTickComplete] += [self.detect_updates] 
+        self.game.event_subscriptions[LogicTickComplete] += [self.detect_updates] 
 
-    def set_last_tick_dict(self, event: GameTickStart):
+    def set_last_tick_dict(self, event: LogicTickStart):
         """Set a keyframe of the serialized object before it ticked"""
 
         self.last_tick_dict = self.dict()
 
-    def detect_updates(self, event: GameTickComplete):
+    def detect_updates(self, event: LogicTickComplete):
         """Compare entity state from last tick to this tick to find differences"""
 
         current_tick_dict = self.dict()
