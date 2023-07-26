@@ -62,7 +62,7 @@ class GamemodeClient:
             self.step_space
         ]
         
-        self.event_subscriptions[LogicTickStart] + [
+        self.event_subscriptions[LogicTickStart] += [
             self.measure_dt
         ]
 
@@ -72,6 +72,7 @@ class GamemodeClient:
     
     def measure_dt(self, event: LogicTickStart):
         """Measure the time since the last tick and update self.dt"""
+
         self.dt = time.time() - self.last_tick
 
         self.last_tick = time.time()
