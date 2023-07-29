@@ -1,4 +1,4 @@
-from typing import Union, Tuple
+from typing import Union, Tuple, List, TYPE_CHECKING
 
 from pygame import Rect
 import pymunk
@@ -7,21 +7,21 @@ from engine.entity import Entity
 from engine.gamemode_client import GamemodeClient
 from engine.gamemode_server import GamemodeServer
 from engine.tile import Tile
-from engine.tileentity import TileEntity
+from engine.tileentity import TileEntity, TileDict
 from engine.events import LogicTick
 
 class TestDynamic(TileEntity):
     
-    def __init__(self, interaction_rect: Rect, game: GamemodeClient | GamemodeServer, updater: str, id: str, visible=True):
-        super().__init__(interaction_rect, game, updater, id, visible)
-
-        body = pymunk.Body(mass=2, moment=1, body_type=pymunk.Body.DYNAMIC)
-        body.position = (500, 500)
-        shape = pymunk.Poly.create_box(body=body, size=(20,20))
-
-        tile = Tile(self, body=body, shape=shape)
-
-        self.tiles.append(tile)
+    def __init__(self, origin: [int, int], tile_layout: List[TileDict], interaction_rect: Rect, game: GamemodeClient | GamemodeServer, updater: str, id: str, visible=True):
+        super().__init__(
+            origin=origin, 
+            tile_layout=tile_layout, 
+            interaction_rect=interaction_rect, 
+            game=game, 
+            updater=updater, 
+            id=id, 
+            visible=visible
+        )
 
         self.game.event_subscriptions[LogicTick] += [
             self.report_pos

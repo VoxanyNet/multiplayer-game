@@ -95,7 +95,7 @@ class Entity:
         """Use serialized entity data to create a new entity"""
 
         entity_data["interaction_rect"] = Rect(
-             entity_data["interaction_rect"]
+            entity_data["interaction_rect"]
         )
 
         entity_data["updater"] = entity_data["updater"]
