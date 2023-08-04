@@ -32,8 +32,8 @@ class TileEntity(Entity):
 
         self._load_tile_layout(tile_layout=tile_layout, origin=origin)
     
-    def dict(self):
-        data_dict = super().dict()
+    def serialize(self):
+        data_dict = super().serialize()
 
         # serialize tile layout
         tile_layout: List[TileDict] = []

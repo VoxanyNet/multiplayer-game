@@ -53,9 +53,9 @@ class PhysicsEntity(Entity):
             self.bounce
         ]
     
-    def dict(self):
+    def serialize(self):
 
-        data_dict = super().dict()
+        data_dict = super().serialize()
 
         collidable_entity_type_strings = []
         

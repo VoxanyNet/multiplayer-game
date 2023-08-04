@@ -227,7 +227,7 @@ class GamemodeServer:
 
                 entity_type_string = self.lookup_entity_type_string(entity)
                 
-                data = entity.dict()
+                data = entity.serialize()
 
                 self.network_update(update_type="create", entity_id=entity.id, data=data, entity_type_string=entity_type_string, destinations=[client_uuid])
                 
