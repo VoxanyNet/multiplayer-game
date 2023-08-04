@@ -1,4 +1,4 @@
-from typing import Union, TypedDict, Dict, List, TYPE_CHECKING
+from typing import Union, TypedDict, Type, Dict, List, TYPE_CHECKING
 
 from pygame import Rect
 import pygame
@@ -31,6 +31,8 @@ class TileEntity(Entity):
         self.tiles: List[Tile] = []
 
         self._load_tile_layout(tile_layout=tile_layout, origin=origin)
+
+        print(f"new tile entity!! {self.serialize()}")
     
     def serialize(self):
         data_dict = super().serialize()
@@ -41,7 +43,7 @@ class TileEntity(Entity):
         for tile in self.tiles:
             tile_layout.append(
                 {
-                    "height": tile.shape.bb.bottom - tile.shape.bb.top, # y value increases as height decreases
+                    "height": tile.shape.bb.top - tile.shape.bb.bottom, # y value increases as height decreases
                     "width": tile.shape.bb.right - tile.shape.bb.left,
                     "mass": tile.body.mass,
                     "moment": tile.body.moment,
@@ -59,6 +61,31 @@ class TileEntity(Entity):
         )
 
         return data_dict
+
+    @classmethod
+    def create(cls, entity_data: Dict[str, Union[int, bool, str, list]], entity_id: str, game: Union["GamemodeClient", "GamemodeServer"]) -> Type["TileEntity"]:
+        """Translate serialized entity data into an actual TileEntity object"""
+
+        entity_data["origin"] = entity_data["origin"]
+
+        entity_data["tile_layout"] = entity_data["tile_layout"]
+
+        # call the base entity create method to do its own stuff and then return the actual object
+        new_player = super().create(entity_data, entity_id, game)
+
+        return new_player
+
+    def update(self, update_data: Dict):
+
+        super().update(update_data)
+
+        # loop through every attribute being updated
+        # for attribute in update_data:
+
+        #     match attribute:
+
+        #         case "example":
+        #             self.example = update_data["example"]
 
     def _load_tile_layout(self, tile_layout: List[TileDict], origin: List[int]):
         """Load a serialized tile layout into a list of actual tiles"""
@@ -89,8 +116,6 @@ class TileEntity(Entity):
             self.tiles.append(tile)
     
     def draw(self):
-        print(self.tiles[0].body.position.x)
-        print(self.tiles[0].body.position.y)
         pygame.draw.rect(
             self.game.screen,
             (255,255,255),
