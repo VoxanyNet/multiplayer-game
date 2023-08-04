@@ -53,7 +53,7 @@ class PhysicsEntity(Entity):
             self.bounce
         ]
     
-    def serialize(self):
+    def serialize(self, is_new: bool):
 
         data_dict = super().serialize()
 
@@ -243,7 +243,6 @@ class PhysicsEntity(Entity):
 
     def apply_friction(self, event: LogicTick):
         
-        print(self.velocity.x)
         if abs(self.velocity.x) > 0:
             
             self.velocity.x *= 0.9

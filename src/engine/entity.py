@@ -36,19 +36,19 @@ class Entity:
     def set_last_tick_dict(self, event: LogicTickStart):
         """Set a keyframe of the serialized object before it ticked"""
 
-        self.last_tick_dict = self.serialize()
+        self.last_tick_dict = self.serialize(is_new=False) # it doesnt really matter if we use "is_new" here, just make sure its the same in this and "detect_updates"
 
     def detect_updates(self, event: LogicTickComplete):
         """Compare entity state from last tick to this tick to find differences"""
 
-        current_tick_dict = self.serialize()
+        current_tick_dict = self.serialize(is_new=False)
         
         # this indicates that the entity did not exist last tick
         if self.last_tick_dict == {}:
             self.game.network_update(
                 update_type="create",
                 entity_id=self.id,
-                data=self.serialize(),
+                data=self.serialize(is_new=True), # reserialize the entity to include construction parameters
                 entity_type_string=self.game.lookup_entity_type_string(self)
             )
 
@@ -80,7 +80,7 @@ class Entity:
 
             self.__setattr__(attribute_name, resolved_attribute)
 
-    def serialize(self) -> Dict[str, Union[int, bool, str, list]]:
+    def serialize(self, is_new: bool) -> Dict[str, Union[int, bool, str, list]]:
         """Serialize the entity's data"""
 
         data_dict = {

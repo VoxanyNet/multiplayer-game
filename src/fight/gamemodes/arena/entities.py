@@ -74,9 +74,9 @@ class Player(PhysicsEntity):
         ]
         
 
-    def serialize(self) -> Dict:
+    def serialize(self, is_new: bool) -> Dict:
 
-        data_dict = super().serialize()
+        data_dict = super().serialize(is_new)
 
         data_dict["health"] = self.health
 
@@ -174,11 +174,11 @@ class Weapon(Entity):
             self.follow_cursor
         ]
 
-    def serialize(self) -> Dict:
+    def serialize(self, is_new: bool) -> Dict:
         # create a json serializable dictionary with all of this object's attributes
 
         # create the base entity's dict, then we add our own unique attributes on top
-        data_dict = super().serialize()
+        data_dict = super().serialize(is_new)
 
         data_dict["ammo"] = self.ammo
         data_dict["max_ammo"] = self.max_ammo

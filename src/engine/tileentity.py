@@ -1,4 +1,4 @@
-from typing import Union, TypedDict, Type, Dict, List, TYPE_CHECKING
+from typing import Union, TypedDict, Type, Literal, Dict, List, TYPE_CHECKING
 
 from pygame import Rect
 import pygame
@@ -18,6 +18,7 @@ class TileDict(TypedDict):
     height: float
     mass: float 
     moment: float
+    body_type: Union[Literal["dynamic"], Literal["static"], Literal["kinematic"]]
 
 class TileEntity(Entity):
     """An entity that is composed of physics tiles"""
@@ -32,33 +33,53 @@ class TileEntity(Entity):
 
         self._load_tile_layout(tile_layout=tile_layout, origin=origin)
 
-        print(f"new tile entity!! {self.serialize()}")
+        print(f"new tile entity!! {self.serialize(is_new=True)}")
     
-    def serialize(self):
-        data_dict = super().serialize()
+    def serialize(self, is_new: bool):
+        data_dict = super().serialize(is_new)
 
-        # serialize tile layout
-        tile_layout: List[TileDict] = []
-
-        for tile in self.tiles:
-            tile_layout.append(
-                {
-                    "height": tile.shape.bb.top - tile.shape.bb.bottom, # y value increases as height decreases
-                    "width": tile.shape.bb.right - tile.shape.bb.left,
-                    "mass": tile.body.mass,
-                    "moment": tile.body.moment,
-                    "x": tile.body.position.x,
-                    "y": tile.body.position.y
-                }        
-            )
 
         data_dict.update(
             {
                 "visible": self.visible,
-                "tile_layout": tile_layout,
                 "origin": self.origin 
             }
         )
+
+        if is_new:
+            # this is the main reason i added the is_new parameter. sending this data every tick takes a lot of bandwith
+
+            # serialize tile layout
+            tile_layout: List[TileDict] = []
+
+            for tile in self.tiles:
+                
+                # if tile.body.body_type is pymunk.Body.DYNAMIC:
+                #     body_type_string = "dynamic"
+                # elif tile.body.body_type is pymunk.Body.STATIC:
+                #     body_type_string = "static"
+                # elif tile.body.body_type is pymunk.Body.KINEMATIC:
+                #     body_type_string = "kinematic"
+
+                tile_layout.append(
+                    {
+                        "height": tile.shape.bb.top - tile.shape.bb.bottom, # y value increases as height decreases
+                        "width": tile.shape.bb.right - tile.shape.bb.left,
+                        "mass": tile.body.mass,
+                        "moment": tile.body.moment,
+                        "x": tile.body.position.x,
+                        "y": tile.body.position.y,
+                        #"body_type": body_type_string
+                    }        
+                )
+            
+            data_dict.update(
+            {
+                "tile_layout": tile_layout
+            }
+        )
+
+            
 
         return data_dict
 
