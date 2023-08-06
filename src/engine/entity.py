@@ -1,6 +1,7 @@
 import uuid
 import inspect
 from typing import Dict, List, Type, Tuple, Union, TYPE_CHECKING, get_type_hints, Callable
+import json
 
 import pygame.image
 from pygame import Rect
@@ -33,11 +34,6 @@ class Entity:
 
         self.game.event_subscriptions[LogicTickComplete] += [self.detect_updates] 
 
-    def set_last_tick_dict(self, event: LogicTickStart):
-        """Set a keyframe of the serialized object before it ticked"""
-
-        self.last_tick_dict = self.serialize(is_new=False) # it doesnt really matter if we use "is_new" here, just make sure its the same in this and "detect_updates"
-
     def detect_updates(self, event: LogicTickComplete):
         """Compare entity state from last tick to this tick to find differences"""
 
@@ -51,18 +47,17 @@ class Entity:
                 data=self.serialize(is_new=True), # reserialize the entity to include construction parameters
                 entity_type_string=self.game.lookup_entity_type_string(self)
             )
-
-            self.last_tick_dict = current_tick_dict
-
-            return
-
-        if current_tick_dict != self.last_tick_dict:
+        
+        # if not a new entity, check for changes
+        elif current_tick_dict != self.last_tick_dict:
             
             update_data_dict = dict_diff(self.last_tick_dict, current_tick_dict)
 
             #print(update_data_dict)
 
             self.game.network_update(update_type="update", entity_id=self.id, data=update_data_dict)
+
+            #print(json.dumps(update_data_dict))
         
         self.last_tick_dict = current_tick_dict
                 
