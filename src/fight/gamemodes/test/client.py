@@ -7,23 +7,23 @@ import pymunk
 from pymunk import Body, Shape
 
 from engine.gamemode_client import GamemodeClient
-from engine.events import GameStart, LogicTick
+from engine.events import GameStart, Tick
 from engine.tile import Tile
 
 class TestClient(GamemodeClient):
     def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560, tick_rate=60):
         super().__init__(server_ip=server_ip, server_port=server_port, tick_rate=tick_rate)
 
-        self.event_subscriptions[LogicTick] += [
+        self.event_subscriptions[Tick] += [
             self.spawn_entity,
             self.report_stats
         ]
     
-    def report_stats(self, event: LogicTick):
+    def report_stats(self, event: Tick):
 
         print(len(self.entities))
     
-    def spawn_entity(self, event: LogicTick):
+    def spawn_entity(self, event: Tick):
         
         if pygame.mouse.get_pressed()[0]:
             body=pymunk.Body(

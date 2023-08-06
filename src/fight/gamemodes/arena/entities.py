@@ -10,7 +10,7 @@ from engine.entity import Entity
 from engine.unresolved import Unresolved
 from engine.physics_entity import PhysicsEntity
 from engine.vector import Vector
-from engine.events import LogicTick
+from engine.events import Tick
 from fight.gamemodes.arena.events import JumpEvent
 
 if TYPE_CHECKING:
@@ -68,7 +68,7 @@ class Player(PhysicsEntity):
         self.health = health
         self.weapon = weapon
 
-        self.game.event_subscriptions[LogicTick] += [
+        self.game.event_subscriptions[Tick] += [
             self.handle_keys,
             self.print_velocity
         ]
@@ -128,7 +128,7 @@ class Player(PhysicsEntity):
             self.interaction_rect
         )
 
-    def handle_keys(self, event: LogicTick):
+    def handle_keys(self, event: Tick):
 
         keys = pygame.key.get_pressed()
 
@@ -145,7 +145,7 @@ class Player(PhysicsEntity):
         if keys[pygame.K_d]:
             self.velocity.x += 1
 
-    def print_velocity(self, event: LogicTick):
+    def print_velocity(self, event: Tick):
         print(self.velocity)
 
 class Weapon(Entity):
@@ -169,7 +169,7 @@ class Weapon(Entity):
         self.attack_cooldown = attack_cooldown
         self.owner = owner
 
-        self.game.event_subscriptions[LogicTick] += [
+        self.game.event_subscriptions[Tick] += [
             self.follow_owner,
             self.follow_cursor
         ]
@@ -230,10 +230,10 @@ class Weapon(Entity):
                 case "owner":
                     self.owner = Unresolved(update_data["owner"])
 
-    def follow_owner(self, event: LogicTick):
+    def follow_owner(self, event: Tick):
         self.interaction_rect = self.owner.interaction_rect.move(0,-50)
 
-    def follow_cursor(self, event: LogicTick):
+    def follow_cursor(self, event: Tick):
         mouse_pos = pygame.mouse.get_pos()
 
         #print(mouse_pos)
@@ -270,12 +270,12 @@ class Portal(Entity):
         self.linked_portal = linked_portal
         self.last_tick_collisions = []
 
-        self.game.event_subscriptions[LogicTick] += [
+        self.game.event_subscriptions[Tick] += [
             self.teleport_entities,
             self.disable_wall_collisions
         ]
     
-    def disable_wall_collisions(self, event: LogicTick):
+    def disable_wall_collisions(self, event: Tick):
 
         colliding_entities = self.game.detect_collisions(self.interaction_rect)
 
@@ -307,7 +307,7 @@ class Portal(Entity):
         self.last_tick_collisions = colliding_entities.copy()
 
 
-    def teleport_entities(self, event: LogicTick):
+    def teleport_entities(self, event: Tick):
 
         colliding_entities = self.game.detect_collisions(self.interaction_rect)
 

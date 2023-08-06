@@ -13,11 +13,8 @@ class EntityLanded(Event):
     def __init__(self, entity: Type["PhysicsEntity"]):
         self.entity = entity
 
-class LogicTick(Event):
+class Tick(Event):
     pass 
-
-class RealtimeTick(Event):
-    pass
 
 class NewClient(Event):
     def __init__(self, new_client: HeaderedSocket):
@@ -29,10 +26,10 @@ class DisconnectedClient(Event):
 
         self.disconnected_client_uuid = disconnected_client_uuid
 
-class LogicTickStart(Event):
+class TickStart(Event):
     pass
 
-class LogicTickComplete(Event):
+class TickComplete(Event):
     pass
 
 class GameStart(Event):

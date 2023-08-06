@@ -5,7 +5,7 @@ from pygame import Rect
 
 from engine.vector import Vector
 from engine.entity import Entity
-from engine.events import EntityLanded, LogicTick
+from engine.events import EntityLanded, Tick
 
 if TYPE_CHECKING:
     from gamemode_client import GamemodeClient
@@ -41,7 +41,7 @@ class PhysicsEntity(Entity):
         
             self.collidable_entities.remove("self")
 
-        self.game.event_subscriptions[LogicTick] += [
+        self.game.event_subscriptions[Tick] += [
             self.move_x_axis,
             self.move_y_axis,
             self.apply_friction,
@@ -153,7 +153,7 @@ class PhysicsEntity(Entity):
 
                     self.collidable_entities = collidable_entities
 
-    def move_x_axis(self, event: LogicTick):
+    def move_x_axis(self, event: Tick):
         """Move entity by velocity but stop if colliding into collidable entity"""
 
         # enforce max velocity
@@ -191,7 +191,7 @@ class PhysicsEntity(Entity):
 
             self.interaction_rect.x = projected_rect_x.x
 
-    def move_y_axis(self, event: LogicTick):
+    def move_y_axis(self, event: Tick):
         
         # enforce max velocity
         if abs(self.velocity.y) > abs(self.max_velocity.y):
@@ -241,14 +241,14 @@ class PhysicsEntity(Entity):
 
             self.airborne = True
 
-    def apply_friction(self, event: LogicTick):
+    def apply_friction(self, event: Tick):
         
         if abs(self.velocity.x) > 0:
             
             self.velocity.x *= 0.9
             
 
-    def apply_gravity(self, event: LogicTick):
+    def apply_gravity(self, event: Tick):
 
         self.velocity.y += self.gravity
 
@@ -261,6 +261,6 @@ class PhysicsEntity(Entity):
         
         self.velocity.y *= -0.25
     
-    def round_velocity(self, event: LogicTick):
+    def round_velocity(self, event: Tick):
         self.velocity.x = round(self.velocity.x, 4)
         self.velocity.y = round(self.velocity.y, 4)

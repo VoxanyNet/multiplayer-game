@@ -12,7 +12,7 @@ import pymunk
 from engine import headered_socket
 from engine.headered_socket import Disconnected
 from engine.exceptions import MalformedUpdate, InvalidUpdateType
-from engine.events import LogicTick, Event, DisconnectedClient, NewClient, ReceivedClientUpdates, UpdatesLoaded, ServerStart, LogicTickStart, LogicTickComplete, RealtimeTick
+from engine.events import Tick, Event, DisconnectedClient, NewClient, ReceivedClientUpdates, UpdatesLoaded, ServerStart, TickStart, TickComplete
 from engine.entity import Entity
 from engine.tile import Tile
 
@@ -55,11 +55,6 @@ class GamemodeServer:
             }
         )
 
-        self.event_subscriptions[RealtimeTick] += [
-            self.accept_new_clients,
-            self.receive_client_updates 
-        ]
-
         self.event_subscriptions[ReceivedClientUpdates] += [
             self.load_updates
         ]
@@ -76,20 +71,22 @@ class GamemodeServer:
             self.handle_new_client
         ]
 
-        self.event_subscriptions[LogicTick] += [
+        self.event_subscriptions[Tick] += [
             self.increment_tick_counter,
-            self.step_space
+            self.step_space,
+            self.accept_new_clients,
+            self.receive_client_updates 
         ]
 
-        self.event_subscriptions[LogicTickStart] += [
+        self.event_subscriptions[TickStart] += [
             self.measure_dt
         ]
     
-    def step_space(self, event: LogicTick):
+    def step_space(self, event: Tick):
         """Simulate physics for self.dt amount of time"""
         self.space.step(self.dt)
     
-    def measure_dt(self, event: LogicTickStart):
+    def measure_dt(self, event: TickStart):
         """Measure the time since the last tick and update self.dt"""
         self.dt = time.time() - self.last_tick
 
@@ -240,7 +237,7 @@ class GamemodeServer:
                 
             self.send_client_updates()
 
-    def increment_tick_counter(self, event: LogicTick):
+    def increment_tick_counter(self, event: Tick):
         self.tick_count += 1
 
     def handle_client_disconnect(self, event: DisconnectedClient):
@@ -279,7 +276,7 @@ class GamemodeServer:
 
         return colliding_entities
         
-    def accept_new_clients(self, event: RealtimeTick):
+    def accept_new_clients(self, event: Tick):
 
         try:
             new_client, address = self.socket.accept()
@@ -289,7 +286,7 @@ class GamemodeServer:
         except BlockingIOError: 
             pass
     
-    def receive_client_updates(self, event: RealtimeTick):
+    def receive_client_updates(self, event: Tick):
 
         for sending_client_uuid, sending_client in self.client_sockets.copy().items():
             
@@ -343,20 +340,10 @@ class GamemodeServer:
         
         self.trigger(ServerStart())
 
-        last_tick = 0
-
         while True:   
-
-            self.trigger(RealtimeTick())
-
-            # receive and relay client updates as fast as possible
-            # only tick at the specified tick rate
-            if time.time() - last_tick >= 1/self.tick_rate:
                 
-                self.trigger(LogicTickStart())
+            self.trigger(TickStart())
 
-                self.trigger(LogicTick())
+            self.trigger(Tick())
 
-                self.trigger(LogicTickComplete())
-
-                last_tick = time.time()
+            self.trigger(TickComplete())
