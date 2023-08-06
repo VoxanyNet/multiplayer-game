@@ -8,7 +8,6 @@ import pymunk
 from engine.gamemode_server import GamemodeServer
 from engine.tile import Tile
 from engine.events import ServerStart
-from fight.gamemodes.test.entities import TestDynamic
 
 class TestServer(GamemodeServer):
     def __init__(self, tick_rate, server_ip: str = socket.gethostname(), server_port: int = 5560):
@@ -16,7 +15,6 @@ class TestServer(GamemodeServer):
 
         self.entity_type_map.update(
             {
-                "test_dynamic": TestDynamic
             }
         )
 
