@@ -12,6 +12,7 @@ import pymunk
 
 from engine import headered_socket
 from engine.entity import Entity
+from engine.tile import Tile
 from engine.helpers import get_matching_objects
 from engine.exceptions import InvalidUpdateType, MalformedUpdate
 from engine.events import LogicTick, Event, LogicTickComplete, GameStart, LogicTickStart, ScreenCleared, RealtimeTick
@@ -32,6 +33,7 @@ class GamemodeClient:
         self.space.gravity = (0, 900)
         self.last_tick = time.time()
         self.dt = 0.1 # i am initializing this with 0.1 instead of 0 because i think it might break stuff
+        self.sent_bytes = 0
         self.screen = pygame.display.set_mode(
             [1280, 720],
             pygame.RESIZABLE
@@ -65,6 +67,12 @@ class GamemodeClient:
         self.event_subscriptions[LogicTickStart] += [
             self.measure_dt
         ]
+
+        self.entity_type_map.update(
+            {
+                "tile": Tile
+            }
+        )
 
     def step_space(self, event: LogicTick):
         """Simulate physics for self.dt amount of time"""
@@ -143,6 +151,10 @@ class GamemodeClient:
                 updates_json, "utf-8"
             )
         )
+
+        self.sent_bytes += len(bytes(updates_json, "utf-8"))
+
+        print((self.sent_bytes / 1000000))
 
         self.update_queue = []
 
@@ -279,6 +291,8 @@ class GamemodeClient:
                 self.trigger(LogicTickComplete())
 
                 last_tick = time.time()
+                
+                print(f"DT: {self.dt}")
             
             else:
                 pass

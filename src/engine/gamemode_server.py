@@ -14,6 +14,7 @@ from engine.headered_socket import Disconnected
 from engine.exceptions import MalformedUpdate, InvalidUpdateType
 from engine.events import LogicTick, Event, DisconnectedClient, NewClient, ReceivedClientUpdates, UpdatesLoaded, ServerStart, LogicTickStart, LogicTickComplete, RealtimeTick
 from engine.entity import Entity
+from engine.tile import Tile
 
 
 class GamemodeServer:
@@ -47,6 +48,12 @@ class GamemodeServer:
         self.space.gravity = (0, 900)
         self.last_tick = time.time()
         self.dt = 0.1 # i am initializing this with 0.1 instead of 0 because i think it might break stuff
+
+        self.entity_type_map.update(
+            {
+                "tile": Tile
+            }
+        )
 
         self.event_subscriptions[RealtimeTick] += [
             self.accept_new_clients,

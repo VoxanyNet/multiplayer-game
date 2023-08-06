@@ -194,7 +194,6 @@ class Weapon(Entity):
         entity_id: str, 
         game: Union["ArenaClient", "ArenaServer"]
     ):
-        # convert json entity data to object constructor arguments
 
         entity_data["ammo"] = entity_data["ammo"]
         entity_data["max_ammo"] = entity_data["max_ammo"]
