@@ -60,11 +60,19 @@ class Tile(Entity):
         data_dict.update(
             {   
                 "body": {
+                    "angle": round(self.body.angle, 3),
+                    "x": round(self.body.position.x, 3),
+                    "y": round(self.body.position.y, 3),
+                }
+            }    
+        )
+
+        if is_new:
+            data_dict.update(
+            {   
+                "body": {
                     "mass": self.body.mass,
                     "moment": self.body.moment,
-                    "angle": self.body.angle,
-                    "x": self.body.position.x,
-                    "y": self.body.position.y,
                     "body_type": body_type_string
                 },
                 "shape": {
