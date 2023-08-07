@@ -16,7 +16,8 @@ parser.add_argument("-m", "--music", dest="enable_music", help="Enable game musi
 
 args = parser.parse_args()
 
-port = 5560
+port = 5050
+
 def report_server_tick_at_exit():
     print(server.tick_count)
 
