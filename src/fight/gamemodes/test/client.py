@@ -11,8 +11,8 @@ from engine.events import GameStart, Tick
 from engine.tile import Tile
 
 class TestClient(GamemodeClient):
-    def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560, tick_rate=60):
-        super().__init__(server_ip=server_ip, server_port=server_port, tick_rate=tick_rate)
+    def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560):
+        super().__init__(server_ip=server_ip, server_port=server_port)
 
         self.event_subscriptions[Tick] += [
             self.spawn_entity,
@@ -21,7 +21,7 @@ class TestClient(GamemodeClient):
     
     def report_stats(self, event: Tick):
 
-        print(len(self.entities))
+        pass
     
     def spawn_entity(self, event: Tick):
         

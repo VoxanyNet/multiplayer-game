@@ -50,3 +50,6 @@ class ServerStart(Event):
 class EntityCreated(Event):
     def __init__(self, new_entity: Type["Entity"]):
         self.new_entity = new_entity
+
+class NetworkTick(Event):
+    pass

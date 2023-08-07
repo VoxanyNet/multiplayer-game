@@ -9,8 +9,8 @@ from engine.events import ServerStart
 from fight.gamemodes.arena.entities import Player, Floor, Shotgun, Portal, Wall
 
 class ArenaServer(GamemodeServer):
-    def __init__(self, tick_rate, server_ip: str = socket.gethostname(), server_port: int = 5560):
-        super().__init__(tick_rate=tick_rate, server_ip=server_ip, server_port=server_port)
+    def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560):
+        super().__init__(server_ip=server_ip, server_port=server_port)
 
         self.entity_type_map.update(
             {

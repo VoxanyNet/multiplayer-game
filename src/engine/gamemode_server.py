@@ -12,7 +12,7 @@ import pymunk
 from engine import headered_socket
 from engine.headered_socket import Disconnected
 from engine.exceptions import MalformedUpdate, InvalidUpdateType
-from engine.events import Tick, Event, DisconnectedClient, NewClient, ReceivedClientUpdates, UpdatesLoaded, ServerStart, TickStart, TickComplete
+from engine.events import Tick, Event, DisconnectedClient, NewClient, ReceivedClientUpdates, UpdatesLoaded, ServerStart, TickStart, TickComplete, NetworkTick
 from engine.entity import Entity
 from engine.tile import Tile
 
@@ -28,7 +28,7 @@ class GamemodeServer:
     Basically only exists to simply networking
     """
 
-    def __init__(self, tick_rate: int, server_ip: str = socket.gethostname(), server_port: int = 5560):
+    def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560):
 
         self.socket = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -37,7 +37,6 @@ class GamemodeServer:
         self.entity_type_map: Dict[str, Type[Entity]] = {}
         self.updates_to_load = []
         self.uuid = "server"
-        self.tick_rate = tick_rate
         self.server_clock = pygame.time.Clock()
         self.update_queue = defaultdict(list)
         self.event_subscriptions = defaultdict(list)
@@ -134,7 +133,8 @@ class GamemodeServer:
             "update_type": update_type,
             "entity_id": entity_id,
             "entity_type": entity_type_string,
-            "data": data
+            "data": data,
+            "timestamp": int(time.time())
         }
 
         print(f"Server update: {update}")
@@ -336,9 +336,11 @@ class GamemodeServer:
         
             self.update_queue[receiving_client_uuid] = []
             
-    def run(self):
+    def run(self, network_tick_rate: int = 60):
         
         self.trigger(ServerStart())
+        
+        last_network_tick = 0
 
         while True:   
                 
@@ -347,3 +349,8 @@ class GamemodeServer:
             self.trigger(Tick())
 
             self.trigger(TickComplete())
+
+            if time.time() - last_network_tick >= 1/network_tick_rate:
+                self.trigger(NetworkTick())
+
+                last_network_tick = time.time()

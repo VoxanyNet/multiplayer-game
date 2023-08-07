@@ -15,11 +15,11 @@ from engine.entity import Entity
 from engine.tile import Tile
 from engine.helpers import get_matching_objects
 from engine.exceptions import InvalidUpdateType, MalformedUpdate
-from engine.events import Tick, Event, TickComplete, GameStart, TickStart, ScreenCleared
+from engine.events import Tick, Event, TickComplete, GameStart, TickStart, ScreenCleared, NetworkTick
 
 
 class GamemodeClient:
-    def __init__(self, tick_rate: int = 60, server_ip: str = socket.gethostname(), server_port: int = 5560):
+    def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560):
         self.server = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_ip = server_ip
         self.server_port = server_port
@@ -39,10 +39,8 @@ class GamemodeClient:
             pygame.RESIZABLE
             #pygame.FULLSCREEN
         )
-        self.tick_rate = tick_rate
 
         self.event_subscriptions[TickComplete] += [
-            self.send_network_updates,
             self.clear_screen
         ]
         
@@ -58,7 +56,11 @@ class GamemodeClient:
         self.event_subscriptions[Tick] += [
             self.increment_tick_counter,
             self.step_space,
-            self.receive_network_updates
+            self.receive_network_updates # we dont put this on NetworkTick because we just want to receive updates ASAP
+        ]
+
+        self.event_subscriptions[NetworkTick] += [
+            self.send_network_updates
         ]
         
         self.event_subscriptions[TickStart] += [
@@ -71,6 +73,8 @@ class GamemodeClient:
             }
         )
 
+    def test_listener(self, event: Type[Event]):
+        print(f"Test listener responding to {event}")
     def step_space(self, event: Tick):
         """Simulate physics for self.dt amount of time"""
         self.space.step(self.dt)
@@ -124,7 +128,8 @@ class GamemodeClient:
             "update_type": update_type,
             "entity_id": entity_id,
             "entity_type": entity_type_string,
-            "data": data
+            "data": data,
+            "timestamp": time.time()
         }
 
         self.update_queue.append(
@@ -151,11 +156,12 @@ class GamemodeClient:
 
         self.sent_bytes += len(bytes(updates_json, "utf-8"))
 
-        print((self.sent_bytes / 1000000))
+        #print((self.sent_bytes / 1000000))
 
         self.update_queue = []
 
     def receive_network_updates(self, event: Optional[TickComplete] = None):
+
         # this method can either be directly invoked or be called by an event
 
         try:
@@ -172,6 +178,8 @@ class GamemodeClient:
         )
         
         for update in updates:
+
+            print(update)
 
             match update["update_type"]:
                 case "create":
@@ -199,6 +207,10 @@ class GamemodeClient:
                     del self.entities[
                         update["entity_id"]
                     ]
+            
+            update_delay = time.time() - update["timestamp"]
+
+            print(update_delay)
 
         for entity in self.entities.values():
             entity.resolve()
@@ -258,13 +270,13 @@ class GamemodeClient:
 
         print("Received initial state")
    
-    def run(self):
+    def run(self, network_tick_rate: int = 60):
 
         self.trigger(GameStart())
 
         running = True 
 
-        last_tick = 0
+        last_network_tick = 0
 
         while running:
 
@@ -282,5 +294,8 @@ class GamemodeClient:
             self.trigger(Tick())
 
             self.trigger(TickComplete())
-            
-            print(f"DT: {self.dt}")
+
+            if time.time() - last_network_tick >= 1/network_tick_rate:
+                self.trigger(NetworkTick())
+
+                last_network_tick = time.time()
