@@ -21,7 +21,10 @@ class TestClient(GamemodeClient):
     
     def report_stats(self, event: Tick):
 
-        pass
+        print(f"Data sent: {(self.sent_bytes / 1000000)} megabytes")
+        print(f"FPS: {1/self.dt}")
+        print(f"Entites: {len(self.entities)}")
+        print("\n")
     
     def spawn_entity(self, event: Tick):
         

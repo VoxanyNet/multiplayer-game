@@ -4,6 +4,7 @@ from collections import defaultdict
 from copy import deepcopy
 from typing import List, Literal, Optional, Type, Dict, Union
 import time
+import zlib
 
 import pygame
 from pygame import Rect
@@ -290,12 +291,8 @@ class GamemodeServer:
 
         for sending_client_uuid, sending_client in self.client_sockets.copy().items():
             
-            sending_client: headered_socket.HeaderedSocket
-            
             try:
-                incoming_updates = json.loads(
-                    sending_client.recv_headered().decode("utf-8")
-                )
+                compressed_incoming_updates_bytes = sending_client.recv_headered()
 
             except BlockingIOError:
                 continue
@@ -305,6 +302,10 @@ class GamemodeServer:
                 self.trigger(DisconnectedClient(sending_client_uuid))
 
                 continue
+
+            incoming_updates_bytes = zlib.decompress(compressed_incoming_updates_bytes)
+
+            incoming_updates = json.loads(incoming_updates_bytes.decode("utf-8"))
             
             #self.validate_updates
 

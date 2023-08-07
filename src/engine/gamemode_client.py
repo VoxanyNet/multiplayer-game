@@ -5,6 +5,7 @@ import socket
 import json
 from collections import defaultdict
 from typing import Union, Type, Dict, Literal, List, Optional
+import zlib
 
 import pygame
 from pygame import Rect
@@ -148,15 +149,19 @@ class GamemodeClient:
             self.update_queue
         )
 
-        self.server.send_headered(
-            bytes(
-                updates_json, "utf-8"
-            )
+        updates_json_bytes = bytes(
+            updates_json, "utf-8"
         )
 
-        self.sent_bytes += len(bytes(updates_json, "utf-8"))
+        compressed_updates_json_bytes = zlib.compress(
+            updates_json_bytes, level=zlib.Z_BEST_COMPRESSION
+        )
 
-        #print((self.sent_bytes / 1000000))
+        self.server.send_headered(
+            compressed_updates_json_bytes
+        )
+
+        self.sent_bytes += len(compressed_updates_json_bytes)
 
         self.update_queue = []
 
