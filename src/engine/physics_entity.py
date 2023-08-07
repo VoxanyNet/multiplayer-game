@@ -5,7 +5,7 @@ from pygame import Rect
 
 from engine.vector import Vector
 from engine.entity import Entity
-from engine.events import EntityLanded, LogicTick
+from engine.events import EntityLanded, Tick
 
 if TYPE_CHECKING:
     from gamemode_client import GamemodeClient
@@ -14,22 +14,19 @@ if TYPE_CHECKING:
 class PhysicsEntity(Entity):
     def __init__(
         self, 
-        rect: Rect, 
+        interaction_rect: Rect, 
         game: Union["GamemodeClient", "GamemodeServer"], 
         updater: str, 
-        id: str = None, 
+        id: str, 
         gravity: int = 0, 
         velocity: Vector = Vector(0,0), 
         max_velocity: Vector = None, 
         friction=2, 
-        collidable_entities: List[Type[Entity]] = [], 
-        sprite_path: str = None, 
-        scale_res: tuple = None, 
-        visible: bool = True,
+        collidable_entities: List[Type[Entity]] = [],
         airborne: bool = False
     ):
 
-        super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res, visible=visible)
+        super().__init__(interaction_rect=interaction_rect, game=game, updater=updater, id=id)
         
         self.velocity = velocity
         self.gravity = gravity
@@ -44,7 +41,7 @@ class PhysicsEntity(Entity):
         
             self.collidable_entities.remove("self")
 
-        self.game.event_subscriptions[LogicTick] += [
+        self.game.event_subscriptions[Tick] += [
             self.move_x_axis,
             self.move_y_axis,
             self.apply_friction,
@@ -56,9 +53,9 @@ class PhysicsEntity(Entity):
             self.bounce
         ]
     
-    def dict(self):
+    def serialize(self, is_new: bool):
 
-        data_dict = super().dict()
+        data_dict = super().serialize()
 
         collidable_entity_type_strings = []
         
@@ -156,14 +153,14 @@ class PhysicsEntity(Entity):
 
                     self.collidable_entities = collidable_entities
 
-    def move_x_axis(self, event: LogicTick):
+    def move_x_axis(self, event: Tick):
         """Move entity by velocity but stop if colliding into collidable entity"""
 
         # enforce max velocity
         if abs(self.velocity.x) > abs(self.max_velocity.x):
             self.velocity.x = self.max_velocity.x * self.velocity.normalize().x
 
-        projected_rect_x = self.rect.move(
+        projected_rect_x = self.interaction_rect.move(
             Vector(self.velocity.x, 0)
         )
 
@@ -183,24 +180,24 @@ class PhysicsEntity(Entity):
             colliding_entity = colliding_entities[0]
 
             # entity came in moving left
-            if projected_rect_x.right >= colliding_entity.rect.left and self.rect.right < colliding_entity.rect.left:
-                self.rect.right = colliding_entity.rect.left
+            if projected_rect_x.right >= colliding_entity.interaction_rect.left and self.interaction_rect.right < colliding_entity.interaction_rect.left:
+                self.interaction_rect.right = colliding_entity.interaction_rect.left
             
             # entity came in moving right
-            elif projected_rect_x.left <= colliding_entity.rect.right and self.rect.left > colliding_entity.rect.right:
-                self.rect.left = colliding_entity.rect.right
+            elif projected_rect_x.left <= colliding_entity.interaction_rect.right and self.interaction_rect.left > colliding_entity.interaction_rect.right:
+                self.interaction_rect.left = colliding_entity.interaction_rect.right
         
         else:
 
-            self.rect.x = projected_rect_x.x
+            self.interaction_rect.x = projected_rect_x.x
 
-    def move_y_axis(self, event: LogicTick):
+    def move_y_axis(self, event: Tick):
         
         # enforce max velocity
         if abs(self.velocity.y) > abs(self.max_velocity.y):
             self.velocity.y = self.max_velocity.y * self.velocity.normalize().y
         
-        projected_rect_y = self.rect.move(
+        projected_rect_y = self.interaction_rect.move(
             Vector(0, self.velocity.y)
         )
 
@@ -224,9 +221,9 @@ class PhysicsEntity(Entity):
             colliding_entity: Type[Entity]
 
             # new rect bottom is lower than the colliding rect's top and the old rect bottom is higher than the colliding rect top
-            if (projected_rect_y.bottom >= colliding_entity.rect.top) and (self.rect.bottom <= colliding_entity.rect.top):
+            if (projected_rect_y.bottom >= colliding_entity.interaction_rect.top) and (self.interaction_rect.bottom <= colliding_entity.interaction_rect.top):
 
-                self.rect.bottom = colliding_entity.rect.top
+                self.interaction_rect.bottom = colliding_entity.interaction_rect.top
 
                 self.velocity.y = 0
 
@@ -235,24 +232,23 @@ class PhysicsEntity(Entity):
                 self.game.trigger(EntityLanded(self))
 
             # entity came in moving up
-            elif projected_rect_y.top <= colliding_entity.rect.bottom and self.rect.top >= colliding_entity.rect.bottom:
+            elif projected_rect_y.top <= colliding_entity.interaction_rect.bottom and self.interaction_rect.top >= colliding_entity.interaction_rect.bottom:
 
-                self.rect.top = colliding_entity.rect.bottom
+                self.interaction_rect.top = colliding_entity.interaction_rect.bottom
                 
         else:
-            self.rect.y = projected_rect_y.y
+            self.interaction_rect.y = projected_rect_y.y
 
             self.airborne = True
 
-    def apply_friction(self, event: LogicTick):
+    def apply_friction(self, event: Tick):
         
-        print(self.velocity.x)
         if abs(self.velocity.x) > 0:
             
             self.velocity.x *= 0.9
             
 
-    def apply_gravity(self, event: LogicTick):
+    def apply_gravity(self, event: Tick):
 
         self.velocity.y += self.gravity
 
@@ -265,6 +261,6 @@ class PhysicsEntity(Entity):
         
         self.velocity.y *= -0.25
     
-    def round_velocity(self, event: LogicTick):
+    def round_velocity(self, event: Tick):
         self.velocity.x = round(self.velocity.x, 4)
         self.velocity.y = round(self.velocity.y, 4)

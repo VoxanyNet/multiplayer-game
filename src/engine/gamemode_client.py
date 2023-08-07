@@ -8,16 +8,18 @@ from typing import Union, Type, Dict, Literal, List, Optional
 
 import pygame
 from pygame import Rect
+import pymunk
 
 from engine import headered_socket
 from engine.entity import Entity
+from engine.tile import Tile
 from engine.helpers import get_matching_objects
 from engine.exceptions import InvalidUpdateType, MalformedUpdate
-from engine.events import LogicTick, Event, GameTickComplete, GameStart, GameTickStart, ScreenCleared, RealtimeTick
+from engine.events import Tick, Event, TickComplete, GameStart, TickStart, ScreenCleared, NetworkTick
 
 
 class GamemodeClient:
-    def __init__(self, tick_rate: int = 60, server_ip: str = socket.gethostname(), server_port: int = 5560):
+    def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560):
         self.server = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_ip = server_ip
         self.server_port = server_port
@@ -27,20 +29,19 @@ class GamemodeClient:
         self.entities: Dict[str, Entity] = {}
         self.event_subscriptions = defaultdict(list)
         self.tick_count = 0
+        self.space = pymunk.Space()
+        self.space.gravity = (0, 900)
+        self.last_tick = time.time()
+        self.dt = 0.1 # i am initializing this with 0.1 instead of 0 because i think it might break stuff
+        self.sent_bytes = 0
         self.screen = pygame.display.set_mode(
             [1280, 720],
             pygame.RESIZABLE
             #pygame.FULLSCREEN
         )
-        self.tick_rate = tick_rate
 
-        self.event_subscriptions[GameTickComplete] += [
-            self.send_network_updates,
-        ]
-
-        self.event_subscriptions[RealtimeTick] += [
-            self.clear_screen,
-            self.receive_network_updates
+        self.event_subscriptions[TickComplete] += [
+            self.clear_screen
         ]
         
         self.event_subscriptions[ScreenCleared] += [
@@ -52,9 +53,38 @@ class GamemodeClient:
             self.connect
         ]
 
-        self.event_subscriptions[LogicTick] += [
-            self.increment_tick_counter
+        self.event_subscriptions[Tick] += [
+            self.increment_tick_counter,
+            self.step_space,
+            self.receive_network_updates # we dont put this on NetworkTick because we just want to receive updates ASAP
         ]
+
+        self.event_subscriptions[NetworkTick] += [
+            self.send_network_updates
+        ]
+        
+        self.event_subscriptions[TickStart] += [
+            self.measure_dt
+        ]
+
+        self.entity_type_map.update(
+            {
+                "tile": Tile
+            }
+        )
+
+    def test_listener(self, event: Type[Event]):
+        print(f"Test listener responding to {event}")
+    def step_space(self, event: Tick):
+        """Simulate physics for self.dt amount of time"""
+        self.space.step(self.dt)
+    
+    def measure_dt(self, event: TickStart):
+        """Measure the time since the last tick and update self.dt"""
+
+        self.dt = time.time() - self.last_tick
+
+        self.last_tick = time.time()
 
     def detect_collisions(self, rect: Rect) -> List[Type[Entity]]:
         """Check if given rect collides with any entities"""
@@ -63,7 +93,7 @@ class GamemodeClient:
 
         for entity in self.entities.values():
 
-            if rect.colliderect(entity.rect):
+            if rect.colliderect(entity.interaction_rect):
                 colliding_entities.append(entity)
 
         return colliding_entities
@@ -98,17 +128,18 @@ class GamemodeClient:
             "update_type": update_type,
             "entity_id": entity_id,
             "entity_type": entity_type_string,
-            "data": data
+            "data": data,
+            "timestamp": time.time()
         }
 
         self.update_queue.append(
             update
         )
     
-    def increment_tick_counter(self, event: LogicTick):
+    def increment_tick_counter(self, event: Tick):
         self.tick_count += 1
 
-    def send_network_updates(self, event: GameTickComplete):
+    def send_network_updates(self, event: TickComplete):
         
         # we must send an updates list even if there are no updates
         # this is because the server will only give US updates if we do first
@@ -123,9 +154,14 @@ class GamemodeClient:
             )
         )
 
+        self.sent_bytes += len(bytes(updates_json, "utf-8"))
+
+        #print((self.sent_bytes / 1000000))
+
         self.update_queue = []
 
-    def receive_network_updates(self, event: Optional[GameTickComplete] = None):
+    def receive_network_updates(self, event: Optional[TickComplete] = None):
+
         # this method can either be directly invoked or be called by an event
 
         try:
@@ -142,6 +178,8 @@ class GamemodeClient:
         )
         
         for update in updates:
+
+            print(update)
 
             match update["update_type"]:
                 case "create":
@@ -169,6 +207,10 @@ class GamemodeClient:
                     del self.entities[
                         update["entity_id"]
                     ]
+            
+            update_delay = time.time() - update["timestamp"]
+
+            print(update_delay)
 
         for entity in self.entities.values():
             entity.resolve()
@@ -179,12 +221,16 @@ class GamemodeClient:
 
         for entity in self.entities.values():
             entity: Entity
-            if entity.visible: 
-                entity.draw()
+
+            # quack
+            if not hasattr(entity, "draw"):
+                continue 
+ 
+            entity.draw()
         
         pygame.display.flip()
 
-    def clear_screen(self, event: GameTickComplete):
+    def clear_screen(self, event: TickComplete):
 
         self.screen.fill((0,0,0))
 
@@ -196,6 +242,8 @@ class GamemodeClient:
             if function.__self__.__class__.__base__ == GamemodeClient:
                 # if the object this listener function belongs to has a base class that is GamemodeClient, then we don't need to check if we should run it
                 # this is because we never receive other user's GamemodeClient objects
+
+                # we need to do this check because the GamemodeClient object does not have an "updater" attribute
                 pass
             # dont call function if the entity this function belongs to isnt ours
             elif function.__self__.updater != self.uuid:
@@ -222,19 +270,17 @@ class GamemodeClient:
 
         print("Received initial state")
    
-    def run(self):
+    def run(self, network_tick_rate: int = 60):
 
         self.trigger(GameStart())
 
         running = True 
 
-        last_tick = 0
+        last_network_tick = 0
 
         while running:
 
-            # tick as fast as possible
-            # check for entity updates at a fixed rate
-            # send out updates at fixed rate
+            # tick at specified tick rate
 
             if pygame.key.get_pressed()[pygame.K_F4]:
                 running = False
@@ -242,21 +288,14 @@ class GamemodeClient:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
-
-            self.trigger(RealtimeTick())
-            
-            if time.time() - last_tick >= 1/self.tick_rate:
                 
-                self.trigger(GameTickStart())
+            self.trigger(TickStart())
 
-                self.trigger(LogicTick())
+            self.trigger(Tick())
 
-                self.trigger(GameTickComplete())
+            self.trigger(TickComplete())
 
-                last_tick = time.time()
-            
-            else:
-                pass
-                #print("skipping tick")
+            if time.time() - last_network_tick >= 1/network_tick_rate:
+                self.trigger(NetworkTick())
 
-            #input("Press enter to advanced to next tick...")
+                last_network_tick = time.time()

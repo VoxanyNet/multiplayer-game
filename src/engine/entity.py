@@ -1,6 +1,7 @@
 import uuid
 import inspect
 from typing import Dict, List, Type, Tuple, Union, TYPE_CHECKING, get_type_hints, Callable
+import json
 
 import pygame.image
 from pygame import Rect
@@ -8,7 +9,7 @@ from rich import print
 
 from engine.unresolved import Unresolved
 from engine.helpers import get_matching_objects, dict_diff
-from engine.events import LogicTick, GameTickComplete, GameTickStart, EntityCreated
+from engine.events import Tick, TickComplete, TickStart, EntityCreated
 
 if TYPE_CHECKING:
     from gamemode_client import GamemodeClient
@@ -16,15 +17,11 @@ if TYPE_CHECKING:
 
 
 class Entity:
-    def __init__(self, rect: Rect, game: Union["GamemodeClient", "GamemodeServer"], updater: str, id: str = None, sprite_path: str = None, scale_res: Tuple[int, int] = None,
-                 visible=True):
+    def __init__(self, interaction_rect: Rect, game: Union["GamemodeClient", "GamemodeServer"], updater: str, id: str):
 
-        self.visible = visible
-        self.rect = rect
+        self.interaction_rect = interaction_rect # the rectangle used for entity interactions, like a bullet hitting a player
         self.updater = updater
         self.game = game
-        self.sprite_path = sprite_path
-        self.scale_res = scale_res
         self.last_tick_dict = {}
         
         if id is None:
@@ -35,45 +32,32 @@ class Entity:
         # add entity to the game state automatically
         self.game.entities[self.id] = self
 
-        if sprite_path:
-            self.sprite = pygame.image.load(sprite_path)
+        self.game.event_subscriptions[TickComplete] += [self.detect_updates] 
 
-        if scale_res and sprite_path:
-            print("scaling")
-            self.sprite = pygame.transform.scale(self.sprite, scale_res)
-
-        self.game.event_subscriptions[GameTickComplete] += [self.detect_updates] 
-
-    def set_last_tick_dict(self, event: GameTickStart):
-        """Set a keyframe of the serialized object before it ticked"""
-
-        self.last_tick_dict = self.dict()
-
-    def detect_updates(self, event: GameTickComplete):
+    def detect_updates(self, event: TickComplete):
         """Compare entity state from last tick to this tick to find differences"""
 
-        current_tick_dict = self.dict()
+        current_tick_dict = self.serialize(is_new=False)
         
         # this indicates that the entity did not exist last tick
         if self.last_tick_dict == {}:
             self.game.network_update(
                 update_type="create",
                 entity_id=self.id,
-                data=self.dict(),
+                data=self.serialize(is_new=True), # reserialize the entity to include construction parameters
                 entity_type_string=self.game.lookup_entity_type_string(self)
             )
-
-            self.last_tick_dict = current_tick_dict
-
-            return
-
-        if current_tick_dict != self.last_tick_dict:
+        
+        # if not a new entity, check for changes
+        elif current_tick_dict != self.last_tick_dict:
             
             update_data_dict = dict_diff(self.last_tick_dict, current_tick_dict)
 
             #print(update_data_dict)
 
             self.game.network_update(update_type="update", entity_id=self.id, data=update_data_dict)
+
+            #print(json.dumps(update_data_dict))
         
         self.last_tick_dict = current_tick_dict
                 
@@ -91,15 +75,12 @@ class Entity:
 
             self.__setattr__(attribute_name, resolved_attribute)
 
-    def dict(self) -> Dict[str, Union[int, bool, str, list]]:
+    def serialize(self, is_new: bool) -> Dict[str, Union[int, bool, str, list]]:
         """Serialize the entity's data"""
 
         data_dict = {
-            "rect": list(self.rect),
-            "visible": self.visible,
-            "updater": self.updater,
-            "sprite_path": self.sprite_path,
-            "scale_res": self.scale_res
+            "interaction_rect": list(self.interaction_rect),
+            "updater": self.updater
         }
 
         return data_dict
@@ -108,17 +89,11 @@ class Entity:
     def create(cls, entity_data: Dict[str, Union[int, bool, str, list]], entity_id: str, game: Union[Type["GamemodeClient"], Type["GamemodeServer"]]) -> Type["Entity"]:
         """Use serialized entity data to create a new entity"""
 
-        entity_data["rect"] = Rect(
-            entity_data["rect"]
+        entity_data["interaction_rect"] = Rect(
+            entity_data["interaction_rect"]
         )
 
-        entity_data["visible"] = entity_data["visible"]
-
         entity_data["updater"] = entity_data["updater"]
-
-        entity_data["sprite_path"] = entity_data["sprite_path"]
-
-        entity_data["scale_res"] = entity_data["scale_res"]
 
         return cls(game=game, id=entity_id, **entity_data)
 
@@ -129,22 +104,11 @@ class Entity:
 
             match attribute:
 
-                case "visible":
-                    self.visible = update_data["visible"]
-
-                case "rect":
+                case "interaction_rect":
                     
-                    self.rect.update(
-                        update_data["rect"]
+                    self.interaction_rect.update(
+                        update_data["interaction_rect"]
                     )
 
                 case "updater":
                     self.updater = update_data["updater"]
-
-                case "sprite_path":
-                    self.sprite = pygame.image.load(update_data["sprite_path"])
-        
-    def draw(self):
-        """Draw the entity onto the game screen"""
-
-        self.game.screen.blit(self.sprite, self.rect)

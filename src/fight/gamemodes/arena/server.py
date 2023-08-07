@@ -6,18 +6,17 @@ from pygame import Rect
 
 from engine.gamemode_server import GamemodeServer
 from engine.events import ServerStart
-from fight.gamemodes.arena.entities import Player, Floor, Shotgun, Cursor, Portal, Wall
+from fight.gamemodes.arena.entities import Player, Floor, Shotgun, Portal, Wall
 
 class ArenaServer(GamemodeServer):
-    def __init__(self, tick_rate, server_ip: str = socket.gethostname()):
-        super().__init__(tick_rate=tick_rate)
+    def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560):
+        super().__init__(server_ip=server_ip, server_port=server_port)
 
         self.entity_type_map.update(
             {
                 "player": Player,
                 "floor": Floor,
                 "shotgun": Shotgun,
-                "cursor": Cursor,
                 "portal": Portal,
                 "wall": Wall
             }
@@ -30,20 +29,23 @@ class ArenaServer(GamemodeServer):
     def start(self, event: ServerStart):
 
         floor = Floor(
-            rect=Rect(0,600,1920,20),
+            interaction_rect=Rect(0,600,1920,20),
             game=self,
-            updater="server"
+            updater="server",
+            id=str(uuid.uuid4())
         )
 
         portal = Portal(
-            rect=Rect(600, 400, 20, 200),
+            interaction_rect=Rect(600, 400, 20, 200),
             game=self,
-            updater="server"
+            updater="server",
+            id=str(uuid.uuid4())
         )
 
         wall = Wall(
-            rect=Rect(610, 400, 20, 200),
+            interaction_rect=Rect(610, 400, 20, 200),
             game=self,
-            updater="server"
+            updater="server",
+            id=str(uuid.uuid4())
         )
         

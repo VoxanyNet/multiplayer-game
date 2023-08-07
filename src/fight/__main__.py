@@ -6,6 +6,9 @@ import atexit
 from fight.gamemodes.arena.client import ArenaClient
 from fight.gamemodes.arena.server import ArenaServer
 
+from fight.gamemodes.test.client import TestClient
+from fight.gamemodes.test.server import TestServer
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument("-s", "--server", dest="is_server", help="Run server", action="store_true")
@@ -13,6 +16,7 @@ parser.add_argument("-m", "--music", dest="enable_music", help="Enable game musi
 
 args = parser.parse_args()
 
+port = 5560
 def report_server_tick_at_exit():
     print(server.tick_count)
 
@@ -23,7 +27,7 @@ if args.is_server:
 
     atexit.register(report_server_tick_at_exit)
 
-    server = ArenaServer(tick_rate=60)
+    server = TestServer(server_port=port)
 
     server.run()
 
@@ -31,6 +35,6 @@ else:
 
     atexit.register(report_game_tick_at_exit)
     
-    game = ArenaClient(tick_rate=60, enable_music=args.enable_music)
+    game = TestClient(server_port=port)
 
     game.run()

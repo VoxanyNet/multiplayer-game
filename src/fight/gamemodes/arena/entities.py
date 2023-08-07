@@ -10,7 +10,7 @@ from engine.entity import Entity
 from engine.unresolved import Unresolved
 from engine.physics_entity import PhysicsEntity
 from engine.vector import Vector
-from engine.events import LogicTick
+from engine.events import Tick
 from fight.gamemodes.arena.events import JumpEvent
 
 if TYPE_CHECKING:
@@ -20,56 +20,24 @@ if TYPE_CHECKING:
     from engine.gamemode_server import GamemodeServer 
 
 
-class Cursor(Entity):
-    def __init__(
-        self, 
-        game: Union["ArenaClient", "ArenaServer"], 
-        updater: str, 
-        rect=Rect(0,0,10,10), 
-        id: str = None,
-        sprite_path: str = None, 
-        scale_res: tuple = None, 
-        visible: bool = True
-    ):
-
-        super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
-                         visible=visible)
-
-        self.game.event_subscriptions[LogicTick].append(self.update_position)
-    
-    def draw(self):
-
-        pygame.draw.rect(
-            self.game.screen,
-            (255,255,255),
-            self.rect
-        )
-
-    def update_position(self, event: LogicTick):
-
-        self.rect.center = pygame.mouse.get_pos()
-
 class Floor(Entity):
     def __init__(
         self, 
-        rect: Rect, 
+        interaction_rect: Rect, 
         game: Union["ArenaClient", "ArenaServer"], 
         updater: str, 
-        id: str = None,
-        sprite_path: str = None, 
-        scale_res: tuple = None, 
+        id: str,
         visible: bool = True
     ):
 
-        super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
-                         visible=visible)
+        super().__init__(interaction_rect=interaction_rect, game=game, updater=updater, id=id)
 
     def draw(self):
         # draw a white rectangle
         pygame.draw.rect(
             self.game.screen,
             (255,255,255),
-            self.rect
+            self.interaction_rect
         )
 
 class Wall(Floor):
@@ -79,39 +47,36 @@ class Wall(Floor):
 class Player(PhysicsEntity):
     def __init__(
         self,
-        rect: Rect, 
+        interaction_rect: Rect, 
         game: Union["ArenaClient", "ArenaServer"], 
         updater: str, 
+        id: str,
         health: int = 100, 
         weapon: Type["Weapon"] = None, 
         gravity=0.05, velocity = Vector(0,0), 
         max_velocity: Vector = Vector(30,30), 
         friction: int = 2, 
-        collidable_entities: List[Type[Entity]] = [Floor, Wall, "self"], 
-        id: str = None,
-        sprite_path: str = None, 
-        scale_res: tuple = None, 
+        collidable_entities: List[Type[Entity]] = [Floor, Wall, "self"],
         visible: bool = True,
         airborne: bool = False
     ):
 
-        super().__init__(gravity=gravity, velocity=velocity, max_velocity=max_velocity, friction=friction, collidable_entities=collidable_entities, rect=rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
-                         visible=visible, airborne=airborne)
+        super().__init__(gravity=gravity, velocity=velocity, max_velocity=max_velocity, friction=friction, collidable_entities=collidable_entities, interaction_rect=interaction_rect, game=game, updater=updater, id=id, airborne=airborne)
 
         self.last_attack = 0
 
         self.health = health
         self.weapon = weapon
 
-        self.game.event_subscriptions[LogicTick] += [
+        self.game.event_subscriptions[Tick] += [
             self.handle_keys,
             self.print_velocity
         ]
         
 
-    def dict(self) -> Dict:
+    def serialize(self, is_new: bool) -> Dict:
 
-        data_dict = super().dict()
+        data_dict = super().serialize(is_new)
 
         data_dict["health"] = self.health
 
@@ -160,10 +125,10 @@ class Player(PhysicsEntity):
         pygame.draw.rect(
             self.game.screen,
             (255,255,255),
-            self.rect
+            self.interaction_rect
         )
 
-    def handle_keys(self, event: LogicTick):
+    def handle_keys(self, event: Tick):
 
         keys = pygame.key.get_pressed()
 
@@ -180,7 +145,7 @@ class Player(PhysicsEntity):
         if keys[pygame.K_d]:
             self.velocity.x += 1
 
-    def print_velocity(self, event: LogicTick):
+    def print_velocity(self, event: Tick):
         print(self.velocity)
 
 class Weapon(Entity):
@@ -190,33 +155,30 @@ class Weapon(Entity):
         max_ammo: int, 
         attack_cooldown: int, 
         owner: Player, 
-        rect: Rect, 
+        interaction_rect: Rect, 
         game: Union["ArenaClient", "ArenaServer"], 
         updater: str, 
-        id: str = None,
-        sprite_path: str = None, 
-        scale_res: Tuple[int, int] = None, 
+        id: str,
         visible: bool = True
     ):
 
-        super().__init__(rect=rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
-                         visible=visible)
+        super().__init__(interaction_rect=interaction_rect, game=game, updater=updater, id=id,)
 
         self.ammo = ammo
         self.max_ammo = max_ammo
         self.attack_cooldown = attack_cooldown
         self.owner = owner
 
-        self.game.event_subscriptions[LogicTick] += [
+        self.game.event_subscriptions[Tick] += [
             self.follow_owner,
             self.follow_cursor
         ]
 
-    def dict(self) -> Dict:
+    def serialize(self, is_new: bool) -> Dict:
         # create a json serializable dictionary with all of this object's attributes
 
         # create the base entity's dict, then we add our own unique attributes on top
-        data_dict = super().dict()
+        data_dict = super().serialize(is_new)
 
         data_dict["ammo"] = self.ammo
         data_dict["max_ammo"] = self.max_ammo
@@ -232,7 +194,6 @@ class Weapon(Entity):
         entity_id: str, 
         game: Union["ArenaClient", "ArenaServer"]
     ):
-        # convert json entity data to object constructor arguments
 
         entity_data["ammo"] = entity_data["ammo"]
         entity_data["max_ammo"] = entity_data["max_ammo"]
@@ -269,10 +230,10 @@ class Weapon(Entity):
                 case "owner":
                     self.owner = Unresolved(update_data["owner"])
 
-    def follow_owner(self, event: LogicTick):
-        self.rect = self.owner.rect.move(0,-50)
+    def follow_owner(self, event: Tick):
+        self.interaction_rect = self.owner.interaction_rect.move(0,-50)
 
-    def follow_cursor(self, event: LogicTick):
+    def follow_cursor(self, event: Tick):
         mouse_pos = pygame.mouse.get_pos()
 
         #print(mouse_pos)
@@ -281,45 +242,42 @@ class Shotgun(Weapon):
     def __init__(
         self, 
         owner: Player, 
-        rect: Rect, 
+        interaction_rect: Rect, 
         game: Union["ArenaClient", "ArenaServer"], 
         updater: str, 
+        id: str,
         ammo: int = 2, 
         max_ammo: int = 2, 
         attack_cooldown: int = 1, 
-        id: str = None,
-        sprite_path: str = "resources/shotgun.png", scale_res: Tuple[int, int] = (68,19), visible: bool = True
+        visible: bool = True
     ):
 
-        super().__init__(ammo=ammo, max_ammo=max_ammo, attack_cooldown=attack_cooldown, owner=owner, rect=rect, game=game, updater=updater, sprite_path=sprite_path, id=id, scale_res=scale_res,
-                         visible=visible)
+        super().__init__(ammo=ammo, max_ammo=max_ammo, attack_cooldown=attack_cooldown, owner=owner, interaction_rect=interaction_rect, game=game, updater=updater, id=id)
         
 class Portal(Entity):
     def __init__(
         self, 
-        rect: Rect, 
+        interaction_rect: Rect, 
         game: Union["GamemodeClient", "GamemodeServer"], 
         updater: str, 
+        id: str,
         linked_portal: "Portal" = None, 
-        id: str = None, 
-        sprite_path: str = None, 
-        scale_res: Tuple[int, int] = None, 
         visible: bool = True
     ):
     
-        super().__init__(rect, game, updater, id, sprite_path, scale_res, visible)
+        super().__init__(interaction_rect, game, updater, id)
 
         self.linked_portal = linked_portal
         self.last_tick_collisions = []
 
-        self.game.event_subscriptions[LogicTick] += [
+        self.game.event_subscriptions[Tick] += [
             self.teleport_entities,
             self.disable_wall_collisions
         ]
     
-    def disable_wall_collisions(self, event: LogicTick):
+    def disable_wall_collisions(self, event: Tick):
 
-        colliding_entities = self.game.detect_collisions(self.rect)
+        colliding_entities = self.game.detect_collisions(self.interaction_rect)
 
         for entity in colliding_entities:
 
@@ -349,16 +307,16 @@ class Portal(Entity):
         self.last_tick_collisions = colliding_entities.copy()
 
 
-    def teleport_entities(self, event: LogicTick):
+    def teleport_entities(self, event: Tick):
 
-        colliding_entities = self.game.detect_collisions(self.rect)
+        colliding_entities = self.game.detect_collisions(self.interaction_rect)
 
         for entity in colliding_entities:
             
             if type(entity) is not PhysicsEntity:
                 continue 
 
-            if entity.rect.right > self.rect.right:
+            if entity.interaction_rect.right > self.interaction_rect.right:
                 print(f"{entity} teleport!")
     
     def draw(self):
@@ -366,7 +324,7 @@ class Portal(Entity):
         pygame.draw.rect(
             self.game.screen,
             (0,0,255),
-            self.rect
+            self.interaction_rect
         )
 
 

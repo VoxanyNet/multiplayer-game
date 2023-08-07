@@ -7,17 +7,28 @@ import time
 
 import pygame
 from pygame import Rect
+import pymunk
 
 from engine import headered_socket
 from engine.headered_socket import Disconnected
 from engine.exceptions import MalformedUpdate, InvalidUpdateType
-from engine.events import LogicTick, Event, DisconnectedClient, NewClient, ReceivedClientUpdates, UpdatesLoaded, ServerStart, GameTickStart, GameTickComplete, RealtimeTick
+from engine.events import Tick, Event, DisconnectedClient, NewClient, ReceivedClientUpdates, UpdatesLoaded, ServerStart, TickStart, TickComplete, NetworkTick
 from engine.entity import Entity
+from engine.tile import Tile
 
 
 class GamemodeServer:
+    """
+    Very similar to the GamemodeClient but with some important differences:
+    - Holds entities that wouldnt make sense for clients to create, like level elements
+    - Receives updates from individual clients and distributes them to every other client
 
-    def __init__(self, tick_rate: int, server_ip: str = socket.gethostname(), server_port: int = 5560):
+    Could be theoretically be replaced by setting one client as a "master", then using p2p networking, but that would require every client to be port forwarded
+    
+    Basically only exists to simply networking
+    """
+
+    def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560):
 
         self.socket = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -26,18 +37,22 @@ class GamemodeServer:
         self.entity_type_map: Dict[str, Type[Entity]] = {}
         self.updates_to_load = []
         self.uuid = "server"
-        self.tick_rate = tick_rate
         self.server_clock = pygame.time.Clock()
         self.update_queue = defaultdict(list)
         self.event_subscriptions = defaultdict(list)
         self.server_ip = server_ip
         self.server_port = server_port
         self.tick_count = 0
+        self.space = pymunk.Space()
+        self.space.gravity = (0, 900)
+        self.last_tick = time.time()
+        self.dt = 0.1 # i am initializing this with 0.1 instead of 0 because i think it might break stuff
 
-        self.event_subscriptions[RealtimeTick] += [
-            self.accept_new_clients,
-            self.receive_client_updates 
-        ]
+        self.entity_type_map.update(
+            {
+                "tile": Tile
+            }
+        )
 
         self.event_subscriptions[ReceivedClientUpdates] += [
             self.load_updates
@@ -55,10 +70,27 @@ class GamemodeServer:
             self.handle_new_client
         ]
 
-        self.event_subscriptions[LogicTick] += [
-            self.increment_tick_counter
+        self.event_subscriptions[Tick] += [
+            self.increment_tick_counter,
+            self.step_space,
+            self.accept_new_clients,
+            self.receive_client_updates 
+        ]
+
+        self.event_subscriptions[TickStart] += [
+            self.measure_dt
         ]
     
+    def step_space(self, event: Tick):
+        """Simulate physics for self.dt amount of time"""
+        self.space.step(self.dt)
+    
+    def measure_dt(self, event: TickStart):
+        """Measure the time since the last tick and update self.dt"""
+        self.dt = time.time() - self.last_tick
+
+        self.last_tick = time.time()
+
     def enable_socket(self, event: ServerStart):
         self.socket.bind((self.server_ip, self.server_port))
         self.socket.setblocking(False)
@@ -72,6 +104,8 @@ class GamemodeServer:
             if function.__self__.__class__.__base__ == GamemodeServer:
                 # if the object this listener function belongs to has a base class that is GamemodeServer, then we don't need to check if we should run it
                 # this is because we never receive other user's GamemodeServer objects
+
+                # we need to do this check because the GamemodeServer object does not have an "updater" attribute
                 pass
             # dont call function if the entity this function belongs to isnt ours
             elif function.__self__.updater != self.uuid:
@@ -99,7 +133,8 @@ class GamemodeServer:
             "update_type": update_type,
             "entity_id": entity_id,
             "entity_type": entity_type_string,
-            "data": data
+            "data": data,
+            "timestamp": int(time.time())
         }
 
         print(f"Server update: {update}")
@@ -196,13 +231,13 @@ class GamemodeServer:
 
                 entity_type_string = self.lookup_entity_type_string(entity)
                 
-                data = entity.dict()
+                data = entity.serialize(is_new=True)
 
                 self.network_update(update_type="create", entity_id=entity.id, data=data, entity_type_string=entity_type_string, destinations=[client_uuid])
                 
             self.send_client_updates()
 
-    def increment_tick_counter(self, event: LogicTick):
+    def increment_tick_counter(self, event: Tick):
         self.tick_count += 1
 
     def handle_client_disconnect(self, event: DisconnectedClient):
@@ -234,13 +269,14 @@ class GamemodeServer:
         colliding_entities: List[Type[Entity]] = []
 
         for entity in self.entities.values():
+            entity: Entity
 
-            if rect.colliderect(entity.rect):
+            if rect.colliderect(entity.interaction_rect):
                 colliding_entities.append(entity)
 
         return colliding_entities
         
-    def accept_new_clients(self, event: RealtimeTick):
+    def accept_new_clients(self, event: Tick):
 
         try:
             new_client, address = self.socket.accept()
@@ -250,7 +286,7 @@ class GamemodeServer:
         except BlockingIOError: 
             pass
     
-    def receive_client_updates(self, event: RealtimeTick):
+    def receive_client_updates(self, event: Tick):
 
         for sending_client_uuid, sending_client in self.client_sockets.copy().items():
             
@@ -300,24 +336,21 @@ class GamemodeServer:
         
             self.update_queue[receiving_client_uuid] = []
             
-    def run(self):
+    def run(self, network_tick_rate: int = 60):
         
         self.trigger(ServerStart())
-
-        last_tick = 0
+        
+        last_network_tick = 0
 
         while True:   
-
-            self.trigger(RealtimeTick())
-
-            # receive and relay client updates as fast as possible
-            # only tick at the specified tick rate
-            if time.time() - last_tick >= 1/self.tick_rate:
                 
-                self.trigger(GameTickStart())
+            self.trigger(TickStart())
 
-                self.trigger(LogicTick())
+            self.trigger(Tick())
 
-                self.trigger(GameTickComplete())
+            self.trigger(TickComplete())
 
-                last_tick = time.time()
+            if time.time() - last_network_tick >= 1/network_tick_rate:
+                self.trigger(NetworkTick())
+
+                last_network_tick = time.time()
