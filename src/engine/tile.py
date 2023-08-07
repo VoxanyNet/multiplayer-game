@@ -63,23 +63,18 @@ class Tile(Entity):
                     "angle": round(self.body.angle, 3),
                     "x": round(self.body.position.x, 3),
                     "y": round(self.body.position.y, 3),
-                }
-            }    
-        )
-
-        if is_new:
-            data_dict.update(
-            {   
-                "body": {
                     "mass": self.body.mass,
                     "moment": self.body.moment,
                     "body_type": body_type_string
                 },
                 "shape": {
-                    "vertices": self.shape.get_vertices()
+                    "vertices": self.shape.get_vertices(),
+                    "friction": self.shape.friction
                 }
             }    
         )
+            
+        #print(data_dict)
 
         return data_dict
     
@@ -96,16 +91,25 @@ class Tile(Entity):
             case "kinematic":
                 body_type = pymunk.Body.KINEMATIC
         
-        entity_data["body"] = pymunk.Body(
+        print(entity_data)
+        body = pymunk.Body(
             mass=entity_data["body"]["mass"],
             moment=entity_data["body"]["moment"],
             body_type=body_type
         )
 
-        entity_data["shape"] = pymunk.Poly(
-            body=entity_data["body"],
+        body.position = (entity_data["body"]["x"], entity_data["body"]["y"])
+
+        entity_data["body"] = body
+
+        shape = pymunk.Poly(
+            body=body,
             vertices=entity_data["shape"]["vertices"]
         )
+        shape.friction = entity_data["shape"]["friction"]
+
+        entity_data["shape"] = shape
+        
 
         return super().create(entity_data, entity_id, game=game)
 
