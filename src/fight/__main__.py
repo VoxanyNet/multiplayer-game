@@ -38,4 +38,4 @@ else:
     
     game = TestClient(server_port=port)
 
-    game.run()
+    game.run(network_tick_rate=120)

@@ -39,7 +39,7 @@ class TestClient(GamemodeClient):
         
             shape=pymunk.Poly.create_box(
                 body=body,
-                size=(20,20)
+                size=(5,5)
             )
             
             tile = Tile(

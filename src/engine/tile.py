@@ -63,8 +63,7 @@ class Tile(Entity):
                     "angle": round(self.body.angle, 3),
                     "position": (round(self.body.position.x, 3), round(self.body.position.y, 3)),
                     "mass": self.body.mass,
-                    "moment": self.body.moment,
-                    "body_type": body_type_string
+                    "moment": self.body.moment
                 },
                 "shape": {
                     "vertices": self.shape.get_vertices(),
@@ -80,20 +79,11 @@ class Tile(Entity):
     @classmethod
     def create(self, entity_data: Dict[str, Union[int, bool, str, list]], entity_id: str, game: Union["GamemodeClient", "GamemodeServer"]) -> Type["Tile"]:
         """Translate serialized entity data into an actual Tile object"""
-
-        # translate body type string to actual body type
-        match entity_data["body"]["body_type"]:
-            case "dynamic":
-                body_type = pymunk.Body.DYNAMIC
-            case "static":
-                body_type = pymunk.Body.STATIC
-            case "kinematic":
-                body_type = pymunk.Body.KINEMATIC
         
         body = pymunk.Body(
             mass=entity_data["body"]["mass"],
             moment=entity_data["body"]["moment"],
-            body_type=body_type
+            body_type=pymunk.Body.STATIC # if we dont own the tile, we dont want to simulate its position
         )
 
         body.position = entity_data["body"]["position"]
@@ -138,9 +128,6 @@ class Tile(Entity):
 
                             case "moment":
                                 self.body.moment = update_data["body"]["moment"]
-
-                            case "body_type": # i dont even know if this would work
-                                self.body.body_type = update_data["body"]["body_type"]
 
                 case "shape":
 
