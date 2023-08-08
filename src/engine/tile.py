@@ -61,8 +61,7 @@ class Tile(Entity):
             {   
                 "body": {
                     "angle": round(self.body.angle, 3),
-                    "x": round(self.body.position.x, 3),
-                    "y": round(self.body.position.y, 3),
+                    "position": (round(self.body.position.x, 3), round(self.body.position.y, 3)),
                     "mass": self.body.mass,
                     "moment": self.body.moment,
                     "body_type": body_type_string
@@ -97,7 +96,7 @@ class Tile(Entity):
             body_type=body_type
         )
 
-        body.position = (entity_data["body"]["x"], entity_data["body"]["y"])
+        body.position = entity_data["body"]["position"]
 
         entity_data["body"] = body
 
@@ -115,6 +114,48 @@ class Tile(Entity):
     def update(self, update_data: dict):
 
         super().update(update_data)
+        
+        print(update_data)
+
+        for attribute_name, attribute_value in update_data.items():
+
+            match attribute_name:
+                
+                case "body":
+                    
+                    for sub_attribute_name, sub_attribute_value in attribute_value.items():
+
+                        match sub_attribute_name:
+
+                            case "angle":
+                                self.body.angle = update_data["body"]["angle"]
+                            
+                            case "position":
+                                self.body.position = update_data["body"]["position"]
+                            
+                            case "mass":
+                                self.body.mass = update_data["body"]["mass"]
+
+                            case "moment":
+                                self.body.moment = update_data["body"]["moment"]
+
+                            case "body_type": # i dont even know if this would work
+                                self.body.body_type = update_data["body"]["body_type"]
+
+                case "shape":
+
+                    for sub_attribute_name, sub_attribute_value in attribute_value.items():
+
+                        match sub_attribute_name:
+
+                            case "vertices": # i will save this for a later date
+                                # remove old shape from body
+                                # make new shape with updated vertices
+                                pass
+
+                            case "friction":
+                                self.shape.friction = update_data["shape"]["friction"]
+
 
 
 
