@@ -184,8 +184,6 @@ class GamemodeClient:
         
         for update in updates:
 
-            print(update)
-
             match update["update_type"]:
                 case "create":
 

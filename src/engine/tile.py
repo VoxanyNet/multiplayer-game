@@ -91,7 +91,6 @@ class Tile(Entity):
             case "kinematic":
                 body_type = pymunk.Body.KINEMATIC
         
-        print(entity_data)
         body = pymunk.Body(
             mass=entity_data["body"]["mass"],
             moment=entity_data["body"]["moment"],
