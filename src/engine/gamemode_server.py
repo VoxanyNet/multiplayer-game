@@ -263,19 +263,6 @@ class GamemodeServer:
         del self.client_sockets[disconnected_client_uuid]
 
         del self.update_queue[disconnected_client_uuid]
-    
-    def detect_collisions(self, rect: Rect) -> List[Type[Entity]]:
-        """Check if given rect collides with any entities"""
-
-        colliding_entities: List[Type[Entity]] = []
-
-        for entity in self.entities.values():
-            entity: Entity
-
-            if rect.colliderect(entity.interaction_rect):
-                colliding_entities.append(entity)
-
-        return colliding_entities
         
     def accept_new_clients(self, event: Tick):
 

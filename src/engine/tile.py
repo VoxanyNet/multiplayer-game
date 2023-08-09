@@ -16,13 +16,12 @@ class Tile(Entity):
             self, 
             body: pymunk.Body,
             shape: pymunk.Shape,
-            interaction_rect: Rect, 
             game: Union["GamemodeClient", "GamemodeServer"], 
             updater: str, 
             id: str
         ):
 
-        super().__init__(interaction_rect=interaction_rect, game=game, updater=updater, id=id)
+        super().__init__(game=game, updater=updater, id=id)
 
         self.body = body 
         self.shape = shape

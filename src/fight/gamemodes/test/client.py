@@ -47,8 +47,7 @@ class TestClient(GamemodeClient):
                 shape=shape,
                 game=self,
                 updater=self.uuid,
-                id=str(uuid.uuid4()),
-                interaction_rect=Rect(0,10,10,10)
+                id=str(uuid.uuid4())
             )
 
         if pygame.mouse.get_pressed()[2]:
@@ -76,8 +75,7 @@ class TestClient(GamemodeClient):
                 shape=shape,
                 game=self,
                 updater=self.uuid,
-                id=str(uuid.uuid4()),
-                interaction_rect=Rect(0,10,10,10)
+                id=str(uuid.uuid4())
             )
 
 

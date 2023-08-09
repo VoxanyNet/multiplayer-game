@@ -87,18 +87,6 @@ class GamemodeClient:
 
         self.last_tick = time.time()
 
-    def detect_collisions(self, rect: Rect) -> List[Type[Entity]]:
-        """Check if given rect collides with any entities"""
-
-        colliding_entities: List[Type[Entity]] = []
-
-        for entity in self.entities.values():
-
-            if rect.colliderect(entity.interaction_rect):
-                colliding_entities.append(entity)
-
-        return colliding_entities
-
     def lookup_entity_type_string(self, entity: Union[Type[Entity], Type[type]]) -> str:
         """Find entity type's corresponding type string in entity_type_map"""
 

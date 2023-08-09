@@ -17,9 +17,8 @@ if TYPE_CHECKING:
 
 
 class Entity:
-    def __init__(self, interaction_rect: Rect, game: Union["GamemodeClient", "GamemodeServer"], updater: str, id: str):
+    def __init__(self, game: Union["GamemodeClient", "GamemodeServer"], updater: str, id: str):
 
-        self.interaction_rect = interaction_rect # the rectangle used for entity interactions, like a bullet hitting a player
         self.updater = updater
         self.game = game
         self.last_tick_dict = {}
@@ -79,7 +78,6 @@ class Entity:
         """Serialize the entity's data"""
 
         data_dict = {
-            "interaction_rect": list(self.interaction_rect),
             "updater": self.updater
         }
 
@@ -88,10 +86,6 @@ class Entity:
     @classmethod
     def create(cls, entity_data: Dict[str, Union[int, bool, str, list]], entity_id: str, game: Union[Type["GamemodeClient"], Type["GamemodeServer"]]) -> Type["Entity"]:
         """Use serialized entity data to create a new entity"""
-
-        entity_data["interaction_rect"] = Rect(
-            entity_data["interaction_rect"]
-        )
 
         entity_data["updater"] = entity_data["updater"]
 
@@ -103,12 +97,6 @@ class Entity:
         for attribute in update_data:
 
             match attribute:
-
-                case "interaction_rect":
-                    
-                    self.interaction_rect.update(
-                        update_data["interaction_rect"]
-                    )
 
                 case "updater":
                     self.updater = update_data["updater"]
