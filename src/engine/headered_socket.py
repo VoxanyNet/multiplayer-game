@@ -47,11 +47,7 @@ class HeaderedSocket(socket.socket):
         # final payload with header and data
         headered_data = header_bytes + data
 
-        # keep sending until
-        while sent_data != len(headered_data):
-            sent_data += self.send(
-                headered_data[sent_data:]  # send headered data starting at what we've sent so far
-            )
+        self.sendall(headered_data)
 
     def recv_headered(self, header_size=7):
 
