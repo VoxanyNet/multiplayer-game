@@ -66,7 +66,8 @@ class Tile(Entity):
                 },
                 "shape": {
                     "vertices": self.shape.get_vertices(),
-                    "friction": self.shape.friction
+                    "friction": self.shape.friction,
+                    "elasticity": self.shape.elasticity
                 }
             }    
         )
@@ -94,6 +95,7 @@ class Tile(Entity):
             vertices=entity_data["shape"]["vertices"]
         )
         shape.friction = entity_data["shape"]["friction"]
+        shape.elasticity = entity_data["shape"]["elasticity"]
 
         entity_data["shape"] = shape
         
@@ -141,6 +143,9 @@ class Tile(Entity):
 
                             case "friction":
                                 self.shape.friction = update_data["shape"]["friction"]
+                            
+                            case "elasticity":
+                                self.shape.elasticity = update_data["shape"]["elasticity"]
 
 
 

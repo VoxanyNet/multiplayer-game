@@ -3,9 +3,6 @@ import argparse
 import sys
 import atexit
 
-from fight.gamemodes.arena.client import ArenaClient
-from fight.gamemodes.arena.server import ArenaServer
-
 from fight.gamemodes.test.client import TestClient
 from fight.gamemodes.test.server import TestServer
 

@@ -1,5 +1,6 @@
 import socket
 import uuid
+import time
 
 import pygame
 from pygame import Rect
@@ -18,6 +19,13 @@ class TestClient(GamemodeClient):
             self.spawn_entity,
             self.report_stats
         ]
+
+        #collision_handler = self.space.add_collision_handler(1, 1)
+
+        #collision_handler.begin = collision_callback
+
+
+        self.last_spawn = 0
     
     def report_stats(self, event: Tick):
 
@@ -28,6 +36,9 @@ class TestClient(GamemodeClient):
     
     def spawn_entity(self, event: Tick):
         
+
+        if time.time() - self.last_spawn < 0.5:
+            pass
         if pygame.mouse.get_pressed()[0]:
             body=pymunk.Body(
                 mass=20,
@@ -39,8 +50,13 @@ class TestClient(GamemodeClient):
         
             shape=pymunk.Poly.create_box(
                 body=body,
-                size=(5,5)
+                size=(20,20)
             )
+
+            shape.collision_type = 1
+
+            shape.friction = 0.5
+            shape.elasticity = 0.1
             
             tile = Tile(
                 body=body,
@@ -49,6 +65,8 @@ class TestClient(GamemodeClient):
                 updater=self.uuid,
                 id=str(uuid.uuid4())
             )
+
+            self.last_spawn = time.time()
 
         if pygame.mouse.get_pressed()[2]:
             
@@ -60,15 +78,15 @@ class TestClient(GamemodeClient):
 
             body.position = pygame.mouse.get_pos()
         
-            shape=pymunk.Poly(
+            shape=pymunk.Poly.create_box(
                 body=body,
-                vertices=[
-                    (0,0),
-                    (0,20),
-                    (20,20),
-                    (20,0)
-                ]
+                size=(20,20)
             )
+
+            shape.collision_type = 2
+
+            shape.friction = 0.5
+            shape.elasticity = 0.1
             
             tile = Tile(
                 body=body,
@@ -77,6 +95,10 @@ class TestClient(GamemodeClient):
                 updater=self.uuid,
                 id=str(uuid.uuid4())
             )
+
+            print(shape.friction)
+
+            self.last_spawn = time.time()
 
 
     def start(self, event: GameStart):
