@@ -336,19 +336,22 @@ class GamemodeServer:
         
             self.update_queue[receiving_client_uuid] = []
             
-    def run(self, network_tick_rate: int = 60):
+    def run(self, max_tick_rate: int, network_tick_rate: int):
         
         self.trigger(ServerStart())
         
         last_network_tick = 0
+        last_game_tick = 0
 
         while True:   
-                
-            self.trigger(TickStart())
+            
+            if time.time() - last_game_tick >= 1/max_tick_rate:
 
-            self.trigger(Tick())
+                self.trigger(TickStart())
 
-            self.trigger(TickComplete())
+                self.trigger(Tick())
+
+                self.trigger(TickComplete())
 
             if time.time() - last_network_tick >= 1/network_tick_rate:
                 self.trigger(NetworkTick())

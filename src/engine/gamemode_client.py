@@ -20,7 +20,12 @@ from engine.events import Tick, Event, TickComplete, GameStart, TickStart, Scree
 
 
 class GamemodeClient:
-    def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560, network_compression: bool = True):
+    def __init__(
+        self, 
+        server_ip: str = socket.gethostname(), 
+        server_port: int = 5560, 
+        network_compression: bool = True
+    ):
         self.server = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_ip = server_ip
         self.server_port = server_port
@@ -264,12 +269,13 @@ class GamemodeClient:
 
         print("Received initial state")
    
-    def run(self, network_tick_rate: int = 60):
+    def run(self, max_tick_rate: int, network_tick_rate: int):
 
         self.trigger(GameStart())
 
         running = True 
 
+        last_game_tick = 0
         last_network_tick = 0
 
         while running:
@@ -282,12 +288,16 @@ class GamemodeClient:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
-                
-            self.trigger(TickStart())
+            
+            if time.time() - last_game_tick >= 1/max_tick_rate:
 
-            self.trigger(Tick())
+                self.trigger(TickStart())
 
-            self.trigger(TickComplete())
+                self.trigger(Tick())
+
+                self.trigger(TickComplete())
+
+                last_game_tick = time.time()
 
             if time.time() - last_network_tick >= 1/network_tick_rate:
                 self.trigger(NetworkTick())
