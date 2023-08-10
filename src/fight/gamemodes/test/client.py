@@ -62,8 +62,7 @@ class TestClient(GamemodeClient):
                 body=body,
                 shape=shape,
                 game=self,
-                updater=self.uuid,
-                id=str(uuid.uuid4())
+                updater=self.uuid
             )
 
             self.last_spawn = time.time()
@@ -92,8 +91,7 @@ class TestClient(GamemodeClient):
                 body=body,
                 shape=shape,
                 game=self,
-                updater=self.uuid,
-                id=str(uuid.uuid4())
+                updater=self.uuid
             )
 
             print(shape.friction)

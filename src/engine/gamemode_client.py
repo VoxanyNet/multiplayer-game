@@ -24,7 +24,7 @@ class GamemodeClient:
         self.server = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_ip = server_ip
         self.server_port = server_port
-        self.uuid = str(uuid.uuid4())
+        self.uuid = str(uuid.uuid4())[0:4]
         self.update_queue = []
         self.entity_type_map: Dict[str, Type[Entity]] = {}
         self.entities: Dict[str, Entity] = {}
@@ -118,8 +118,7 @@ class GamemodeClient:
             "update_type": update_type,
             "entity_id": entity_id,
             "entity_type": entity_type_string,
-            "data": data,
-            "timestamp": time.time()
+            "data": data
         }
 
         self.update_queue.append(
@@ -206,10 +205,6 @@ class GamemodeClient:
                     del self.entities[
                         update["entity_id"]
                     ]
-            
-            update_delay = time.time() - update["timestamp"]
-
-            print(update_delay)
 
         for entity in self.entities.values():
             entity.resolve()

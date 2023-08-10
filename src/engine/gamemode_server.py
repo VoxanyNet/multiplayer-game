@@ -135,8 +135,7 @@ class GamemodeServer:
             "update_type": update_type,
             "entity_id": entity_id,
             "entity_type": entity_type_string,
-            "data": data,
-            "timestamp": int(time.time())
+            "data": data
         }
 
         print(f"Server update: {update}")

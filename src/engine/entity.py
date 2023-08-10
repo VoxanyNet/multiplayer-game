@@ -1,6 +1,6 @@
 import uuid
 import inspect
-from typing import Dict, List, Type, Tuple, Union, TYPE_CHECKING, get_type_hints, Callable
+from typing import Dict, List, Type, Tuple, Union, TYPE_CHECKING, get_type_hints, Callable, Optional
 import json
 
 import pygame.image
@@ -17,14 +17,14 @@ if TYPE_CHECKING:
 
 
 class Entity:
-    def __init__(self, game: Union["GamemodeClient", "GamemodeServer"], updater: str, id: str):
+    def __init__(self, game: Union["GamemodeClient", "GamemodeServer"], updater: str, id: Optional[str]=None):
 
         self.updater = updater
         self.game = game
         self.last_tick_dict = {}
         
         if id is None:
-            id = str(uuid.uuid4())
+            id = str(uuid.uuid4())[0:4]
         
         self.id = id
 

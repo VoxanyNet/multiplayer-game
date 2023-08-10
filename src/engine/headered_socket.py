@@ -17,10 +17,13 @@ class PayloadTooLarge(Exception):
 class HeaderedSocket(socket.socket):
 
     def send_headered(self, data, header_size=7):
+
         # construct a payload with header from bytes
 
         # get number of bytes json string uses
         data_size = len(data)
+
+        print(f"sending an update with a size of {data_size}!!!!")
 
         # the amount of data that has been acknowledged by the client to have been sent
         # somtimes we need to resend data if the client does not acknowledge it
@@ -67,6 +70,7 @@ class HeaderedSocket(socket.socket):
 
             # if we cannot convert to int
             except ValueError:
+    
                 raise InvalidHeader(f"Sender sent header {header}, which is invalid")
 
             # represents the final constructed data sent

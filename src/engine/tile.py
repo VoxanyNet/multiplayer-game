@@ -1,4 +1,4 @@
-from typing import Dict, Tuple, Union, Type, TYPE_CHECKING
+from typing import Dict, Tuple, Union, Type, TYPE_CHECKING, Optional
 
 import pymunk
 from pygame import Rect
@@ -18,7 +18,7 @@ class Tile(Entity):
             shape: pymunk.Shape,
             game: Union["GamemodeClient", "GamemodeServer"], 
             updater: str, 
-            id: str
+            id: Optional[str] = None
         ):
 
         super().__init__(game=game, updater=updater, id=id)
