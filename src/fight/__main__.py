@@ -3,6 +3,7 @@ import argparse
 import sys
 import atexit
 import socket
+import json
 
 from fight.gamemodes.test.client import TestClient
 from fight.gamemodes.test.server import TestServer
@@ -24,6 +25,10 @@ def report_server_tick_at_exit():
 def report_game_tick_at_exit():
     print(game.tick_count)
 
+def save_update_history():
+    with open("updates.json", "w") as file:
+        json.dump(game.update_history, file, indent=4)
+
 if args.is_server:
 
     atexit.register(report_server_tick_at_exit)
@@ -35,6 +40,8 @@ if args.is_server:
 else:
 
     atexit.register(report_game_tick_at_exit)
+    atexit.register(save_update_history)
+
     
     game = TestClient(server_ip=args.ip, server_port=args.port, network_compression=args.enable_compression)
 

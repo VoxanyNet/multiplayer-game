@@ -25,7 +25,8 @@ class GamemodeClient:
         server_ip: str = socket.gethostname(), 
         server_port: int = 5560, 
         network_compression: bool = True
-    ):
+    ): 
+        self.update_history = []
         self.server = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_ip = server_ip
         self.server_port = server_port
@@ -133,14 +134,17 @@ class GamemodeClient:
     def increment_tick_counter(self, event: Tick):
         self.tick_count += 1
 
-    def send_network_updates(self, event: TickComplete):
+    def send_network_updates(self, event: NetworkTick):
         
         # we must send an updates list even if there are no updates
         # this is because the server will only give US updates if we do first
 
+        self.update_history.append(self.update_queue)
+        
         updates_json = json.dumps(
             self.update_queue
         )
+        
 
         updates_json_bytes = bytes(
             updates_json, "utf-8"

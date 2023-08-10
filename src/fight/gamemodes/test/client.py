@@ -38,7 +38,7 @@ class TestClient(GamemodeClient):
         
 
         if time.time() - self.last_spawn < 0.5:
-            return
+            pass
         if pygame.mouse.get_pressed()[0]:
             body=pymunk.Body(
                 mass=20,
