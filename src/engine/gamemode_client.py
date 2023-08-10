@@ -20,7 +20,7 @@ from engine.events import Tick, Event, TickComplete, GameStart, TickStart, Scree
 
 
 class GamemodeClient:
-    def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560):
+    def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560, network_compression: bool = True):
         self.server = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_ip = server_ip
         self.server_port = server_port
@@ -35,6 +35,7 @@ class GamemodeClient:
         self.last_tick = time.time()
         self.dt = 0.1 # i am initializing this with 0.1 instead of 0 because i think it might break stuff
         self.sent_bytes = 0
+        self.network_compression = network_compression
         self.screen = pygame.display.set_mode(
             [1280, 720],
             pygame.RESIZABLE
@@ -141,15 +142,17 @@ class GamemodeClient:
             updates_json, "utf-8"
         )
 
-        compressed_updates_json_bytes = zlib.compress(
-            updates_json_bytes, level=zlib.Z_BEST_COMPRESSION
-        )
+        if self.network_compression:
+
+            updates_json_bytes = zlib.compress(
+                updates_json_bytes, level=zlib.Z_BEST_COMPRESSION
+            )
 
         self.server.send_headered(
-            compressed_updates_json_bytes
+            updates_json_bytes
         )
 
-        self.sent_bytes += len(compressed_updates_json_bytes)
+        self.sent_bytes += len(updates_json_bytes)
 
         self.update_queue = []
 
@@ -158,7 +161,12 @@ class GamemodeClient:
         # this method can either be directly invoked or be called by an event
 
         try:
-            updates_json = self.server.recv_headered().decode("utf-8")
+            updates_json_bytes = self.server.recv_headered()
+
+            if self.network_compression:
+                updates_json_bytes = zlib.decompress(updates_json_bytes)
+            
+            updates_json = updates_json_bytes.decode("utf-8")
 
         except BlockingIOError:
             # this means that we need to wait until the next tick to receive our updates

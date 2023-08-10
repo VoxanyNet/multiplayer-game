@@ -29,7 +29,7 @@ class GamemodeServer:
     Basically only exists to simply networking
     """
 
-    def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560):
+    def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560, network_compression: bool = True):
 
         self.socket = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -47,6 +47,7 @@ class GamemodeServer:
         self.space = pymunk.Space()
         self.space.gravity = (0, 900)
         self.last_tick = time.time()
+        self.network_compression = network_compression
         self.dt = 0.1 # i am initializing this with 0.1 instead of 0 because i think it might break stuff
 
         self.entity_type_map.update(
@@ -219,8 +220,13 @@ class GamemodeServer:
             
             empty_update = json.dumps([])
 
+            empty_update_bytes = bytes(empty_update, "utf-8")
+
+            if self.network_compression:
+                empty_update_bytes = zlib.compress(empty_update_bytes, zlib.Z_BEST_COMPRESSION)
+
             event.new_client.send_headered(
-                bytes(empty_update, "utf-8")
+                empty_update_bytes
             )
 
             print("no entities, sending empty update")
@@ -279,7 +285,11 @@ class GamemodeServer:
         for sending_client_uuid, sending_client in self.client_sockets.copy().items():
             
             try:
-                compressed_incoming_updates_bytes = sending_client.recv_headered()
+                
+                incoming_updates_bytes = sending_client.recv_headered()
+
+                if self.network_compression:
+                    incoming_updates_bytes = zlib.decompress(incoming_updates_bytes)
 
             except BlockingIOError:
                 continue
@@ -289,8 +299,6 @@ class GamemodeServer:
                 self.trigger(DisconnectedClient(sending_client_uuid))
 
                 continue
-
-            incoming_updates_bytes = zlib.decompress(compressed_incoming_updates_bytes)
 
             incoming_updates = json.loads(incoming_updates_bytes.decode("utf-8"))
             
@@ -318,8 +326,13 @@ class GamemodeServer:
             
             updates_json = json.dumps(updates)
             
+            updates_json_bytes = bytes(updates_json, "utf-8")
+
+            if self.network_compression:
+                zlib.compress(updates_json_bytes, zlib.Z_BEST_COMPRESSION)
+
             self.client_sockets[receiving_client_uuid].send_headered(
-                bytes(updates_json, "utf-8")
+                updates_json_bytes
             )
         
             self.update_queue[receiving_client_uuid] = []

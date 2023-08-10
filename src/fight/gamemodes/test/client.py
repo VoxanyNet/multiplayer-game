@@ -12,8 +12,8 @@ from engine.events import GameStart, Tick
 from engine.tile import Tile
 
 class TestClient(GamemodeClient):
-    def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560):
-        super().__init__(server_ip=server_ip, server_port=server_port)
+    def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560, network_compression: bool = True):
+        super().__init__(server_ip=server_ip, server_port=server_port, network_compression=network_compression)
 
         self.event_subscriptions[Tick] += [
             self.spawn_entity,
