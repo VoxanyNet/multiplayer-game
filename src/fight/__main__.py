@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument("-s", "--server", dest="is_server", help="run server", action="store_true")
 parser.add_argument("--ip", dest="ip", help="specifies the ip to connect / listen to", default=socket.gethostname())
-parser.add_argument("--port", dest="port", help="specifies the port to connect / listen to ", default=5050)
+parser.add_argument("--port", dest="port", help="specifies the port to connect / listen to ", default=5050, type=int)
 
 args = parser.parse_args()
 
@@ -37,4 +37,4 @@ else:
     
     game = TestClient(server_ip=args.ip, server_port=args.port)
 
-    game.run()
+    game.run(network_tick_rate=30)
