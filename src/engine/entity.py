@@ -9,7 +9,7 @@ from rich import print
 
 from engine.unresolved import Unresolved
 from engine.helpers import get_matching_objects, dict_diff
-from engine.events import Tick, TickComplete, TickStart, EntityCreated
+from engine.events import TickComplete, NetworkTick
 
 if TYPE_CHECKING:
     from gamemode_client import GamemodeClient
@@ -31,9 +31,9 @@ class Entity:
         # add entity to the game state automatically
         self.game.entities[self.id] = self
 
-        self.game.event_subscriptions[TickComplete] += [self.detect_updates] 
+        self.game.event_subscriptions[NetworkTick] += [self.detect_updates] 
 
-    def detect_updates(self, event: TickComplete):
+    def detect_updates(self, event: NetworkTick):
         """Compare entity state from last tick to this tick to find differences"""
 
         current_tick_dict = self.serialize(is_new=False)
