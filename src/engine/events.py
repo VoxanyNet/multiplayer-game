@@ -4,14 +4,9 @@ from engine.headered_socket import HeaderedSocket
 
 if TYPE_CHECKING:
     from engine.entity import Entity
-    from engine.physics_entity import PhysicsEntity
 
 class Event:
     pass
-
-class EntityLanded(Event):
-    def __init__(self, entity: Type["PhysicsEntity"]):
-        self.entity = entity
 
 class Tick(Event):
     pass 
