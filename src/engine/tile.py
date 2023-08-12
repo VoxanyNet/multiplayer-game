@@ -45,9 +45,9 @@ class Tile(Entity):
             vertices
         )
     
-    def serialize(self, is_new: bool) -> Dict[str, int | bool | str | list]:
+    def serialize(self) -> Dict[str, int | bool | str | list]:
 
-        data_dict = super().serialize(is_new)
+        data_dict = super().serialize()
 
         if self.body.body_type is pymunk.Body.DYNAMIC:
             body_type_string = "dynamic"

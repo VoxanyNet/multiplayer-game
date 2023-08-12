@@ -36,14 +36,14 @@ class Entity:
     def detect_updates(self, event: NetworkTick):
         """Compare entity state from last tick to this tick to find differences"""
 
-        current_tick_dict = self.serialize(is_new=False)
+        current_tick_dict = self.serialize()
         
         # this indicates that the entity did not exist last tick
         if self.last_tick_dict == {}:
             self.game.network_update(
                 update_type="create",
                 entity_id=self.id,
-                data=self.serialize(is_new=True), # reserialize the entity to include construction parameters
+                data=self.serialize(), # reserialize the entity to include construction parameters
                 entity_type_string=self.game.lookup_entity_type_string(self)
             )
         
@@ -74,7 +74,7 @@ class Entity:
 
             self.__setattr__(attribute_name, resolved_attribute)
 
-    def serialize(self, is_new: bool) -> Dict[str, Union[int, bool, str, list]]:
+    def serialize(self) -> Dict[str, Union[int, bool, str, list]]:
         """Serialize the entity's data"""
 
         data_dict = {
