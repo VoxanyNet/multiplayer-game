@@ -1,4 +1,5 @@
 import random
+import sys
 import time
 import uuid
 import socket
@@ -12,6 +13,7 @@ from pygame import Rect
 import pymunk
 
 from engine import headered_socket
+from engine.headered_socket import Disconnected
 from engine.entity import Entity
 from engine.tile import Tile
 from engine.helpers import get_matching_objects
@@ -170,17 +172,17 @@ class GamemodeClient:
 
         try:
             updates_json_bytes = self.server.recv_headered()
+        except Disconnected:
+            sys.exit(print("Server closed"))
 
-            if self.network_compression:
-                updates_json_bytes = zlib.decompress(updates_json_bytes)
-            
-            updates_json = updates_json_bytes.decode("utf-8")
-
-        except BlockingIOError:
-            # this means that we need to wait until the next tick to receive our updates
-            # this occurs when the server didnt respond fast enough with the updates
-            
+        if updates_json_bytes is None: # this means that there are no new complete updates sent
             return
+
+        if self.network_compression:
+            updates_json_bytes = zlib.decompress(updates_json_bytes)
+        
+        updates_json = updates_json_bytes.decode("utf-8")
+
 
         updates = json.loads(
             updates_json

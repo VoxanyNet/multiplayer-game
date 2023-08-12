@@ -287,17 +287,19 @@ class GamemodeServer:
                 
                 incoming_updates_bytes = sending_client.recv_headered()
 
-                if self.network_compression:
-                    incoming_updates_bytes = zlib.decompress(incoming_updates_bytes)
-
-            except BlockingIOError:
-                continue
-                
             except Disconnected:
 
                 self.trigger(DisconnectedClient(sending_client_uuid))
 
                 continue
+
+            if incoming_updates_bytes is None:
+                continue
+
+            if self.network_compression:
+                incoming_updates_bytes = zlib.decompress(incoming_updates_bytes)
+                
+            
 
             incoming_updates = json.loads(incoming_updates_bytes.decode("utf-8"))
             

@@ -1,4 +1,5 @@
 import socket
+from socket import AddressFamily, SocketKind
 
 
 class InvalidHeader(Exception):
@@ -15,6 +16,12 @@ class PayloadTooLarge(Exception):
 
 # a socket that has the ability to add headers
 class HeaderedSocket(socket.socket):
+
+    def __init__(self, family: AddressFamily | int = -1, type: SocketKind | int = -1, proto: int = -1, fileno: int | None = None) -> None:
+        super().__init__(family, type, proto, fileno)
+
+        self.constructed_data = bytearray()
+        self.payload_length = int
 
     def send_headered(self, data, header_size=7):
 
@@ -35,8 +42,6 @@ class HeaderedSocket(socket.socket):
         if len(str(data_size)) > header_size:
             raise PayloadTooLarge(f"Payload header cannot be more than {header_size} characters")
 
-            return
-
         # create header containing payload size - this header must always be the same size: 7 characters
         # header contains the number of bytes that the json payload is
         # if the number of bytes requires less than 7 characters to represent, we use leading zeros
@@ -50,41 +55,72 @@ class HeaderedSocket(socket.socket):
         self.sendall(headered_data)
 
     def recv_headered(self, header_size=7):
+        
+        # we arent already try to construct a message
+        if len(self.constructed_data) == 0:
+            try:
+                header = self.recv(header_size).decode("utf-8")
 
-        # read the header
+            except BlockingIOError:
+                print("""
+                    ⠀⣞⢽⢪⢣⢣⢣⢫⡺⡵⣝⡮⣗⢷⢽⢽⢽⣮⡷⡽⣜⣜⢮⢺⣜⢷⢽⢝⡽⣝
+                    ⠸⡸⠜⠕⠕⠁⢁⢇⢏⢽⢺⣪⡳⡝⣎⣏⢯⢞⡿⣟⣷⣳⢯⡷⣽⢽⢯⣳⣫⠇
+                    ⠀⠀⢀⢀⢄⢬⢪⡪⡎⣆⡈⠚⠜⠕⠇⠗⠝⢕⢯⢫⣞⣯⣿⣻⡽⣏⢗⣗⠏⠀
+                    ⠀⠪⡪⡪⣪⢪⢺⢸⢢⢓⢆⢤⢀⠀⠀⠀⠀⠈⢊⢞⡾⣿⡯⣏⢮⠷⠁⠀⠀⠀
+                    ⠀⠀⠀⠈⠊⠆⡃⠕⢕⢇⢇⢇⢇⢇⢏⢎⢎⢆⢄⠀⢑⣽⣿⢝⠲⠉⠀⠀⠀⠀
+                    ⠀⠀⠀⠀⠀⡿⠂⠠⠀⡇⢇⠕⢈⣀⠀⠁⠡⠣⡣⡫⣂⣿⠯⢪⠰⠂⠀⠀⠀⠀
+                    ⠀⠀⠀⠀⡦⡙⡂⢀⢤⢣⠣⡈⣾⡃⠠⠄⠀⡄⢱⣌⣶⢏⢊⠂⠀⠀⠀⠀⠀⠀
+                    ⠀⠀⠀⠀⢝⡲⣜⡮⡏⢎⢌⢂⠙⠢⠐⢀⢘⢵⣽⣿⡿⠁⠁⠀⠀⠀⠀⠀⠀⠀
+                    ⠀⠀⠀⠀⠨⣺⡺⡕⡕⡱⡑⡆⡕⡅⡕⡜⡼⢽⡻⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+                    ⠀⠀⠀⠀⣼⣳⣫⣾⣵⣗⡵⡱⡡⢣⢑⢕⢜⢕⡝⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+                    ⠀⠀⠀⣴⣿⣾⣿⣿⣿⡿⡽⡑⢌⠪⡢⡣⣣⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+                    ⠀⠀⠀⡟⡾⣿⢿⢿⢵⣽⣾⣼⣘⢸⢸⣞⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+                    ⠀⠀⠀⠀⠁⠇⠡⠩⡫⢿⣝⡻⡮⣒⢽⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+                    N O  H E A D E R S ?
+                """)
 
-        try:
-            header = self.recv(header_size).decode("utf-8")
+                return None
+
+            except ConnectionResetError:
+                raise Disconnected("Remote socket reset connection")
 
             if header == "":
-                # the socket will return a blank string when the client has sent FIN packet
                 raise Disconnected("Remote socket disconnected")
 
-            # convert header string to int
             try:
-                payload_length = int(header)
+                # replace the old payload length with the new one
+                self.payload_length = int(header)
 
-            # if we cannot convert to int
             except ValueError:
     
                 raise InvalidHeader(f"Sender sent header {header}, which is invalid")
 
-            # represents the final constructed data sent
-            constructed_data = bytearray()
 
-            # until we have received the full payload, we do not stop reading the buffer
-            while len(constructed_data) != payload_length:
-                # read what is currently in the buffer and add it to the constructed_data byte array
-                new_data = self.recv(payload_length - len(constructed_data))
-
-                constructed_data.extend(new_data)
+        while len(self.constructed_data) != self.payload_length:
             
-            return constructed_data
-        
-        except ConnectionResetError:
-            raise Disconnected("Remote socket reset connection")
+            try:
+                new_data = self.recv(self.payload_length - len(self.constructed_data))
 
-        
+            except BlockingIOError:
+
+                print("no new data!")
+
+                return None
+
+            except ConnectionResetError:
+                raise Disconnected("Remote socket reset connection")
+            
+            if header == "":
+                raise Disconnected("Remote socket disconnected")
+            
+            self.constructed_data.extend(new_data)
+
+        # make a copy of the constructed data before resetting it
+        constructed_data = self.constructed_data.copy()
+        # reset constructed data for next batch of data
+        self.constructed_data = bytearray()
+        # this will only return if we get all of the data
+        return constructed_data
 
     # accept() is redefined to return PayloadSockets instead of default ones
     def accept(self):
