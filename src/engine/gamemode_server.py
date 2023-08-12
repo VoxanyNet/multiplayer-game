@@ -207,11 +207,11 @@ class GamemodeServer:
         print("New connecting client")
 
         # make server socket blocking temporarily, because we need this data now
-        self.socket.setblocking(True)
+        event.new_client.setblocking(True)
 
         client_uuid = event.new_client.recv_headered().decode("utf-8")
 
-        self.socket.setblocking(False)
+        event.new_client.setblocking(False)
 
         self.client_sockets[client_uuid] = event.new_client
 
@@ -237,7 +237,7 @@ class GamemodeServer:
 
                 entity_type_string = self.lookup_entity_type_string(entity)
                 
-                data = entity.serialize(is_new=True)
+                data = entity.serialize()
 
                 self.network_update(update_type="create", entity_id=entity.id, data=data, entity_type_string=entity_type_string, destinations=[client_uuid])
                 
