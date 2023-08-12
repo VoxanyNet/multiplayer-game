@@ -298,8 +298,6 @@ class GamemodeServer:
 
             if self.network_compression:
                 incoming_updates_bytes = zlib.decompress(incoming_updates_bytes)
-                
-            
 
             incoming_updates = json.loads(incoming_updates_bytes.decode("utf-8"))
             
@@ -330,7 +328,7 @@ class GamemodeServer:
             updates_json_bytes = bytes(updates_json, "utf-8")
 
             if self.network_compression:
-                zlib.compress(updates_json_bytes, zlib.Z_BEST_COMPRESSION)
+                updates_json_bytes = zlib.compress(updates_json_bytes, zlib.Z_BEST_COMPRESSION)
 
             self.client_sockets[receiving_client_uuid].send_headered(
                 updates_json_bytes

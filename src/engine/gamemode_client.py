@@ -179,7 +179,10 @@ class GamemodeClient:
             return
 
         if self.network_compression:
-            updates_json_bytes = zlib.decompress(updates_json_bytes)
+            try:
+                updates_json_bytes = zlib.decompress(updates_json_bytes)
+            except:
+                pass
         
         updates_json = updates_json_bytes.decode("utf-8")
 
