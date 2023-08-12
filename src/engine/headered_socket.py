@@ -61,6 +61,8 @@ class HeaderedSocket(socket.socket):
             try:
                 header = self.recv(header_size).decode("utf-8")
 
+                print(f"Header: {header}")
+
             except BlockingIOError:
                 print("""
                     ⠀⣞⢽⢪⢣⢣⢣⢫⡺⡵⣝⡮⣗⢷⢽⢽⢽⣮⡷⡽⣜⣜⢮⢺⣜⢷⢽⢝⡽⣝
@@ -110,7 +112,7 @@ class HeaderedSocket(socket.socket):
             except ConnectionResetError:
                 raise Disconnected("Remote socket reset connection")
             
-            if header == "":
+            if new_data == "":
                 raise Disconnected("Remote socket disconnected")
             
             self.constructed_data.extend(new_data)
