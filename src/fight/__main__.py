@@ -11,7 +11,7 @@ from fight.gamemodes.test.server import TestServer
 parser = argparse.ArgumentParser()
 
 parser.add_argument("-s", "--server", dest="is_server", help="run server", action="store_true")
-parser.add_argument("--ip", dest="ip", help="specifies the ip to connect / listen to", default="voxany.net")
+parser.add_argument("--ip", dest="ip", help="specifies the ip to connect to", default="voxany.net")
 parser.add_argument("--port", dest="port", help="specifies the port to connect / listen to ", default=5050, type=int)
 parser.add_argument("--compression", dest="enable_compression", help="enable network compression", action="store_true", default=True)
 
@@ -33,7 +33,7 @@ if args.is_server:
 
     atexit.register(report_server_tick_at_exit)
 
-    server = TestServer(server_ip=args.ip, server_port=args.port, network_compression=args.enable_compression)
+    server = TestServer(server_ip=socket.gethostname(), server_port=args.port, network_compression=args.enable_compression)
 
     server.run(max_tick_rate=60, network_tick_rate=30)
 
