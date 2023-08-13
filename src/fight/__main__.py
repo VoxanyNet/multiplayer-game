@@ -12,7 +12,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument("-s", "--server", dest="is_server", help="run server", action="store_true")
 parser.add_argument("--ip", dest="ip", help="specifies the ip to connect to", default="voxany.net")
-parser.add_argument("--port", dest="port", help="specifies the port to connect / listen to ", default=5060, type=int)
+parser.add_argument("--port", dest="port", help="specifies the port to connect / listen to ", default=5050, type=int)
 parser.add_argument("--compression", dest="enable_compression", help="enable network compression", action="store_true", default=True)
 
 args = parser.parse_args()
