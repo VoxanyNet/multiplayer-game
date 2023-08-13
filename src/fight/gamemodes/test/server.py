@@ -8,6 +8,7 @@ import pymunk
 from engine.gamemode_server import GamemodeServer
 from engine.tile import Tile
 from engine.events import ServerStart
+from fight.gamemodes.test.entities import MoveableTile
 
 class TestServer(GamemodeServer):
     def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560, network_compression: bool = True):
@@ -15,6 +16,7 @@ class TestServer(GamemodeServer):
 
         self.entity_type_map.update(
             {
+                "moveable_tile": MoveableTile
             }
         )
 

@@ -10,6 +10,7 @@ from pymunk import Body, Shape
 from engine.gamemode_client import GamemodeClient
 from engine.events import GameStart, Tick
 from engine.tile import Tile
+from fight.gamemodes.test.entities import MoveableTile
 
 class TestClient(GamemodeClient):
     def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560, network_compression: bool = True):
@@ -20,6 +21,12 @@ class TestClient(GamemodeClient):
             self.report_stats
         ]
 
+        self.entity_type_map.update(
+            {
+                "moveable_tile": MoveableTile
+            }
+        )
+
         #collision_handler = self.space.add_collision_handler(1, 1)
 
         #collision_handler.begin = collision_callback
@@ -28,18 +35,16 @@ class TestClient(GamemodeClient):
         self.last_spawn = 0
     
     def report_stats(self, event: Tick):
-
+        return 
         print(f"Data sent: {(self.sent_bytes / 1000000)} megabytes")
-        print(f"FPS: {1/self.dt}")
         print(f"Entites: {len(self.entities)}")
         print("\n")
     
     def spawn_entity(self, event: Tick):
         
-
-        if time.time() - self.last_spawn < 0.5:
-            pass
-        if pygame.mouse.get_pressed()[0]:
+        if time.time() - self.last_spawn < 0.2:
+            return
+        if pygame.key.get_pressed()[pygame.K_e]:
             body=pymunk.Body(
                 mass=20,
                 moment=10,
@@ -58,7 +63,7 @@ class TestClient(GamemodeClient):
             shape.friction = 0.5
             shape.elasticity = 0.1
             
-            tile = Tile(
+            tile = MoveableTile(
                 body=body,
                 shape=shape,
                 game=self,
