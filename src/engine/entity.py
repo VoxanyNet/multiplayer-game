@@ -24,7 +24,7 @@ class Entity:
         self.last_tick_dict = {}
         
         if id is None:
-            id = str(uuid.uuid4())[0:4]
+            id = str(uuid.uuid4())[0:6]
         
         self.id = id
 
@@ -32,6 +32,21 @@ class Entity:
         self.game.entities[self.id] = self
 
         self.game.event_subscriptions[NetworkTick] += [self.detect_updates] 
+
+    def kill(self):
+        """Remove entity from entity list and remove all event listeners""" 
+
+        # this is kind of a band aid fix, not sure how this should be done
+        if self.updater is self.game.uuid:
+            self.game.network_update(update_type="delete", entity_id=self.id)
+        
+        del self.game.entities[self.id]
+
+        for event, event_listeners in self.game.event_subscriptions.items():
+            for listener in event_listeners:
+                if listener.__self__ is self:
+                    event_listeners.remove(listener)
+
 
     def detect_updates(self, event: NetworkTick):
         """Compare entity state from last tick to this tick to find differences"""
@@ -43,7 +58,7 @@ class Entity:
             self.game.network_update(
                 update_type="create",
                 entity_id=self.id,
-                data=self.serialize(), # reserialize the entity to include construction parameters
+                data=current_tick_dict,
                 entity_type_string=self.game.lookup_entity_type_string(self)
             )
         

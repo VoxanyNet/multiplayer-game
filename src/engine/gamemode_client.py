@@ -216,9 +216,7 @@ class GamemodeClient:
 
                 case "delete":
 
-                    del self.entities[
-                        update["entity_id"]
-                    ]
+                    self.entities[update["entity_id"]].kill()
 
         for entity in self.entities.values():
             entity.resolve()

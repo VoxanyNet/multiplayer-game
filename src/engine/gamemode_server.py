@@ -34,7 +34,7 @@ class GamemodeServer:
         self.socket = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
 
         self.client_sockets: Dict[str, headered_socket.HeaderedSocket] = {}
-        self.entities = {}
+        self.entities: Dict[str, Entity] = {}
         self.entity_type_map: Dict[str, Type[Entity]] = {}
         self.updates_to_load = []
         self.uuid = "server"
@@ -173,9 +173,7 @@ class GamemodeServer:
 
                 case "delete":
 
-                    del self.entities[
-                        update["entity_id"]
-                    ]
+                    self.entities[update["entity_id"]].kill()
             
         self.updates_to_load = []
 
@@ -309,6 +307,8 @@ class GamemodeServer:
 
                 if sending_client_uuid is receiving_client_uuid:
                     continue
+                
+                #print(self.update_queue[receiving_client_uuid])
 
                 self.update_queue[receiving_client_uuid] += incoming_updates
         
@@ -333,6 +333,8 @@ class GamemodeServer:
             self.client_sockets[receiving_client_uuid].send_headered(
                 updates_json_bytes
             )
+
+            print(updates)
         
             self.update_queue[receiving_client_uuid] = []
             

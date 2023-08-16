@@ -1,11 +1,14 @@
 from typing import Dict, Tuple, Union, Type, TYPE_CHECKING, Optional
+import gc
 
 import pymunk
 from pygame import Rect
 import pygame
+from rich import print
 
 from engine.entity import Entity
 from engine.unresolved import Unresolved
+from engine.events import Tick
 
 if TYPE_CHECKING:
     from engine.gamemode_client import GamemodeClient
@@ -23,11 +26,33 @@ class Tile(Entity):
 
         super().__init__(game=game, updater=updater, id=id)
 
+        self.game.event_subscriptions[Tick] += [
+            self.despawn
+        ]
+
         self.body = body 
         self.shape = shape
 
         self.game.space.add(self.body, self.shape)
     
+    def kill(self):
+
+        super().kill()
+
+        self.game.space.remove(self.body, self.shape)
+    
+    def despawn(self, event: Tick):
+        max_x = self.game.screen.get_width()
+        max_y = self.game.screen.get_height()
+
+        if self.body.position.x > max_x or self.body.position.y > max_y:
+            self.kill()
+
+
+
+        
+
+        
     def draw(self):
 
         vertices = []
@@ -106,8 +131,6 @@ class Tile(Entity):
 
         super().update(update_data)
         
-        print(update_data)
-
         for attribute_name, attribute_value in update_data.items():
 
             match attribute_name:
