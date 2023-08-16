@@ -23,11 +23,12 @@ class MoveableTile(Tile):
         self.game.event_subscriptions[Tick] += [
             self.follow_mouse,
             self.create_constraint,
-            self.remove_constraints,
-            self.draw_line
+            self.remove_constraints
         ]
 
-    def draw_line(self, event: Tick):
+    def draw(self):
+
+        super().draw()
 
         if len(self.body.constraints) < 1:
             return 
@@ -36,9 +37,10 @@ class MoveableTile(Tile):
         print(pygame.mouse.get_pos())
         pygame.draw.line(
             self.game.screen, 
-            (0 ,0,0),
+            (255,255,255),
             pygame.mouse.get_pos(),
-            list(self.mouse_body.constraints)[0].a.position
+            list(self.mouse_body.constraints)[0].a.position,
+            width=5
         )
     def follow_mouse(self, event: Tick):
 
