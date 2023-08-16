@@ -87,8 +87,8 @@ class Tile(Entity):
         data_dict.update(
             {   
                 "body": {
-                    "angle": round(self.body.angle, 1),
-                    "position": (round(self.body.position.x, 1), round(self.body.position.y, 1)),
+                    "angle": round(self.body.angle, 4),
+                    "position": (round(self.body.position.x, 4), round(self.body.position.y, 4)),
                     "mass": self.body.mass,
                     "moment": self.body.moment
                 },
