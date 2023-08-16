@@ -35,7 +35,7 @@ if args.is_server:
 
     server = RagdollServer(server_ip=args.ip, server_port=args.port, network_compression=args.enable_compression)
 
-    server.run(max_tick_rate=-1, network_tick_rate=30)
+    server.run(max_tick_rate=-1, network_tick_rate=60)
 
 else:
 
@@ -45,4 +45,4 @@ else:
     
     game = RagdollClient(server_ip=args.ip, server_port=args.port, network_compression=args.enable_compression)
 
-    game.run(max_tick_rate=120,network_tick_rate=30)
+    game.run(max_tick_rate=120,network_tick_rate=60)
