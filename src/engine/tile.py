@@ -34,6 +34,8 @@ class Tile(Entity):
         self.shape = shape
 
         self.game.space.add(self.body, self.shape)
+
+        print(self.body.center_of_gravity)
     
     def kill(self):
 
@@ -69,6 +71,7 @@ class Tile(Entity):
             (255,255,255),
             vertices
         )
+
     
     def serialize(self) -> Dict[str, int | bool | str | list]:
 
@@ -148,6 +151,9 @@ class Tile(Entity):
                                 self.body.position = update_data["body"]["position"]
                             
                             case "mass":
+                                if self.body.body_type is pymunk.Body.STATIC:
+                                    continue
+                                
                                 self.body.mass = update_data["body"]["mass"]
 
                             case "moment":

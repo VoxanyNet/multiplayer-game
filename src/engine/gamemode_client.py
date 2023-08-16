@@ -11,6 +11,7 @@ import zlib
 import pygame
 from pygame import Rect
 import pymunk
+from pymunk import pygame_util
 
 from engine import headered_socket
 from engine.headered_socket import Disconnected
@@ -28,6 +29,7 @@ class GamemodeClient:
         server_port: int = 5560, 
         network_compression: bool = True
     ): 
+
         self.update_history = []
         self.server = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_ip = server_ip
@@ -49,6 +51,7 @@ class GamemodeClient:
             pygame.RESIZABLE
             #pygame.FULLSCREEN
         )
+        #self.draw_options = pygame_util.DrawOptions(self.screen)
 
         self.event_subscriptions[TickComplete] += [
             self.clear_screen
@@ -87,7 +90,9 @@ class GamemodeClient:
         print(f"Test listener responding to {event}")
     def step_space(self, event: Tick):
         """Simulate physics for self.dt amount of time"""
-        self.space.step(self.dt)
+
+        for _ in range(10):
+            self.space.step(self.dt/10)
     
     def measure_dt(self, event: TickStart):
         """Measure the time since the last tick and update self.dt"""
@@ -233,6 +238,8 @@ class GamemodeClient:
                 continue 
  
             entity.draw()
+        
+        #self.space.debug_draw(self.draw_options)
         
         pygame.display.flip()
 
