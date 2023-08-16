@@ -47,7 +47,7 @@ class TestClient(GamemodeClient):
         if pygame.key.get_pressed()[pygame.K_e]:
             body=pymunk.Body(
                 mass=20,
-                moment=10,
+                moment=50,
                 body_type=pymunk.Body.DYNAMIC
             )
 
