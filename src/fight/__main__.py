@@ -5,8 +5,8 @@ import atexit
 import socket
 import json
 
-from fight.gamemodes.ragdoll.client import RagdollClient
-from fight.gamemodes.ragdoll.server import RagdollServer
+from fight.gamemodes.test.client import Client
+from fight.gamemodes.test.server import Server
 
 parser = argparse.ArgumentParser()
 
@@ -33,7 +33,7 @@ if args.is_server:
 
     atexit.register(report_server_tick_at_exit)
 
-    server = RagdollServer(server_ip=args.ip, server_port=args.port, network_compression=args.enable_compression)
+    server = Server(server_ip=args.ip, server_port=args.port, network_compression=args.enable_compression)
 
     server.run(max_tick_rate=-1, network_tick_rate=60)
 
@@ -43,6 +43,6 @@ else:
     atexit.register(save_update_history)
 
     
-    game = RagdollClient(server_ip=args.ip, server_port=args.port, network_compression=args.enable_compression)
+    game = Client(server_ip=args.ip, server_port=args.port, network_compression=args.enable_compression)
 
-    game.run(max_tick_rate=120,network_tick_rate=60)
+    game.run(max_tick_rate=120,network_tick_rate=5)

@@ -1,5 +1,5 @@
-from fight.gamemodes.ragdoll.client import RagdollClient
+from fight.gamemodes.test.client import Client
 
-game = RagdollClient(server_ip="voxany.net", server_port=25580, network_compression=True)
+game = Client(server_ip="voxany.net", server_port=25580, network_compression=True)
 
 game.run(max_tick_rate=-1,network_tick_rate=60)

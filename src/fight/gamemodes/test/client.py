@@ -10,20 +10,20 @@ from pymunk import Body, Shape
 from engine.gamemode_client import GamemodeClient
 from engine.events import GameStart, Tick
 from engine.tile import Tile
-from fight.gamemodes.test.entities import MoveableTile
+from fight.gamemodes.test.entities import ConnectableTile, ConnectableTileMaker
 
-class TestClient(GamemodeClient):
+class Client(GamemodeClient):
     def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560, network_compression: bool = True):
         super().__init__(server_ip=server_ip, server_port=server_port, network_compression=network_compression)
 
         self.event_subscriptions[Tick] += [
-            self.spawn_entity,
-            self.report_stats
+            self.spawn_entity
         ]
 
         self.entity_type_map.update(
             {
-                "moveable_tile": MoveableTile
+                "connectable_tile": ConnectableTile,
+                "connectable_tile_maker": ConnectableTileMaker
             }
         )
 
@@ -34,16 +34,11 @@ class TestClient(GamemodeClient):
 
         self.last_spawn = 0
     
-    def report_stats(self, event: Tick):
-        return 
-        print(f"Data sent: {(self.sent_bytes / 1000000)} megabytes")
-        print(f"Entites: {len(self.entities)}")
-        print("\n")
-    
     def spawn_entity(self, event: Tick):
         
         if time.time() - self.last_spawn < 0.2:
             return
+        
         if pygame.key.get_pressed()[pygame.K_e]:
             body=pymunk.Body(
                 mass=20,
@@ -58,12 +53,10 @@ class TestClient(GamemodeClient):
                 size=(20,20)
             )
 
-            shape.collision_type = 1
-
             shape.friction = 0.5
             shape.elasticity = 0.1
             
-            tile = MoveableTile(
+            tile = ConnectableTile(
                 body=body,
                 shape=shape,
                 game=self,
@@ -72,7 +65,7 @@ class TestClient(GamemodeClient):
 
             self.last_spawn = time.time()
 
-        if pygame.mouse.get_pressed()[2]:
+        if pygame.key.get_pressed()[pygame.K_q]:
             
             body=pymunk.Body(
                 mass=20,
@@ -105,7 +98,8 @@ class TestClient(GamemodeClient):
 
 
     def start(self, event: GameStart):
-        pass
+        
+        tile_maker = ConnectableTileMaker(self,self.uuid)
 
         
 

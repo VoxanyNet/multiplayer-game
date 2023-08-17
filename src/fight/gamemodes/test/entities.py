@@ -1,4 +1,5 @@
 from typing import Optional, Union, Tuple, List, TYPE_CHECKING
+import time
 
 import pygame
 import pymunk
@@ -11,40 +12,158 @@ from engine.gamemode_server import GamemodeServer
 from engine.tile import Tile
 from engine.events import Tick
 
-class MoveableTile(Tile):
-    def __init__(self, body: Body, shape: Shape, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None):
-        super().__init__(body, shape, game, updater, id)
-        
-        # we will add a constraint
-        self.mouse_body = Body(mass=1, moment=1, body_type=pymunk.Body.KINEMATIC)
-
-        self.game.space.add(self.mouse_body)
+class ConnectableTileMaker(Entity):
+    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None):
+        super().__init__(game, updater, id)
 
         self.game.event_subscriptions[Tick] += [
-            self.follow_mouse,
-            self.create_constraint,
-            self.remove_constraints
+            self.set_starting_point,
+            self.spawn_tile
         ]
 
-    def draw(self):
+        self.starting_point: Tuple[int, int] = [0,0]
 
-        super().draw()
+        self.making_tile: bool = False
 
-        if len(self.body.constraints) < 1:
+        self.last_spawn = 0
+
+    def set_starting_point(self, event: Tick):
+        
+        if not pygame.key.get_pressed()[pygame.K_c]:
+            self.making_tile = False 
+
+            return
+
+        if self.making_tile:
+            return
+
+        self.starting_point = pygame.mouse.get_pos()
+
+        self.making_tile = True 
+    
+    def spawn_tile(self, event: Tick):
+
+        if not self.making_tile:
             return 
         
-        print(list(self.mouse_body.constraints)[0].a.position)
-        print(pygame.mouse.get_pos())
-        pygame.draw.line(
-            self.game.screen, 
-            (255,255,255),
-            pygame.mouse.get_pos(),
-            list(self.mouse_body.constraints)[0].a.position,
-            width=5
+        if not pygame.key.get_pressed()[pygame.K_RETURN]:
+            return
+        
+        if time.time() - self.last_spawn < 3:
+            return
+        
+        body=pymunk.Body(
+            body_type=pymunk.Body.STATIC
         )
-    def follow_mouse(self, event: Tick):
 
-        self.mouse_body.position = pygame.mouse.get_pos()
+        center = pygame.Rect([self.starting_point[0], self.starting_point[1], pygame.mouse.get_pos()[0] - self.starting_point[0], pygame.mouse.get_pos()[1] - self.starting_point[1]]).center
+
+        body.position = center
+    
+        shape=pymunk.Poly.create_box(
+            body=body,
+            size=(
+                pygame.mouse.get_pos()[0] - self.starting_point[0],
+                pygame.mouse.get_pos()[1] - self.starting_point[1]
+            )
+        )
+
+        shape.friction = 0.5
+        shape.elasticity = 0.1
+        
+        tile = ConnectableTile(
+            body=body,
+            shape=shape,
+            game=self.game,
+            updater=self.game.uuid
+        )
+
+        self.last_spawn = time.time()
+    
+    def draw(self):
+
+        if not self.making_tile:
+            return
+        
+        pygame.draw.rect(
+            self.game.screen,
+            color=(255,255,255),
+            rect=[self.starting_point[0], self.starting_point[1], pygame.mouse.get_pos()[0] - self.starting_point[0], pygame.mouse.get_pos()[1] - self.starting_point[1]],
+            width=1
+        )
+
+
+        
+        
+
+
+class ConnectableTile(Tile):
+    def __init__(self, body: Body, shape: Shape, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None):
+        super().__init__(body, shape, game, updater, id)
+
+        self.game.event_subscriptions[Tick] += [
+            self.create_constraint,
+            self.freeze,
+            self.unfreeze,
+            self.move
+        ]
+    
+    def draw(self):
+        super().draw()
+        
+    def freeze(self, event: Tick):
+        if not pygame.mouse.get_pressed()[2]:
+            return
+        
+        # shape contains mouse
+        if not self.shape.bb.contains_vect(
+            pygame.mouse.get_pos()
+        ):
+            return
+
+        self.body.body_type = pymunk.Body.STATIC
+    
+    def unfreeze(self, event: Tick):
+        if not pygame.mouse.get_pressed()[1]:
+            return
+        
+        # shape contains mouse
+        if not self.shape.bb.contains_vect(
+            pygame.mouse.get_pos()
+        ):
+            return
+        
+        self.body.body_type = pymunk.Body.DYNAMIC
+        
+        shape_width = self.shape.bb.right- self.shape.bb.left
+        shape_height = self.shape.bb.top - self.shape.bb.bottom
+
+        print(shape_width)
+        print(shape_height)
+
+        self.body.mass = 20
+        moment = pymunk.moment_for_box(
+            self.body.mass,
+            (shape_width, shape_height)
+        )
+
+        print(moment)
+
+        self.body.moment = moment
+    
+    def move(self, event: Tick):
+        if not pygame.mouse.get_pressed()[0]:
+            return
+        
+        # shape contains mouse
+        if not self.shape.bb.contains_vect(
+            pygame.mouse.get_pos()
+        ):
+            return
+        
+        self.body.position = pygame.mouse.get_pos()
+        self.body.velocity = (0,0)
+        self.body.angle = 0
 
     def create_constraint(self, event: Tick):
 
@@ -57,30 +176,3 @@ class MoveableTile(Tile):
             pygame.mouse.get_pos()
         ):
             return
-
-        # already have constraints
-        if len(self.body.constraints) > 0:
-            return
-
-        print("created spring") 
-        constraint = DampedSpring(
-            a=self.body, 
-            b=self.mouse_body, 
-            anchor_a=self.body.center_of_gravity, 
-            anchor_b=self.mouse_body.center_of_gravity,
-            rest_length=100,
-            stiffness=1000,
-            damping=50
-        )
-
-        self.game.space.add(constraint)
-
-        print("picking up!")
-    
-    def remove_constraints(self, event: Tick):
-        
-        if not pygame.mouse.get_pressed()[0]:
-            
-            for constraint in self.mouse_body.constraints:
-                print("removing constraints")
-                self.game.space.remove(constraint)
