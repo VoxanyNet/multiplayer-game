@@ -8,7 +8,7 @@ import pymunk
 from engine.gamemode_server import GamemodeServer
 from engine.tile import Tile
 from engine.events import ServerStart
-from fight.gamemodes.test.entities import ConnectableTile, ConnectableTileMaker
+from fight.gamemodes.test.entities import FreezableTile, FreezableTileMaker
 
 class Server(GamemodeServer):
     def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560, network_compression: bool = True):
@@ -16,8 +16,8 @@ class Server(GamemodeServer):
 
         self.entity_type_map.update(
             {
-                "connectable_tile": ConnectableTile,
-                "connectable_tile_maker": ConnectableTileMaker
+                "freezable_tile": FreezableTile,
+                "freezable_tile_maker": FreezableTileMaker
             }
         )
 

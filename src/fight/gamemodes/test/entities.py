@@ -12,7 +12,7 @@ from engine.gamemode_server import GamemodeServer
 from engine.tile import Tile
 from engine.events import Tick
 
-class ConnectableTileMaker(Entity):
+class FreezableTileMaker(Entity):
     def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None):
         super().__init__(game, updater, id)
 
@@ -71,7 +71,7 @@ class ConnectableTileMaker(Entity):
         shape.friction = 0.5
         shape.elasticity = 0.1
         
-        tile = ConnectableTile(
+        tile = FreezableTile(
             body=body,
             shape=shape,
             game=self.game,
@@ -93,11 +93,7 @@ class ConnectableTileMaker(Entity):
         )
 
 
-        
-        
-
-
-class ConnectableTile(Tile):
+class FreezableTile(Tile):
     def __init__(self, body: Body, shape: Shape, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None):
         super().__init__(body, shape, game, updater, id)
 

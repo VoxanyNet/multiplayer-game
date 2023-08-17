@@ -10,7 +10,7 @@ from pymunk import Body, Shape
 from engine.gamemode_client import GamemodeClient
 from engine.events import GameStart, Tick
 from engine.tile import Tile
-from fight.gamemodes.test.entities import ConnectableTile, ConnectableTileMaker
+from fight.gamemodes.test.entities import FreezableTile, FreezableTileMaker
 
 class Client(GamemodeClient):
     def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560, network_compression: bool = True):
@@ -22,8 +22,8 @@ class Client(GamemodeClient):
 
         self.entity_type_map.update(
             {
-                "connectable_tile": ConnectableTile,
-                "connectable_tile_maker": ConnectableTileMaker
+                "freezable_tile": FreezableTile,
+                "freezable_tile_maker": FreezableTileMaker
             }
         )
 
@@ -56,7 +56,7 @@ class Client(GamemodeClient):
             shape.friction = 0.5
             shape.elasticity = 0.1
             
-            tile = ConnectableTile(
+            tile = FreezableTile(
                 body=body,
                 shape=shape,
                 game=self,
@@ -99,7 +99,7 @@ class Client(GamemodeClient):
 
     def start(self, event: GameStart):
         
-        tile_maker = ConnectableTileMaker(self,self.uuid)
+        tile_maker = FreezableTileMaker(self,self.uuid)
 
         
 
