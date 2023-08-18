@@ -51,7 +51,7 @@ class GamemodeClient:
             pygame.RESIZABLE
             #pygame.FULLSCREEN
         )
-        #self.draw_options = pygame_util.DrawOptions(self.screen)
+        self.draw_options = pygame_util.DrawOptions(self.screen)
 
         self.event_subscriptions[TickComplete] += [
             self.clear_screen
@@ -239,7 +239,7 @@ class GamemodeClient:
  
             entity.draw()
         
-        #self.space.debug_draw(self.draw_options)
+        self.space.debug_draw(self.draw_options)
         
         pygame.display.flip()
 
