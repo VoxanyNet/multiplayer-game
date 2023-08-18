@@ -30,6 +30,8 @@ class Client(GamemodeClient):
             }
         )
 
+        self.boundry_rect = boundry_rect = Rect(0,0,1280,720)
+
         #collision_handler = self.space.add_collision_handler(1, 1)
 
         #collision_handler.begin = collision_callback
@@ -105,11 +107,5 @@ class Client(GamemodeClient):
         tile_maker = FreezableTileMaker(self,self.uuid)
 
         player = Player(self, updater=self.uuid)
-
-        floor_body = Body(body_type=pymunk.Body.STATIC)
-        floor_shape=pymunk.Poly.create_box(body=floor_body,size=(1000,20))
-        floor_shape.friction = 1
-        floor_body.position = (self.screen.get_bounding_rect().centerx, self.screen.get_bounding_rect().bottom - 10)
-        floor = Tile(body=floor_body, game=self, shape=floor_shape, updater=self.uuid)
         
 

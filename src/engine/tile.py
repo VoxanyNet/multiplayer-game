@@ -44,8 +44,10 @@ class Tile(Entity):
         self.game.space.remove(self.body, self.shape)
     
     def despawn(self, event: Tick):
-        max_x = self.game.screen.get_width()
-        max_y = self.game.screen.get_height()
+        # FIX ME!!!
+        return
+        max_x = self.game.boundry_rect.right - self.game.boundry_rect.left
+        max_y = self.game.boundry_rect.get_height()
 
         if self.body.position.x > max_x or self.body.position.y > max_y:
             self.kill()
