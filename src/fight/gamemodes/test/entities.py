@@ -123,14 +123,14 @@ class Player(Tile):
         
         # move right
         if pygame.key.get_pressed()[pygame.K_d]:
-            print("right!")
+            #print("right!")
             self.body.apply_force_at_local_point(
                 (1000000,0),
                 self.body.center_of_gravity
             )
         
         if pygame.key.get_pressed()[pygame.K_a]:
-            print("left")
+            #print("left")
             self.body.apply_force_at_local_point(
                 (-1000000,0),
                 self.body.center_of_gravity

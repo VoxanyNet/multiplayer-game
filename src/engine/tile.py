@@ -89,9 +89,10 @@ class Tile(Entity):
                 "body": {
                     "angle": round(self.body.angle, 4),
                     "position": (round(self.body.position.x, 4), round(self.body.position.y, 4)),
-                    "mass": self.body.mass,
+                    #"mass": self.body.mass,
                     "moment": self.body.moment,
-                    "type": body_type_string
+                    "type": "kinematic",
+                    "velocity": (round(self.body.velocity.x, 6), round(self.body.velocity.y, 6))
                 },
                 "shape": {
                     "vertices": self.shape.get_vertices(),
@@ -121,13 +122,14 @@ class Tile(Entity):
                 body_type = pymunk.Body.KINEMATIC
         
         body = pymunk.Body(
-            mass=entity_data["body"]["mass"],
+            #mass=entity_data["body"]["mass"],
             moment=entity_data["body"]["moment"],
             body_type=body_type
         )
 
         body.position = entity_data["body"]["position"]
         body.angle = entity_data["body"]["angle"]
+        body.velocity = entity_data["body"]["velocity"]
 
         entity_data["body"] = body
 
@@ -156,6 +158,9 @@ class Tile(Entity):
                     for sub_attribute_name, sub_attribute_value in attribute_value.items():
 
                         match sub_attribute_name:
+
+                            case "velocity":
+                                self.body.velocity = update_data["body"]["velocity"]
 
                             case "angle":
                                 self.body.angle = update_data["body"]["angle"]
