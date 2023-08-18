@@ -92,7 +92,68 @@ class FreezableTileMaker(Entity):
             width=1
         )
 
+class Player(Tile):
+    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, body: Body = None, shape: Shape = None, weapon: "Weapon" = None, id: str | None = None):
+        
+        if body is None or shape is None:
+            body=pymunk.Body(
+                mass=20,
+                moment=float("inf"),
+                body_type=pymunk.Body.DYNAMIC
+            )
 
+            body.position = game.screen.get_bounding_rect().center
+    
+            shape=pymunk.Poly.create_box(
+                body=body,
+                size=(20,40)
+            )
+
+            shape.friction = 0.5
+
+        super().__init__(body, shape, game, updater, id)
+
+        self.weapon: Weapon = weapon
+
+        self.game.event_subscriptions[Tick] += [
+            self.handle_keys
+        ]
+    
+    def handle_keys(self, event: Tick):
+        
+        # move right
+        if pygame.key.get_pressed()[pygame.K_d]:
+            print("right!")
+            self.body.apply_force_at_local_point(
+                (1000000,0),
+                self.body.center_of_gravity
+            )
+        
+        if pygame.key.get_pressed()[pygame.K_a]:
+            print("left")
+            self.body.apply_force_at_local_point(
+                (-1000000,0),
+                self.body.center_of_gravity
+            )
+        
+        if pygame.key.get_pressed()[pygame.K_SPACE]:
+            print("jump")
+
+            if self.body.velocity.y != 0:
+                return 
+            
+            self.body.apply_impulse_at_local_point(
+                (0,-10000),
+                self.body.center_of_gravity
+            )
+    
+class Weapon(Tile):
+    def __init__(self, body: Body, shape: Shape, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None):
+        super().__init__(body, shape, game, updater, id)
+
+class Bullet(Tile):
+    def __init__(self, body: Body, shape: Shape, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None):
+        super().__init__(body, shape, game, updater, id)
 class FreezableTile(Tile):
     def __init__(self, body: Body, shape: Shape, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None):
         super().__init__(body, shape, game, updater, id)
