@@ -45,4 +45,4 @@ else:
     
     game = Client(server_ip=args.ip, server_port=args.port, network_compression=args.enable_compression)
 
-    game.run(max_tick_rate=120,network_tick_rate=5)
+    game.run(max_tick_rate=120,network_tick_rate=60)
