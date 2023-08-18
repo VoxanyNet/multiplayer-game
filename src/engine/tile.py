@@ -83,14 +83,15 @@ class Tile(Entity):
             body_type_string = "static"
         elif self.body.body_type is pymunk.Body.KINEMATIC:
             body_type_string = "kinematic"
-        
+
         data_dict.update(
             {   
                 "body": {
                     "angle": round(self.body.angle, 4),
                     "position": (round(self.body.position.x, 4), round(self.body.position.y, 4)),
                     "mass": self.body.mass,
-                    "moment": self.body.moment
+                    "moment": self.body.moment,
+                    "type": body_type_string
                 },
                 "shape": {
                     "vertices": self.shape.get_vertices(),
@@ -107,14 +108,26 @@ class Tile(Entity):
     @classmethod
     def create(self, entity_data: Dict[str, Union[int, bool, str, list]], entity_id: str, game: Union["GamemodeClient", "GamemodeServer"]) -> Type["Tile"]:
         """Translate serialized entity data into an actual Tile object"""
+
+        match entity_data["body"]["type"]:
+
+            case "dynamic":
+                body_type = pymunk.Body.DYNAMIC
+            
+            case "static":
+                body_type = pymunk.Body.STATIC
+
+            case "kinematic":
+                body_type = pymunk.Body.KINEMATIC
         
         body = pymunk.Body(
             mass=entity_data["body"]["mass"],
             moment=entity_data["body"]["moment"],
-            body_type=pymunk.Body.STATIC # if we dont own the tile, we dont want to simulate its position
+            body_type=body_type
         )
 
         body.position = entity_data["body"]["position"]
+        body.angle = entity_data["body"]["angle"]
 
         entity_data["body"] = body
 
@@ -158,6 +171,21 @@ class Tile(Entity):
 
                             case "moment":
                                 self.body.moment = update_data["body"]["moment"]
+                            
+                            case "type":
+
+                                match update_data["body"]["type"]:
+
+                                    case "dynamic":
+                                        body_type = pymunk.Body.DYNAMIC
+                                    
+                                    case "static":
+                                        body_type = pymunk.Body.STATIC
+
+                                    case "kinematic":
+                                        body_type = pymunk.Body.KINEMATIC
+
+                                self.body.body_type = body_type
 
                 case "shape":
 
