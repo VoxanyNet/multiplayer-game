@@ -1,4 +1,4 @@
-from typing import Optional, Union, Tuple, List, TYPE_CHECKING
+from typing import Dict, Optional, Type, Union, Tuple, List, TYPE_CHECKING
 import time
 
 import pygame
@@ -10,7 +10,8 @@ from engine.entity import Entity
 from engine.gamemode_client import GamemodeClient
 from engine.gamemode_server import GamemodeServer
 from engine.tile import Tile
-from engine.events import Tick
+from engine.events import Tick, NewEntity
+from engine.unresolved import Unresolved
 
 class FreezableTileMaker(Entity):
     def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None):
@@ -118,7 +119,56 @@ class Player(Tile):
         self.game.event_subscriptions[Tick] += [
             self.handle_keys
         ]
+
+        self.game.event_subscriptions[NewEntity] += [
+            self.constrain_weapon
+        ]
+
+    def constrain_weapon(self, event: Tick):
+        if not self.weapon:
+            return 
+        
+        # already has constraint
+        if len(self.weapon.body.constraints) > 0:
+            return
+        
+        weapon_constraint = pymunk.constraints.PinJoint(self.body, self.weapon.body)
+        weapon_constraint.collide_bodies = False
+        self.game.space.add(weapon_constraint)
+        
+    def serialize(self) -> Dict[str, int | bool | str | list]:
+        data_dict = super().serialize()
+
+        if self.weapon:
+            data_dict["weapon"] = self.weapon.id
+        else:
+            data_dict["weapon"] = None
+        
+        return data_dict
+        
+    @classmethod
+    def create(self, entity_data: Dict[str, int | bool | str | list], entity_id: str, game: GamemodeClient | GamemodeServer) -> type[Tile]:
+        
+        if entity_data["weapon"]:
+            entity_data["weapon"] = Unresolved(entity_data["weapon"])
+        else:
+            entity_data["weapon"] = None
+
+        return super().create(entity_data, entity_id, game)
     
+    def update(self, update_data: dict):
+        super().update(update_data)
+        
+        for attribute_name, attribute_value in update_data.items():
+
+            match attribute_name:
+                
+                case "weapon":
+
+                    if attribute_value:
+                        self.weapon = Unresolved(update_data["weapon"])
+                    self.weapon = None
+        
     def handle_keys(self, event: Tick):
         
         # move right
@@ -148,12 +198,115 @@ class Player(Tile):
             )
     
 class Weapon(Tile):
-    def __init__(self, body: Body, shape: Shape, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None):
+    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, player: Optional[Player] = None, body: Body = None, shape: Shape = None, id: str | None = None):
+        body = Body(
+            body_type=pymunk.Body.KINEMATIC
+        )
+
+        shape = pymunk.Poly.create_box(
+            body=body,
+            size=(30,10)
+        ) 
+
         super().__init__(body, shape, game, updater, id)
 
+        self.game.event_subscriptions[Tick] += [
+            self.follow_player,
+            self.aim
+        ]
+
+        self.player = player
+    
+    def follow_player(self, event: Tick):
+        if not self.player:
+            return 
+        
+        self.body.velocity = self.player.body.velocity
+        self.body.position = self.player.body.position
+    
+    def aim(self, event: Tick):
+        if not self.player:
+            return
+
+        mouse_distance = (pygame.mouse.get_pos()[0] - self.body.position.x, pygame.mouse.get_pos()[1] - self.body.position.y)
+
+        print(mouse_distance)
+
+
+    def serialize(self) -> Dict[str, int | bool | str | list]:
+        data_dict = super().serialize()
+
+        if self.player:
+            data_dict["player"] = self.player.id
+        else:
+            data_dict['player'] = None
+
+        return data_dict
+    
+    def update(self, update_data: dict):
+        super().update(update_data)
+
+        for attribute_name, attribute_value in update_data.items():
+
+            match attribute_name:
+
+                case "player":
+                    
+                    if attribute_value:
+                        self.player = attribute_value
+                    else:
+                        self.player = None
+    
+    @classmethod
+    def create(self, entity_data: Dict[str, int | bool | str | list], entity_id: str, game: GamemodeClient | GamemodeServer) -> type[Tile]:
+        
+        if entity_data["player"]:
+            entity_data["player"] = Unresolved(entity_data["player"])
+        else:
+            entity_data["player"] = None
+        
+        return super().create(entity_data, entity_id, game)
+        
+
 class Bullet(Tile):
-    def __init__(self, body: Body, shape: Shape, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None):
+    def __init__(self, weapon: Weapon, body: Body, shape: Shape, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None):
         super().__init__(body, shape, game, updater, id)
+
+        self.weapon = weapon 
+    
+    def serialize(self) -> Dict[str, int | bool | str | list]:
+        data_dict = super().serialize()
+
+        if self.weapon:
+            data_dict["weapon"] = self.weapon.id
+        
+        else:
+            data_dict["weapon"] = None
+
+        return data_dict
+
+    def update(self, update_data: dict):
+        super().update(update_data)
+
+        for attribute_name, attribute_value in update_data.items():
+            match attribute_name:
+                case "weapon":
+
+                    if attribute_value:
+                        self.weapon = Unresolved(attribute_value)
+                    else:
+                        self.weapon = attribute_value
+    
+    @classmethod
+    def create(self, entity_data: Dict[str, int | bool | str | list], entity_id: str, game: GamemodeClient | GamemodeServer) -> type[Tile]:
+        
+        if entity_data["weapon"]:
+            entity_data["weapon"] = Unresolved(entity_data["weapon"])
+        else:
+            entity_data["weapon"] = None
+        
+        return super().create(entity_data, entity_id, game)
+
 class FreezableTile(Tile):
     def __init__(self, body: Body, shape: Shape, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None):
         super().__init__(body, shape, game, updater, id)
