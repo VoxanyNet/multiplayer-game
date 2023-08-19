@@ -148,8 +148,6 @@ class Tile(Entity):
                             
                             case "position":
                                 self.body.position = sub_attribute_value
-                                
-                                self.body.mass = sub_attribute_value
 
                 case "shape":
 
