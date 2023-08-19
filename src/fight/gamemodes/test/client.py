@@ -106,6 +106,10 @@ class Client(GamemodeClient):
         
         tile_maker = FreezableTileMaker(self,self.uuid)
 
-        player = Player(self, updater=self.uuid)
+        weapon=Weapon(self, updater=self.uuid)
+
+        player = Player(self, updater=self.uuid, weapon=weapon)
+
+        weapon.player = player
         
 
