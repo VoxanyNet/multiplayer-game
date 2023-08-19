@@ -48,3 +48,7 @@ class EntityCreated(Event):
 
 class NetworkTick(Event):
     pass
+
+class NewEntity(Event):
+    def __init__(self, new_entity: Type["Entity"]):
+        self.new_entity = new_entity

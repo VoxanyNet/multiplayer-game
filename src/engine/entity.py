@@ -9,7 +9,7 @@ from rich import print
 
 from engine.unresolved import Unresolved
 from engine.helpers import get_matching_objects, dict_diff
-from engine.events import TickComplete, NetworkTick
+from engine.events import TickComplete, NetworkTick, NewEntity
 
 if TYPE_CHECKING:
     from gamemode_client import GamemodeClient
@@ -32,6 +32,8 @@ class Entity:
         self.game.entities[self.id] = self
 
         self.game.event_subscriptions[NetworkTick] += [self.detect_updates] 
+
+        self.game.trigger(NewEntity(new_entity=self))
 
     def kill(self):
         """Remove entity from entity list and remove all event listeners""" 
