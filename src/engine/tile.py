@@ -79,21 +79,12 @@ class Tile(Entity):
 
         data_dict = super().serialize()
 
-        if self.body.body_type is pymunk.Body.DYNAMIC:
-            body_type_string = "dynamic"
-        elif self.body.body_type is pymunk.Body.STATIC:
-            body_type_string = "static"
-        elif self.body.body_type is pymunk.Body.KINEMATIC:
-            body_type_string = "kinematic"
-
         data_dict.update(
             {   
                 "body": {
                     "angle": round(self.body.angle, 4),
                     "position": (round(self.body.position.x, 4), round(self.body.position.y, 4)),
-                    #"mass": self.body.mass,
                     "moment": self.body.moment,
-                    "type": "kinematic",
                     "velocity": (round(self.body.velocity.x, 6), round(self.body.velocity.y, 6))
                 },
                 "shape": {
@@ -111,22 +102,10 @@ class Tile(Entity):
     @classmethod
     def create(self, entity_data: Dict[str, Union[int, bool, str, list]], entity_id: str, game: Union["GamemodeClient", "GamemodeServer"]) -> Type["Tile"]:
         """Translate serialized entity data into an actual Tile object"""
-
-        match entity_data["body"]["type"]:
-
-            case "dynamic":
-                body_type = pymunk.Body.DYNAMIC
-            
-            case "static":
-                body_type = pymunk.Body.STATIC
-
-            case "kinematic":
-                body_type = pymunk.Body.KINEMATIC
         
         body = pymunk.Body(
-            #mass=entity_data["body"]["mass"],
             moment=entity_data["body"]["moment"],
-            body_type=body_type
+            body_type=pymunk.Body.KINEMATIC
         )
 
         body.position = entity_data["body"]["position"]
@@ -162,37 +141,15 @@ class Tile(Entity):
                         match sub_attribute_name:
 
                             case "velocity":
-                                self.body.velocity = update_data["body"]["velocity"]
+                                self.body.velocity = sub_attribute_value
 
                             case "angle":
-                                self.body.angle = update_data["body"]["angle"]
+                                self.body.angle = sub_attribute_value 
                             
                             case "position":
-                                self.body.position = update_data["body"]["position"]
-                            
-                            case "mass":
-                                if self.body.body_type is pymunk.Body.STATIC:
-                                    continue
+                                self.body.position = sub_attribute_value
                                 
-                                self.body.mass = update_data["body"]["mass"]
-
-                            case "moment":
-                                self.body.moment = update_data["body"]["moment"]
-                            
-                            case "type":
-
-                                match update_data["body"]["type"]:
-
-                                    case "dynamic":
-                                        body_type = pymunk.Body.DYNAMIC
-                                    
-                                    case "static":
-                                        body_type = pymunk.Body.STATIC
-
-                                    case "kinematic":
-                                        body_type = pymunk.Body.KINEMATIC
-
-                                self.body.body_type = body_type
+                                self.body.mass = sub_attribute_value
 
                 case "shape":
 
@@ -206,10 +163,10 @@ class Tile(Entity):
                                 pass
 
                             case "friction":
-                                self.shape.friction = update_data["shape"]["friction"]
+                                self.shape.friction = sub_attribute_value
                             
                             case "elasticity":
-                                self.shape.elasticity = update_data["shape"]["elasticity"]
+                                self.shape.elasticity = sub_attribute_value
 
 
 
