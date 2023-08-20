@@ -45,7 +45,7 @@ class Entity:
         del self.game.entities[self.id]
 
         for event, event_listeners in self.game.event_subscriptions.items():
-            for listener in event_listeners:
+            for listener in event_listeners.copy():          
                 if listener.__self__ is self:
                     event_listeners.remove(listener)
 
