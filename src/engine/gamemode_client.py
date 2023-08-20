@@ -20,6 +20,7 @@ from engine.tile import Tile
 from engine.helpers import get_matching_objects
 from engine.exceptions import InvalidUpdateType, MalformedUpdate
 from engine.events import Tick, Event, TickComplete, GameStart, TickStart, ScreenCleared, NetworkTick
+from engine import events
 
 
 class GamemodeClient:
@@ -68,6 +69,7 @@ class GamemodeClient:
 
         self.event_subscriptions[Tick] += [
             self.increment_tick_counter,
+            self.trigger_input_events,
             self.step_space,
             self.receive_network_updates # we dont put this on NetworkTick because we just want to receive updates ASAP
         ]
@@ -88,6 +90,110 @@ class GamemodeClient:
 
     def test_listener(self, event: Type[Event]):
         print(f"Test listener responding to {event}")
+    
+    def trigger_input_events(self, event: Tick):
+        
+        # mouse
+        mouse = pygame.mouse.get_pressed()
+
+        if mouse[0]:
+            self.trigger(events.MouseLeftClick())
+        
+        if mouse[1]:
+            self.trigger(events.MouseMiddleClick())
+        
+        if mouse[2]:
+            self.trigger(events.MouseRightClick())
+        
+        # keyboard
+        keys = pygame.key.get_pressed()
+
+        if keys[pygame.K_a]:
+            self.trigger(events.KeyA())
+
+        if keys[pygame.K_b]:
+            self.trigger(events.KeyB())
+
+        if keys[pygame.K_c]:
+            self.trigger(events.KeyC())
+
+        if keys[pygame.K_d]:
+            self.trigger(events.KeyD())
+
+        if keys[pygame.K_e]:
+            self.trigger(events.KeyE())
+
+        if keys[pygame.K_f]:
+            self.trigger(events.KeyF())
+
+        if keys[pygame.K_g]:
+            self.trigger(events.KeyG())
+
+        if keys[pygame.K_h]:
+            self.trigger(events.KeyH())
+
+        if keys[pygame.K_i]:
+            self.trigger(events.KeyI())
+
+        if keys[pygame.K_j]:
+            self.trigger(events.KeyJ())
+
+        if keys[pygame.K_k]:
+            self.trigger(events.KeyK())
+
+        if keys[pygame.K_l]:
+            self.trigger(events.KeyL())
+
+        if keys[pygame.K_m]:
+            self.trigger(events.KeyM())
+
+        if keys[pygame.K_n]:
+            self.trigger(events.KeyN())
+
+        if keys[pygame.K_o]:
+            self.trigger(events.KeyO())
+
+        if keys[pygame.K_p]:
+            self.trigger(events.KeyP())
+
+        if keys[pygame.K_q]:
+            self.trigger(events.KeyQ())
+
+        if keys[pygame.K_r]:
+            self.trigger(events.KeyR())
+
+        if keys[pygame.K_s]:
+            self.trigger(events.KeyS())
+
+        if keys[pygame.K_t]:
+            self.trigger(events.KeyT())
+
+        if keys[pygame.K_u]:
+            self.trigger(events.KeyU())
+
+        if keys[pygame.K_v]:
+            self.trigger(events.KeyV())
+
+        if keys[pygame.K_w]:
+            self.trigger(events.KeyW())
+
+        if keys[pygame.K_x]:
+            self.trigger(events.KeyX())
+
+        if keys[pygame.K_y]:
+            self.trigger(events.KeyY())
+
+        if keys[pygame.K_z]:
+            self.trigger(events.KeyZ())
+        
+        if keys[pygame.K_RETURN]:
+            self.trigger(events.KeyReturn())
+
+        if keys[pygame.K_SPACE]:
+            self.trigger(events.KeySpace())
+        
+        
+
     def step_space(self, event: Tick):
         """Simulate physics for self.dt amount of time"""
 

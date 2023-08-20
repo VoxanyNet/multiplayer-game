@@ -52,3 +52,96 @@ class NetworkTick(Event):
 class NewEntity(Event):
     def __init__(self, new_entity: Type["Entity"]):
         self.new_entity = new_entity
+
+class KeyA(Event):
+    pass
+
+class KeyB(Event):
+    pass
+
+class KeyC(Event):
+    pass
+
+class KeyD(Event):
+    pass
+
+class KeyE(Event):
+    pass
+
+class KeyF(Event):
+    pass
+
+class KeyG(Event):
+    pass
+
+class KeyH(Event):
+    pass
+
+class KeyI(Event):
+    pass
+
+class KeyJ(Event):
+    pass
+
+class KeyK(Event):
+    pass
+
+class KeyL(Event):
+    pass
+
+class KeyM(Event):
+    pass
+
+class KeyN(Event):
+    pass
+
+class KeyO(Event):
+    pass
+
+class KeyP(Event):
+    pass
+
+class KeyQ(Event):
+    pass
+
+class KeyR(Event):
+    pass
+
+class KeyS(Event):
+    pass
+
+class KeyT(Event):
+    pass
+
+class KeyU(Event):
+    pass
+
+class KeyV(Event):
+    pass
+
+class KeyW(Event):
+    pass 
+
+class KeyX(Event):
+    pass
+
+class KeyY(Event):
+    pass
+
+class KeyZ(Event):
+    pass
+
+class KeySpace(Event):
+    pass
+
+class KeyReturn(Event):
+    pass
+
+class MouseLeftClick(Event):
+    pass
+
+class MouseMiddleClick(Event):
+    pass 
+
+class MouseRightClick(Event):
+    pass
