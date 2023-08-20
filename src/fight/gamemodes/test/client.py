@@ -9,6 +9,7 @@ from pymunk import Body, Shape
 
 from engine.gamemode_client import GamemodeClient
 from engine.events import GameStart, Tick
+from engine import events
 from engine.tile import Tile
 from fight.gamemodes.test.entities import FreezableTile, FreezableTileMaker, Player, Weapon, Bullet
 
@@ -16,7 +17,7 @@ class Client(GamemodeClient):
     def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560, network_compression: bool = True):
         super().__init__(server_ip=server_ip, server_port=server_port, network_compression=network_compression)
 
-        self.event_subscriptions[Tick] += [
+        self.event_subscriptions[events.KeyE] += [
             self.spawn_entity
         ]
 
@@ -39,7 +40,7 @@ class Client(GamemodeClient):
 
         self.last_spawn = 0
     
-    def spawn_entity(self, event: Tick):
+    def spawn_entity(self, event: events.KeyE):
         
         if time.time() - self.last_spawn < 0.2:
             return
@@ -106,10 +107,16 @@ class Client(GamemodeClient):
         
         tile_maker = FreezableTileMaker(self,self.uuid)
 
+        player = Player(self, updater=self.uuid)
+
         weapon=Weapon(self, updater=self.uuid)
 
-        player = Player(self, updater=self.uuid, weapon=weapon)
+        weapon.body.position = (
+            player.body.position.x + 100,
+            player.body.position.y + 100
+        )
 
+        player.weapon = weapon
         weapon.player = player
         
 

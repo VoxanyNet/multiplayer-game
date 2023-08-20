@@ -1,12 +1,15 @@
 from typing import Dict, Optional, Type, Union, Tuple, List, TYPE_CHECKING
 import time
+import math
 
 import pygame
 import pymunk
+from pymunk import Vec2d
 from pymunk import Shape, Body
 from pymunk.constraints import DampedSpring
 
 from engine.entity import Entity
+from engine import events
 from engine.gamemode_client import GamemodeClient
 from engine.gamemode_server import GamemodeServer
 from engine.tile import Tile
@@ -17,9 +20,12 @@ class FreezableTileMaker(Entity):
     def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None):
         super().__init__(game, updater, id)
 
-        self.game.event_subscriptions[Tick] += [
-            self.set_starting_point,
+        self.game.event_subscriptions[events.KeyReturn] += [
             self.spawn_tile
+        ]
+
+        self.game.event_subscriptions[Tick] += [
+            self.set_starting_point
         ]
 
         self.starting_point: Tuple[int, int] = [0,0]
@@ -42,13 +48,10 @@ class FreezableTileMaker(Entity):
 
         self.making_tile = True 
     
-    def spawn_tile(self, event: Tick):
+    def spawn_tile(self, event: events.KeyReturn):
 
         if not self.making_tile:
             return 
-        
-        if not pygame.key.get_pressed()[pygame.K_RETURN]:
-            return
         
         if time.time() - self.last_spawn < 3:
             return
@@ -118,10 +121,6 @@ class Player(Tile):
 
         self.game.event_subscriptions[Tick] += [
             self.handle_keys
-        ]
-
-        self.game.event_subscriptions[NewEntity] += [
-            self.constrain_weapon
         ]
 
     def constrain_weapon(self, event: Tick):
@@ -199,6 +198,7 @@ class Player(Tile):
     
 class Weapon(Tile):
     def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, player: Optional[Player] = None, body: Body = None, shape: Shape = None, id: str | None = None):
+
         body = Body(
             body_type=pymunk.Body.KINEMATIC
         )
@@ -211,27 +211,58 @@ class Weapon(Tile):
         super().__init__(body, shape, game, updater, id)
 
         self.game.event_subscriptions[Tick] += [
-            self.follow_player,
-            self.aim
+            self.aim,
+            self.follow_player
+        ]
+
+        self.game.event_subscriptions[events.MouseLeftClick] += [
+            self.shoot
         ]
 
         self.player = player
-    
-    def follow_player(self, event: Tick):
-        if not self.player:
-            return 
-        
-        self.body.velocity = self.player.body.velocity
-        self.body.position = self.player.body.position
     
     def aim(self, event: Tick):
         if not self.player:
             return
 
-        mouse_distance = (pygame.mouse.get_pos()[0] - self.body.position.x, pygame.mouse.get_pos()[1] - self.body.position.y)
+        self.body.angle = math.atan2(
+            pygame.mouse.get_pos()[1] - self.body.position.y,
+            pygame.mouse.get_pos()[0] - self.body.position.x
+        )
+    
+    def follow_player(self, event: Tick):
+        if not self.player:
+            return
+        
+        self.body.velocity = self.player.body.velocity
+        
+        self.body.position = (
+            self.player.body.position.x + 30,
+            self.player.body.position.y - 20
+        )
+    
+    def shoot(self, event: events.MouseLeftClick):
+        bullet = Bullet(
+            game=self.game,
+            updater=self.game.uuid
+        )
 
-        print(mouse_distance)
+        bullet.body.angle = self.body.angle
 
+        mouse_pos = pygame.mouse.get_pos()
+
+        # vector from weapon to mouse
+        bullet_path_vector = Vec2d(
+            x = mouse_pos[0] - self.body.position.x,
+            y = mouse_pos[1] - self.body.position.y
+        )
+
+        bullet.body.position = (
+            self.shape.bb.right + 20,
+            self.body.position.y - 20
+        )
+
+        bullet.body.velocity = self.body.velocity + (bullet_path_vector.normalized() * 3000)
 
     def serialize(self) -> Dict[str, int | bool | str | list]:
         data_dict = super().serialize()
@@ -269,10 +300,26 @@ class Weapon(Tile):
         
 
 class Bullet(Tile):
-    def __init__(self, weapon: Weapon, body: Body, shape: Shape, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None):
+    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, weapon: Weapon = None, body: Body = None, shape: Shape = None, id: str | None = None):
+
+        body = Body(
+            mass = 0.1,
+            body_type=pymunk.Body.DYNAMIC
+        )
+
+        shape = pymunk.Poly.create_box(
+            body=body,
+            size=(10,5)
+        )
+
+        body.moment = pymunk.moment_for_box(
+            body.mass,
+            (10, 5)
+        )
+
         super().__init__(body, shape, game, updater, id)
 
-        self.weapon = weapon 
+        self.weapon = weapon
     
     def serialize(self) -> Dict[str, int | bool | str | list]:
         data_dict = super().serialize()
@@ -356,8 +403,6 @@ class FreezableTile(Tile):
             self.body.mass,
             (shape_width, shape_height)
         )
-
-        print(moment)
 
         self.body.moment = moment
     
