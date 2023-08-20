@@ -21,7 +21,8 @@ class Tile(Entity):
             shape: pymunk.Shape,
             game: Union["GamemodeClient", "GamemodeServer"], 
             updater: str, 
-            id: Optional[str] = None
+            id: Optional[str] = None,
+            color: Tuple = (255, 255, 255)
         ):
 
         super().__init__(game=game, updater=updater, id=id)
@@ -32,6 +33,7 @@ class Tile(Entity):
 
         self.body = body 
         self.shape = shape
+        self.color = color
 
         self.game.space.add(self.body, self.shape)
 
@@ -44,12 +46,12 @@ class Tile(Entity):
         self.game.space.remove(self.body, self.shape)
     
     def despawn(self, event: Tick):
-        # FIX ME!!!
-        return
+
         max_x = self.game.boundry_rect.right - self.game.boundry_rect.left
-        max_y = self.game.boundry_rect.get_height()
+        max_y = self.game.boundry_rect.bottom - self.game.boundry_rect.top
 
         if self.body.position.x > max_x or self.body.position.y > max_y:
+            print("entity")
             self.kill()
 
 
@@ -70,7 +72,7 @@ class Tile(Entity):
 
         pygame.draw.polygon(
             self.game.screen,
-            (255,255,255),
+            self.color,
             vertices
         )
 
