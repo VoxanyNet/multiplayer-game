@@ -30,7 +30,10 @@ class GamemodeClient:
         server_port: int = 5560, 
         network_compression: bool = True
     ): 
-
+        
+        pygame.init()
+        pygame.mixer.init()
+        
         self.update_history = []
         self.server = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_ip = server_ip
@@ -52,7 +55,6 @@ class GamemodeClient:
             pygame.RESIZABLE
             #pygame.FULLSCREEN
         )
-        self.draw_options = pygame_util.DrawOptions(self.screen)
 
         self.event_subscriptions[TickComplete] += [
             self.clear_screen
@@ -345,8 +347,6 @@ class GamemodeClient:
  
             entity.draw()
         
-        self.space.debug_draw(self.draw_options)
-        
         pygame.display.flip()
 
     def clear_screen(self, event: TickComplete):
@@ -372,7 +372,7 @@ class GamemodeClient:
 
     def start(self, event: GameStart):
 
-        pygame.init()
+        pass
         
     def connect(self, event: GameStart):
 

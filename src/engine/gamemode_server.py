@@ -31,6 +31,9 @@ class GamemodeServer:
 
     def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560, network_compression: bool = True):
 
+        pygame.init()
+        pygame.mixer.init()
+
         self.socket = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
 
         self.client_sockets: Dict[str, headered_socket.HeaderedSocket] = {}
