@@ -52,7 +52,7 @@ class Client(GamemodeClient):
                 body_type=pymunk.Body.DYNAMIC
             )
 
-            body.position = pygame.mouse.get_pos()
+            body.position = self.adjusted_mouse_pos
         
             shape=pymunk.Poly.create_box(
                 body=body,
@@ -79,7 +79,7 @@ class Client(GamemodeClient):
                 body_type=pymunk.Body.STATIC
             )
 
-            body.position = pygame.mouse.get_pos()
+            body.position = self.adjusted_mouse_pos
         
             shape=pymunk.Poly.create_box(
                 body=body,

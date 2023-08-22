@@ -51,7 +51,6 @@ class Tile(Entity):
         max_y = self.game.boundry_rect.bottom - self.game.boundry_rect.top
 
         if self.body.position.x > max_x or self.body.position.y > max_y:
-            print("entity")
             self.kill()
 
 
@@ -67,6 +66,9 @@ class Tile(Entity):
             # vertices are not relative to the world, so we need to add the body position
             x = vertex.rotated(self.shape.body.angle)[0] + self.shape.body.position[0]
             y = vertex.rotated(self.shape.body.angle)[1] + self.shape.body.position[1]
+
+            x += self.game.camera_offset[0]
+            y += self.game.camera_offset[1]
 
             vertices.append((x, y))
 

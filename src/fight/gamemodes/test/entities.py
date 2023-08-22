@@ -44,7 +44,8 @@ class FreezableTileMaker(Entity):
         if self.making_tile:
             return
 
-        self.starting_point = pygame.mouse.get_pos()
+        self.starting_world_point = self.game.adjusted_mouse_pos
+        self.starting_screen_pount = pygame.mouse.get_pos()
 
         self.making_tile = True 
     
@@ -60,15 +61,15 @@ class FreezableTileMaker(Entity):
             body_type=pymunk.Body.STATIC
         )
 
-        center = pygame.Rect([self.starting_point[0], self.starting_point[1], pygame.mouse.get_pos()[0] - self.starting_point[0], pygame.mouse.get_pos()[1] - self.starting_point[1]]).center
+        center = pygame.Rect([self.starting_world_point[0], self.starting_world_point[1], self.game.adjusted_mouse_pos[0] - self.starting_world_point[0], self.game.adjusted_mouse_pos[1] - self.starting_world_point[1]]).center
 
         body.position = center
     
         shape=pymunk.Poly.create_box(
             body=body,
             size=(
-                pygame.mouse.get_pos()[0] - self.starting_point[0],
-                pygame.mouse.get_pos()[1] - self.starting_point[1]
+                self.game.adjusted_mouse_pos[0] - self.starting_world_point[0],
+                self.game.adjusted_mouse_pos[1] - self.starting_world_point[1]
             )
         )
 
@@ -92,7 +93,7 @@ class FreezableTileMaker(Entity):
         pygame.draw.rect(
             self.game.screen,
             color=(255,255,255),
-            rect=[self.starting_point[0], self.starting_point[1], pygame.mouse.get_pos()[0] - self.starting_point[0], pygame.mouse.get_pos()[1] - self.starting_point[1]],
+            rect=[self.starting_screen_pount[0], self.starting_screen_pount[1], pygame.mouse.get_pos()[0] - self.starting_screen_pount[0], pygame.mouse.get_pos()[1] - self.starting_screen_pount[1]],
             width=1
         )
 
@@ -120,8 +121,36 @@ class Player(Tile):
         self.weapon: Weapon = weapon
 
         self.game.event_subscriptions[Tick] += [
-            self.handle_keys
+            self.handle_keys,
+            self.move_camera
         ]
+
+    def move_camera(self, event: Tick):
+        """Move camera if we get too close to the edge of the screen"""
+        
+        # the position of the player on the screen
+        player_screen_pos = (
+            self.body.position.x + self.game.camera_offset[0],
+            self.body.position.y + self.game.camera_offset[1]
+        )
+
+        trigger_width = 500
+        
+        # if the player is within 100 pixels of the right side of the screen
+        if player_screen_pos[0] > self.game.screen.get_width() - trigger_width:
+            # move the camera so that the player is back to 100 pixels from the right of the screen
+            print(f"Width: {self.game.screen.get_width()}")
+            need_to_move = (player_screen_pos[0] - (self.game.screen.get_width() - trigger_width))/2
+            print(f"Need to move camera: {need_to_move}")
+            self.game.camera_offset[0] -= need_to_move
+        
+        # if the player is within 100 pixels of the left side of the screen (which will always be zero)
+        if player_screen_pos[0] < 0 + trigger_width:
+            # move the camera so that the player is back to 100 pixels from the left of the screen (which will always be zero)
+            need_to_move = ((0 + trigger_width) - player_screen_pos[0])/2
+            self.game.camera_offset[0] += need_to_move
+        
+        print(self.game.camera_offset)
 
     def constrain_weapon(self, event: Tick):
         if not self.weapon:
@@ -197,7 +226,7 @@ class Player(Tile):
             )
     
 class Weapon(Tile):
-    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, player: Optional[Player] = None, body: Body = None, shape: Shape = None, id: str | None = None):
+    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, player: Optional[Player] = None, body: Body = None, shape: Shape = None, id: str | None = None, cooldown: int = 0, last_shot: int = 0):
 
         body = Body(
             body_type=pymunk.Body.KINEMATIC
@@ -220,14 +249,18 @@ class Weapon(Tile):
         ]
 
         self.player = player
+
+        self.cooldown = cooldown
+
+        self.last_shot = 0
     
     def aim(self, event: Tick):
         if not self.player:
             return
 
         self.body.angle = math.atan2(
-            pygame.mouse.get_pos()[1] - self.body.position.y,
-            pygame.mouse.get_pos()[0] - self.body.position.x
+            self.game.adjusted_mouse_pos[1] - self.body.position.y,
+            self.game.adjusted_mouse_pos[0] - self.body.position.x
         )
     
     def follow_player(self, event: Tick):
@@ -242,6 +275,12 @@ class Weapon(Tile):
         )
     
     def shoot(self, event: events.MouseLeftClick):
+
+        if time.time() - self.last_shot < self.cooldown:
+            return 
+        
+        self.last_shot = time.time()
+
         bullet = Bullet(
             game=self.game,
             updater=self.game.uuid
@@ -249,7 +288,7 @@ class Weapon(Tile):
 
         bullet.body.angle = self.body.angle
 
-        mouse_pos = pygame.mouse.get_pos()
+        mouse_pos = self.game.adjusted_mouse_pos
 
         # vector from weapon to mouse
         bullet_path_vector = Vec2d(
@@ -264,6 +303,8 @@ class Weapon(Tile):
 
         bullet.body.velocity = self.body.velocity + (bullet_path_vector.normalized() * 3000)
 
+        #bullet.sound.play()
+
     def serialize(self) -> Dict[str, int | bool | str | list]:
         data_dict = super().serialize()
 
@@ -271,6 +312,13 @@ class Weapon(Tile):
             data_dict["player"] = self.player.id
         else:
             data_dict['player'] = None
+        
+        data_dict.update(
+            {
+                "cooldown": self.cooldown,
+                "last_shot": self.last_shot
+            }
+        )
 
         return data_dict
     
@@ -287,6 +335,12 @@ class Weapon(Tile):
                         self.player = attribute_value
                     else:
                         self.player = None
+                
+                case "cooldown":
+                    self.cooldown = attribute_value
+                
+                case "last_shot":
+                    self.last_shot = attribute_value
     
     @classmethod
     def create(self, entity_data: Dict[str, int | bool | str | list], entity_id: str, game: GamemodeClient | GamemodeServer) -> type[Tile]:
@@ -296,11 +350,15 @@ class Weapon(Tile):
         else:
             entity_data["player"] = None
         
+        entity_data["cooldown"] = entity_data["cooldown"]
+
+        entity_data["last_shot"] = entity_data["last_shot"]
+        
         return super().create(entity_data, entity_id, game)
         
 
 class Bullet(Tile):
-    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, weapon: Weapon = None, body: Body = None, shape: Shape = None, id: str | None = None):
+    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, weapon: Weapon = None, body: Body = None, shape: Shape = None, id: str | None = None, spawn_time = None):
 
         body = Body(
             mass = 0.1,
@@ -309,8 +367,10 @@ class Bullet(Tile):
 
         shape = pymunk.Poly.create_box(
             body=body,
-            size=(10,5)
+            size=(5,2.5)
         )
+
+        shape.friction = 0.5
 
         body.moment = pymunk.moment_for_box(
             body.mass,
@@ -319,8 +379,26 @@ class Bullet(Tile):
 
         super().__init__(body, shape, game, updater, id)
 
+        self.game.event_subscriptions[Tick] += [
+            #self.despawn_bullet
+        ]
+
         self.weapon = weapon
+
+        #self.sound = pygame.mixer.Sound("fight/resources/gunsound.wav")
+        #self.sound.set_volume(0.25)
+
+        if spawn_time:
+            self.spawn_time = spawn_time
+        else:
+            self.spawn_time = time.time()
     
+    def despawn_bullet(self, event: Tick):
+
+        if time.time() - self.spawn_time > 1:
+            print(self.game.tick_count)
+            self.kill()
+
     def serialize(self) -> Dict[str, int | bool | str | list]:
         data_dict = super().serialize()
 
@@ -374,7 +452,7 @@ class FreezableTile(Tile):
         
         # shape contains mouse
         if not self.shape.bb.contains_vect(
-            pygame.mouse.get_pos()
+            self.game.adjusted_mouse_pos
         ):
             return
 
@@ -386,7 +464,7 @@ class FreezableTile(Tile):
         
         # shape contains mouse
         if not self.shape.bb.contains_vect(
-            pygame.mouse.get_pos()
+            self.game.adjusted_mouse_pos
         ):
             return
         
@@ -412,11 +490,11 @@ class FreezableTile(Tile):
         
         # shape contains mouse
         if not self.shape.bb.contains_vect(
-            pygame.mouse.get_pos()
+            self.game.adjusted_mouse_pos
         ):
             return
         
-        self.body.position = pygame.mouse.get_pos()
+        self.body.position = self.game.adjusted_mouse_pos
         self.body.velocity = (0,0)
         self.body.angle = 0
 
@@ -428,6 +506,6 @@ class FreezableTile(Tile):
         
         # shape contains mouse
         if not self.shape.bb.contains_vect(
-            pygame.mouse.get_pos()
+            self.game.adjusted_mouse_pos
         ):
             return

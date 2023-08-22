@@ -5,7 +5,7 @@ import uuid
 import socket
 import json
 from collections import defaultdict
-from typing import Union, Type, Dict, Literal, List, Optional
+from typing import Union, Type, Dict, Literal, List, Optional, Tuple
 import zlib
 
 import pygame
@@ -50,6 +50,8 @@ class GamemodeClient:
         self.dt = 0.1 # i am initializing this with 0.1 instead of 0 because i think it might break stuff
         self.sent_bytes = 0
         self.network_compression = network_compression
+        self.adjusted_mouse_pos: Tuple[int, int] = [0,0]
+        self.camera_offset = [0,0]
         self.screen = pygame.display.set_mode(
             [1280, 720],
             pygame.RESIZABLE
@@ -73,7 +75,8 @@ class GamemodeClient:
             self.increment_tick_counter,
             self.trigger_input_events,
             self.step_space,
-            self.receive_network_updates # we dont put this on NetworkTick because we just want to receive updates ASAP
+            self.receive_network_updates, # we dont put this on NetworkTick because we just want to receive updates ASAP,
+            self.set_adjusted_mouse_pos
         ]
 
         self.event_subscriptions[NetworkTick] += [
@@ -90,6 +93,12 @@ class GamemodeClient:
             }
         )
 
+    def set_adjusted_mouse_pos(self, event: Tick):
+        
+        self.adjusted_mouse_pos = (
+            pygame.mouse.get_pos()[0] - self.camera_offset[0],
+            pygame.mouse.get_pos()[1] -  self.camera_offset[1]
+        )
     def test_listener(self, event: Type[Event]):
         print(f"Test listener responding to {event}")
     
@@ -192,9 +201,13 @@ class GamemodeClient:
             self.trigger(events.KeyReturn())
 
         if keys[pygame.K_SPACE]:
-            self.trigger(events.KeySpace())
+            self.trigger(events.KeySpace())    
         
+        if keys[pygame.K_PLUS]:
+            self.trigger(events.KeyPlus())
         
+        if keys[pygame.K_MINUS]:
+            self.trigger(events.KeyMinus())
 
     def step_space(self, event: Tick):
         """Simulate physics for self.dt amount of time"""
