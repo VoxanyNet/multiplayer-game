@@ -137,6 +137,12 @@ class KeySpace(Event):
 class KeyReturn(Event):
     pass
 
+class KeyPlus(Event):
+    pass
+
+class KeyMinus(Event):
+    pass
+
 class MouseLeftClick(Event):
     pass
 

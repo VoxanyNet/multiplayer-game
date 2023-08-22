@@ -40,7 +40,7 @@ if args.is_server:
 else:
 
     atexit.register(report_game_tick_at_exit)
-    atexit.register(save_update_history)
+    #atexit.register(save_update_history)
 
     
     game = Client(server_ip=args.ip, server_port=args.port, network_compression=args.enable_compression)
