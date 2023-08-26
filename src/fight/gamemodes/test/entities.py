@@ -151,18 +151,6 @@ class Player(Tile):
             self.game.camera_offset[0] += need_to_move
         
         print(self.game.camera_offset)
-
-    def constrain_weapon(self, event: Tick):
-        if not self.weapon:
-            return 
-        
-        # already has constraint
-        if len(self.weapon.body.constraints) > 0:
-            return
-        
-        weapon_constraint = pymunk.constraints.PinJoint(self.body, self.weapon.body)
-        weapon_constraint.collide_bodies = False
-        self.game.space.add(weapon_constraint)
         
     def serialize(self) -> Dict[str, int | bool | str | list]:
         data_dict = super().serialize()
