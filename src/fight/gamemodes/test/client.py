@@ -98,8 +98,6 @@ class Client(GamemodeClient):
                 updater=self.uuid
             )
 
-            print(shape.friction)
-
             self.last_spawn = time.time()
 
 
@@ -111,12 +109,12 @@ class Client(GamemodeClient):
 
         weapon=Weapon(self, updater=self.uuid)
 
-        weapon.body.position = (
-            player.body.position.x + 100,
-            player.body.position.y + 100
-        )
+        # weapon.body.position = (
+        #     player.body.position.x + 100,
+        #     player.body.position.y + 200
+        # )
 
-        player.weapon = weapon
-        weapon.player = player
+        # player.weapon = weapon
+        # weapon.player = player
         
 

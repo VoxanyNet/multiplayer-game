@@ -15,6 +15,7 @@ from engine.gamemode_server import GamemodeServer
 from engine.tile import Tile
 from engine.events import Tick, NewEntity
 from engine.unresolved import Unresolved
+from engine.timeline import Timeline
 
 class FreezableTileMaker(Entity):
     def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None):
@@ -103,15 +104,19 @@ class Player(Tile):
         if body is None or shape is None:
             body=pymunk.Body(
                 mass=20,
-                moment=float("inf"),
                 body_type=pymunk.Body.DYNAMIC
             )
+
+            body.moment = float("INF") #pymunk.moment_for_box(
+        #     body.mass,
+        #     (64, 40)
+        # )
 
             body.position = game.screen.get_bounding_rect().center
     
             shape=pymunk.Poly.create_box(
                 body=body,
-                size=(20,40)
+                size=(64,40)
             )
 
             shape.friction = 0.5
@@ -124,6 +129,49 @@ class Player(Tile):
             self.handle_keys,
             self.move_camera
         ]
+
+        self.walk_timeline = Timeline(
+            {
+                0.08: pygame.transform.scale(
+                    pygame.image.load("fight/resources/timelines/nyancat/0.png"),
+                    (64, 40)
+                ),
+                0.16: pygame.transform.scale(
+                    pygame.image.load("fight/resources/timelines/nyancat/1.png"),
+                    (64, 40)
+                ),
+                0.24: pygame.transform.scale(
+                    pygame.image.load("fight/resources/timelines/nyancat/2.png"),
+                    (64, 40)
+                ),
+                0.32: pygame.transform.scale(
+                    pygame.image.load("fight/resources/timelines/nyancat/3.png"),
+                    (64, 40)
+                ),
+                0.40: pygame.transform.scale(
+                    pygame.image.load("fight/resources/timelines/nyancat/4.png"),
+                    (64, 40)
+                ),
+                0.48: pygame.transform.scale(
+                    pygame.image.load("fight/resources/timelines/nyancat/5.png"),
+                    (64, 40)
+                )
+            },
+            loop=True
+        )
+
+        self.walk_timeline.play()
+
+
+    def draw(self):
+
+        self.game.screen.blit(
+            self.walk_timeline.current_frame,
+            (
+                self.shape.bb.left + self.game.camera_offset[0],
+                self.shape.bb.bottom + self.game.camera_offset[1]
+            )
+        )
 
     def move_camera(self, event: Tick):
         """Move camera if we get too close to the edge of the screen"""
@@ -139,9 +187,7 @@ class Player(Tile):
         # if the player is within 100 pixels of the right side of the screen
         if player_screen_pos[0] > self.game.screen.get_width() - trigger_width:
             # move the camera so that the player is back to 100 pixels from the right of the screen
-            print(f"Width: {self.game.screen.get_width()}")
             need_to_move = (player_screen_pos[0] - (self.game.screen.get_width() - trigger_width))/2
-            print(f"Need to move camera: {need_to_move}")
             self.game.camera_offset[0] -= need_to_move
         
         # if the player is within 100 pixels of the left side of the screen (which will always be zero)
@@ -150,7 +196,7 @@ class Player(Tile):
             need_to_move = ((0 + trigger_width) - player_screen_pos[0])/2
             self.game.camera_offset[0] += need_to_move
         
-        print(self.game.camera_offset)
+        #print(self.game.camera_offset)
         
     def serialize(self) -> Dict[str, int | bool | str | list]:
         data_dict = super().serialize()
@@ -384,7 +430,6 @@ class Bullet(Tile):
     def despawn_bullet(self, event: Tick):
 
         if time.time() - self.spawn_time > 1:
-            print(self.game.tick_count)
             self.kill()
 
     def serialize(self) -> Dict[str, int | bool | str | list]:
@@ -460,9 +505,6 @@ class FreezableTile(Tile):
         
         shape_width = self.shape.bb.right- self.shape.bb.left
         shape_height = self.shape.bb.top - self.shape.bb.bottom
-
-        print(shape_width)
-        print(shape_height)
 
         self.body.mass = 20
         moment = pymunk.moment_for_box(

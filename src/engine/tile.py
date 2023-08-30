@@ -37,7 +37,7 @@ class Tile(Entity):
 
         self.game.space.add(self.body, self.shape)
 
-        print(self.body.center_of_gravity)
+        #print(self.body.center_of_gravity)
     
     def kill(self):
 

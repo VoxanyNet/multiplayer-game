@@ -58,6 +58,8 @@ class GamemodeClient:
             #pygame.FULLSCREEN
         )
 
+        self.options = pymunk.pygame_util.DrawOptions(self.screen)
+
         self.event_subscriptions[TickComplete] += [
             self.clear_screen
         ]
@@ -350,6 +352,8 @@ class GamemodeClient:
         return
     
     def draw_entities(self, event: ScreenCleared):
+        
+        #self.space.debug_draw(self.options)
 
         for entity in self.entities.values():
             entity: Entity
@@ -359,7 +363,7 @@ class GamemodeClient:
                 continue 
  
             entity.draw()
-        
+
         pygame.display.flip()
 
     def clear_screen(self, event: TickComplete):
