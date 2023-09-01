@@ -11,7 +11,8 @@ from engine.gamemode_client import GamemodeClient
 from engine.events import GameStart, Tick
 from engine import events
 from engine.tile import Tile
-from fight.gamemodes.test.entities import FreezableTile, FreezableTileMaker, Player, Weapon, Bullet
+from fight.gamemodes.test.entities import FreezableTile, FreezableTileMaker, Player, Weapon, Bullet, Background
+from fight.gamemodes.test.entity_type_map import entity_type_map
 
 class Client(GamemodeClient):
     def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560, network_compression: bool = True):
@@ -22,13 +23,7 @@ class Client(GamemodeClient):
         ]
 
         self.entity_type_map.update(
-            {
-                "freezable_tile": FreezableTile,
-                "freezable_tile_maker": FreezableTileMaker,
-                "player": Player,
-                "weapon": Weapon,
-                "bullet": Bullet
-            }
+            entity_type_map
         )
 
         self.boundry_rect = boundry_rect = Rect(0,0,1280,720)
@@ -108,6 +103,8 @@ class Client(GamemodeClient):
         player = Player(self, updater=self.uuid)
 
         weapon=Weapon(self, updater=self.uuid)
+
+        background = Background(self, updater=self.uuid)
 
         # weapon.body.position = (
         #     player.body.position.x + 100,
