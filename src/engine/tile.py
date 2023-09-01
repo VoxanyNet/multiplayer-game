@@ -9,12 +9,13 @@ from rich import print
 from engine.entity import Entity
 from engine.unresolved import Unresolved
 from engine.events import Tick
+from engine.drawable_entity import DrawableEntity
 
 if TYPE_CHECKING:
     from engine.gamemode_client import GamemodeClient
     from engine.gamemode_server import GamemodeServer
 
-class Tile(Entity):
+class Tile(DrawableEntity):
     def __init__(
             self, 
             body: pymunk.Body,
@@ -22,10 +23,11 @@ class Tile(Entity):
             game: Union["GamemodeClient", "GamemodeServer"], 
             updater: str, 
             id: Optional[str] = None,
-            color: Tuple = (255, 255, 255)
+            color: Tuple = (255, 255, 255),
+            draw_layer: int = 0
         ):
 
-        super().__init__(game=game, updater=updater, id=id)
+        super().__init__(game=game, updater=updater, id=id, draw_layer=draw_layer)
 
         self.game.event_subscriptions[Tick] += [
             self.despawn
@@ -53,11 +55,6 @@ class Tile(Entity):
         if self.body.position.x > max_x or self.body.position.y > max_y:
             self.kill()
 
-
-
-        
-
-        
     def draw(self):
 
         vertices = []

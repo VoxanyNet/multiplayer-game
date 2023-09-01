@@ -21,6 +21,7 @@ from engine.helpers import get_matching_objects
 from engine.exceptions import InvalidUpdateType, MalformedUpdate
 from engine.events import Tick, Event, TickComplete, GameStart, TickStart, ScreenCleared, NetworkTick
 from engine import events
+from engine.drawable_entity import DrawableEntity
 
 
 class GamemodeClient:
@@ -355,14 +356,25 @@ class GamemodeClient:
         
         #self.space.debug_draw(self.options)
 
+        draw_order: Dict[int, List[Entity]] = defaultdict(list)
+
         for entity in self.entities.values():
             entity: Entity
 
-            # quack
-            if not hasattr(entity, "draw"):
+            if not type(DrawableEntity):
                 continue 
- 
-            entity.draw()
+                
+            entity: DrawableEntity
+
+            draw_order[entity.draw_layer].append(
+                entity
+            )
+        
+        sorted_draw_order = dict(sorted(draw_order.items(), key=lambda item: item[0]))
+
+        for layer_entites in sorted_draw_order.values():
+            for entity in layer_entites:
+                entity.draw()
 
         pygame.display.flip()
 

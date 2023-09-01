@@ -25,15 +25,11 @@ class Timeline:
         
         for end_time, keyframe in self.keyframes.items():
             
-            print(elapsed_time)
-            print(end_time)
 
             if elapsed_time <= end_time:
-                print(f"keyframe end time: {end_time}")
                 return keyframe
         
         if self.loop:
-            print("looping")
             # reset the start time to exactly when the last frame was scheduled to end
 
             # get the last keyframe end time

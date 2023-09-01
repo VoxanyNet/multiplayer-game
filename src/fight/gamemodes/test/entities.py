@@ -16,10 +16,11 @@ from engine.tile import Tile
 from engine.events import Tick, NewEntity
 from engine.unresolved import Unresolved
 from engine.timeline import Timeline
+from engine.drawable_entity import DrawableEntity
 
-class FreezableTileMaker(Entity):
-    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None):
-        super().__init__(game, updater, id)
+class FreezableTileMaker(DrawableEntity):
+    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None, draw_layer: int = 1):
+        super().__init__(game, updater, id, draw_layer=draw_layer)
 
         self.game.event_subscriptions[events.KeyReturn] += [
             self.spawn_tile
@@ -99,7 +100,7 @@ class FreezableTileMaker(Entity):
         )
 
 class Player(Tile):
-    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, body: Body = None, shape: Shape = None, weapon: "Weapon" = None, id: str | None = None):
+    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, body: Body = None, shape: Shape = None, weapon: "Weapon" = None, id: str | None = None, draw_layer:int = 1):
         
         if body is None or shape is None:
             body=pymunk.Body(
@@ -121,7 +122,7 @@ class Player(Tile):
 
             shape.friction = 0.5
 
-        super().__init__(body, shape, game, updater, id)
+        super().__init__(body, shape, game, updater, id, draw_layer=draw_layer)
 
         self.weapon: Weapon = weapon
 
@@ -251,7 +252,7 @@ class Player(Tile):
         if pygame.key.get_pressed()[pygame.K_SPACE]:
             print("jump")
 
-            if self.body.velocity.y != 0:
+            if abs(self.body.velocity.y) > 0.1:
                 return 
             
             self.body.apply_impulse_at_local_point(
@@ -260,7 +261,7 @@ class Player(Tile):
             )
     
 class Weapon(Tile):
-    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, player: Optional[Player] = None, body: Body = None, shape: Shape = None, id: str | None = None, cooldown: int = 0, last_shot: int = 0):
+    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, player: Optional[Player] = None, body: Body = None, shape: Shape = None, id: str | None = None, cooldown: int = 0, last_shot: int = 0, draw_layer: int = 1):
 
         body = Body(
             body_type=pymunk.Body.KINEMATIC
@@ -271,7 +272,7 @@ class Weapon(Tile):
             size=(30,10)
         ) 
 
-        super().__init__(body, shape, game, updater, id)
+        super().__init__(body, shape, game, updater, id, draw_layer=draw_layer)
 
         self.game.event_subscriptions[Tick] += [
             self.aim,
@@ -392,7 +393,7 @@ class Weapon(Tile):
         
 
 class Bullet(Tile):
-    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, weapon: Weapon = None, body: Body = None, shape: Shape = None, id: str | None = None, spawn_time = None):
+    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, weapon: Weapon = None, body: Body = None, shape: Shape = None, id: str | None = None, spawn_time = None, draw_layer: int = 1):
 
         body = Body(
             mass = 0.1,
@@ -411,7 +412,7 @@ class Bullet(Tile):
             (10, 5)
         )
 
-        super().__init__(body, shape, game, updater, id)
+        super().__init__(body, shape, game, updater, id, draw_layer=draw_layer)
 
         self.game.event_subscriptions[Tick] += [
             #self.despawn_bullet
@@ -466,8 +467,8 @@ class Bullet(Tile):
         return super().create(entity_data, entity_id, game)
 
 class FreezableTile(Tile):
-    def __init__(self, body: Body, shape: Shape, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None):
-        super().__init__(body, shape, game, updater, id)
+    def __init__(self, body: Body, shape: Shape, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None, draw_layer: int = 1):
+        super().__init__(body, shape, game, updater, id, draw_layer=draw_layer)
 
         self.game.event_subscriptions[Tick] += [
             self.create_constraint,
@@ -539,3 +540,16 @@ class FreezableTile(Tile):
             self.game.adjusted_mouse_pos
         ):
             return
+
+class Background(DrawableEntity):
+    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None, draw_layer: int = 0):
+        super().__init__(game, updater, id, draw_layer)
+    
+    def draw(self):
+        self.game.screen.fill(
+            (
+                0,
+                51,
+                102
+            )
+        )
