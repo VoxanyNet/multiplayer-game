@@ -259,24 +259,37 @@ class Player(Tile):
                 (0,-10000),
                 self.body.center_of_gravity
             )
-    
+
 class Weapon(Tile):
-    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, player: Optional[Player] = None, body: Body = None, shape: Shape = None, id: str | None = None, cooldown: int = 0, last_shot: int = 0, draw_layer: int = 1):
 
-        body = Body(
-            body_type=pymunk.Body.KINEMATIC
+    def __init__(self, 
+        game: GamemodeClient | GamemodeServer, 
+        updater: str, 
+        clip_size: int,
+        ammo: int,
+        body: Body, 
+        shape: Shape, 
+        player: Optional[Player] = None, 
+        id: str | None = None, 
+        cooldown: int = 0, 
+        last_shot: int = 0, 
+        draw_layer: int = 1
+    ): 
+
+        
+        super().__init__(
+            body=body, 
+            shape=shape, 
+            game=game, 
+            updater=updater, 
+            id=id, 
+            draw_layer=draw_layer
         )
-
-        shape = pymunk.Poly.create_box(
-            body=body,
-            size=(30,10)
-        ) 
-
-        super().__init__(body, shape, game, updater, id, draw_layer=draw_layer)
 
         self.game.event_subscriptions[Tick] += [
             self.aim,
-            self.follow_player
+            self.follow_player,
+            self.follow_cursor_on_circle
         ]
 
         self.game.event_subscriptions[events.MouseLeftClick] += [
@@ -284,10 +297,10 @@ class Weapon(Tile):
         ]
 
         self.player = player
-
         self.cooldown = cooldown
-
-        self.last_shot = 0
+        self.last_shot = last_shot
+        self.ammo = ammo 
+        self.clip_size = clip_size
     
     def aim(self, event: Tick):
         if not self.player:
@@ -305,40 +318,13 @@ class Weapon(Tile):
         self.body.velocity = self.player.body.velocity
         
         self.body.position = (
-            self.player.body.position.x + 30,
+            self.player.body.position.x + 50,
             self.player.body.position.y - 20
         )
     
     def shoot(self, event: events.MouseLeftClick):
-
-        if time.time() - self.last_shot < self.cooldown:
-            return 
         
-        self.last_shot = time.time()
-
-        bullet = Bullet(
-            game=self.game,
-            updater=self.game.uuid
-        )
-
-        bullet.body.angle = self.body.angle
-
-        mouse_pos = self.game.adjusted_mouse_pos
-
-        # vector from weapon to mouse
-        bullet_path_vector = Vec2d(
-            x = mouse_pos[0] - self.body.position.x,
-            y = mouse_pos[1] - self.body.position.y
-        )
-
-        bullet.body.position = (
-            self.shape.bb.right + 20,
-            self.body.position.y - 20
-        )
-
-        bullet.body.velocity = self.body.velocity + (bullet_path_vector.normalized() * 3000)
-
-        #bullet.sound.play()
+        return
 
     def serialize(self) -> Dict[str, int | bool | str | list]:
         data_dict = super().serialize()
@@ -351,7 +337,9 @@ class Weapon(Tile):
         data_dict.update(
             {
                 "cooldown": self.cooldown,
-                "last_shot": self.last_shot
+                "last_shot": self.last_shot,
+                "clip_size": self.clip_size,
+                "ammo": self.ammo
             }
         )
 
@@ -390,10 +378,171 @@ class Weapon(Tile):
         entity_data["last_shot"] = entity_data["last_shot"]
         
         return super().create(entity_data, entity_id, game)
+
+    def follow_cursor_on_circle(self, event: Tick):
         
+        if not self.player:
+            return 
+        
+        # i stole this :)
+        x1, y1 = self.player.body.position
+        x2, y2 = self.game.adjusted_mouse_pos
+
+        dx = x2 - x1
+        dy = y2 - y1
+
+        length = math.sqrt(dx**2 + dy**2)
+        unit_dx = dx / length
+        unit_dy = dy / length
+
+        closest_x = x1 + 75 * unit_dx
+        closest_y = y1 + 75 * unit_dy
+
+        self.body.position = (closest_x, closest_y)
+        
+class Shotgun(Weapon):   
+    def __init__(self, 
+        game: GamemodeClient | GamemodeServer, 
+        updater: str, 
+        clip_size: int = 2, 
+        ammo: int = 2, 
+        player: Player | None = None, 
+        body: Body = None, 
+        shape: Shape = None, 
+        id: str | None = None, 
+        cooldown: int = 0.6, 
+        last_shot: int = 0, 
+        draw_layer: int = 1
+    ):
+        
+        if not body:
+            body = Body(
+                body_type=pymunk.Body.KINEMATIC
+            )
+        
+        if not shape:
+            shape = pymunk.Poly.create_box(
+                body=body,
+                size=(30,10)
+            )
+        
+        
+        super().__init__(
+            game=game, 
+            updater=updater, 
+            clip_size=clip_size, 
+            ammo=ammo, 
+            player=player, 
+            body=body, 
+            shape=shape, 
+            id=id, 
+            cooldown=cooldown, 
+            last_shot=last_shot, 
+            draw_layer=draw_layer
+        )
+
+        self.reload_timeline = Timeline(
+            {
+                0.08: pygame.transform.scale(
+                    pygame.image.load("fight/resources/timelines/shotgun/0.png"),
+                    (36, 10)
+                ),
+                0.16: pygame.transform.scale(
+                    pygame.image.load("fight/resources/timelines/shotgun/1.png"),
+                    (36, 10)
+                ),
+                0.24: pygame.transform.scale(
+                    pygame.image.load("fight/resources/timelines/shotgun/2.png"),
+                    (36, 10)
+                ),
+                0.32: pygame.transform.scale(
+                    pygame.image.load("fight/resources/timelines/shotgun/3.png"),
+                    (36, 10)
+                ),
+                0.40: pygame.transform.scale(
+                    pygame.image.load("fight/resources/timelines/shotgun/4.png"),
+                    (36, 10)
+                ),
+                0.48: pygame.transform.scale(
+                    pygame.image.load("fight/resources/timelines/shotgun/5.png"),
+                    (36, 10)
+                )
+            }
+        )
+
+    
+    def draw(self):
+        pass
+    
+    def serialize(self) -> Dict[str, int | bool | str | list]:
+        data_dict = super().serialize()
+        # serialize entity data to be json compatible
+        data_dict.update(
+          {
+              "active_sprite": self.level
+          }
+        )
+        return data_dict
+    
+    def update(self, update_data):
+        super().update(update_data)
+        # update entity attributes with update_data
+        # for example:
+        # for attribute_name, attribute_value in update_data.items():
+
+        #     match attribute_name:
+                
+        #         case "level":
+        #             self.level = update_data["level"]
+    
+    
+    def shoot(self, event: events.MouseLeftClick):
+
+        if time.time() - self.last_shot < self.cooldown:
+            return 
+
+        self.last_shot = time.time()
+
+        bullet = ShotgunBullet(
+            game=self.game,
+            updater=self.game.uuid
+        )
+
+        bullet.body.angle = math.atan2(
+            self.game.adjusted_mouse_pos[1] - self.body.position.y,
+            self.game.adjusted_mouse_pos[0] - self.body.position.x
+        )
+
+        mouse_pos = self.game.adjusted_mouse_pos
+
+        # vector from weapon to mouse
+        bullet_path_vector = Vec2d(
+            x = mouse_pos[0] - self.body.position.x,
+            y = mouse_pos[1] - self.body.position.y
+        )
+
+        bullet.body.position = (
+            self.shape.bb.right + 20,
+            self.body.position.y - 20
+        )
+
+        bullet.body.velocity = self.body.velocity + (bullet_path_vector.normalized() * 3000)
+
+        bullet.sound.play()
+
 
 class Bullet(Tile):
-    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, weapon: Weapon = None, body: Body = None, shape: Shape = None, id: str | None = None, spawn_time = None, draw_layer: int = 1):
+    def __init__(
+        self, 
+        game: GamemodeClient | GamemodeServer, 
+        updater: str, 
+        weapon: Weapon = None, 
+        body: Body = None, 
+        shape: Shape = None, 
+        id: str | None = None, 
+        spawn_time = None, 
+        draw_layer: int = 1
+    ):
 
         body = Body(
             mass = 0.1,
@@ -415,13 +564,10 @@ class Bullet(Tile):
         super().__init__(body, shape, game, updater, id, draw_layer=draw_layer)
 
         self.game.event_subscriptions[Tick] += [
-            #self.despawn_bullet
+            self.despawn_bullet
         ]
 
         self.weapon = weapon
-
-        #self.sound = pygame.mixer.Sound("fight/resources/gunsound.wav")
-        #self.sound.set_volume(0.25)
 
         if spawn_time:
             self.spawn_time = spawn_time
@@ -465,6 +611,23 @@ class Bullet(Tile):
             entity_data["weapon"] = None
         
         return super().create(entity_data, entity_id, game)
+
+class ShotgunBullet(Bullet):
+    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, weapon: Weapon = None, body: Body = None, shape: Shape = None, id: str | None = None, spawn_time=None, draw_layer: int = 1):
+        super().__init__(
+            game=game, 
+            updater=updater, 
+            weapon=weapon, 
+            body=body, 
+            shape=shape, 
+            id=id, 
+            spawn_time=spawn_time, 
+            draw_layer=draw_layer
+        )
+
+        if isinstance(self.game, GamemodeClient):
+            self.sound = pygame.mixer.Sound("fight/resources/sounds/shotgun.wav")
+            self.sound.set_volume(0.10)
 
 class FreezableTile(Tile):
     def __init__(self, body: Body, shape: Shape, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None, draw_layer: int = 1):

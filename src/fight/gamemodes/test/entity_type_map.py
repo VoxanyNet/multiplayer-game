@@ -1,4 +1,4 @@
-from fight.gamemodes.test.entities import FreezableTile, FreezableTileMaker, Player, Weapon, Bullet, Background
+from fight.gamemodes.test.entities import FreezableTile, FreezableTileMaker, Player, Weapon, Bullet, Background, Shotgun, ShotgunBullet
 
 entity_type_map = {
     "freezable_tile": FreezableTile,
@@ -6,5 +6,7 @@ entity_type_map = {
     "player": Player,
     "weapon": Weapon,
     "bullet": Bullet,
-    "background": Background
+    "background": Background,
+    "shotgun": Shotgun,
+    "shotgun_bullet": ShotgunBullet
 }

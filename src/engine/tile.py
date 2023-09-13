@@ -38,8 +38,6 @@ class Tile(DrawableEntity):
         self.color = color
 
         self.game.space.add(self.body, self.shape)
-
-        #print(self.body.center_of_gravity)
     
     def kill(self):
 

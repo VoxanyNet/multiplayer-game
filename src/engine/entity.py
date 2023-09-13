@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
 
 class Entity:
+    
     def __init__(self, game: Union["GamemodeClient", "GamemodeServer"], updater: str, id: Optional[str]=None):
 
         self.updater = updater
