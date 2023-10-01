@@ -7,6 +7,7 @@ import json
 from collections import defaultdict
 from typing import Union, Type, Dict, Literal, List, Optional, Tuple
 import zlib
+import pathlib
 
 import pygame
 from pygame import Rect
@@ -19,9 +20,8 @@ from engine.entity import Entity
 from engine.tile import Tile
 from engine.helpers import get_matching_objects
 from engine.exceptions import InvalidUpdateType, MalformedUpdate
-from engine.events import Tick, Event, TickComplete, GameStart, TickStart, ScreenCleared, NetworkTick
+from engine.events import Tick, Event, TickComplete, GameStart, TickStart, ScreenCleared, NetworkTick, ResourcesLoaded
 from engine import events
-from engine.drawable_entity import DrawableEntity
 
 
 class GamemodeClient:
@@ -48,6 +48,7 @@ class GamemodeClient:
         self.space = pymunk.Space()
         self.space.gravity = (0, 900)
         self.last_tick = time.time()
+        self.resources: Dict[str, pygame.Surface] = {}
         self.dt = 0.1 # i am initializing this with 0.1 instead of 0 because i think it might break stuff
         self.sent_bytes = 0
         self.network_compression = network_compression
@@ -64,6 +65,10 @@ class GamemodeClient:
         self.event_subscriptions[TickComplete] += [
             self.clear_screen
         ]
+
+        self.event_subscriptions[ResourcesLoaded] += [
+            self.connect
+        ]
         
         self.event_subscriptions[ScreenCleared] += [
             self.draw_entities
@@ -71,7 +76,7 @@ class GamemodeClient:
 
         self.event_subscriptions[GameStart] += [
             self.start,
-            self.connect
+            self.load_resources
         ]
 
         self.event_subscriptions[Tick] += [
@@ -95,6 +100,15 @@ class GamemodeClient:
                 "tile": Tile
             }
         )
+
+    def load_resources(self, event: GameStart):
+        for sprite_path in pathlib.Path("resources").rglob("*.png"):
+            sprite_path = str(sprite_path)
+            self.resources[sprite_path] = pygame.image.load(sprite_path)
+        
+        print(self.resources)
+
+        self.trigger(ResourcesLoaded())
 
     def set_adjusted_mouse_pos(self, event: Tick):
         
@@ -361,10 +375,8 @@ class GamemodeClient:
         for entity in self.entities.values():
             entity: Entity
 
-            if not type(DrawableEntity):
-                continue 
-                
-            entity: DrawableEntity
+            if entity.draw_layer is None:
+                continue
 
             draw_order[entity.draw_layer].append(
                 entity
@@ -403,7 +415,7 @@ class GamemodeClient:
 
         pass
         
-    def connect(self, event: GameStart):
+    def connect(self, event: ResourcesLoaded):
 
         self.server.connect((self.server_ip, self.server_port))
         

@@ -15,19 +15,31 @@ if TYPE_CHECKING:
     from gamemode_client import GamemodeClient
     from gamemode_server import GamemodeServer
 
+class MissingSpritePath(Exception):
+    pass 
 
 class Entity:
     
-    def __init__(self, game: Union["GamemodeClient", "GamemodeServer"], updater: str, id: Optional[str]=None):
+    def __init__(
+        self, 
+        game: Union["GamemodeClient", "GamemodeServer"], 
+        updater: str, 
+        id: Optional[str]=None, 
+        active_sprite: Optional[pygame.Surface]=None,
+        draw_layer: Optional[int] = None
+    ):
 
         self.updater = updater
         self.game = game
         self.last_tick_dict = {}
+        self.draw_layer: Optional[int] = draw_layer
         
         if id is None:
             id = str(uuid.uuid4())[0:6]
         
         self.id = id
+
+        self.active_sprite: Optional[pygame.Surface] = active_sprite
 
         # add entity to the game state automatically
         self.game.entities[self.id] = self
@@ -94,11 +106,25 @@ class Entity:
 
     def serialize(self) -> Dict[str, Union[int, bool, str, list]]:
         """Serialize the entity's data"""
+        
+        active_sprite_path = None
+        
+        # find path for active sprite
+        if self.active_sprite:
 
+            for path, sprite in self.game.resources.items():
+                if self.active_sprite == sprite:
+                    active_sprite_path = path
+
+            if active_sprite_path is None:
+                raise MissingSpritePath(f"cannot find path for active sprite {sprite}")
+            
         data_dict = {
-            "updater": self.updater
+            "updater": self.updater,
+            "active_sprite": active_sprite_path,
+            "draw_layer": self.draw_layer
         }
-
+        
         return data_dict
 
     @classmethod
@@ -106,6 +132,10 @@ class Entity:
         """Use serialized entity data to create a new entity"""
 
         entity_data["updater"] = entity_data["updater"]
+        entity_data["draw_layer"] = entity_data["draw_layer"]        
+        
+        if entity_data["active_sprite"] is not None: # this is verbose but clearer
+            entity_data["active_sprite"] = game.resources[entity_data["active_sprite"]]
 
         return cls(game=game, id=entity_id, **entity_data)
 
@@ -118,3 +148,12 @@ class Entity:
 
                 case "updater":
                     self.updater = update_data["updater"]
+
+                case "active_sprite":
+                    if update_data["active_sprite"] is not None:
+                        self.active_sprite = self.game.resources[update_data["active_sprite"]]
+                    else:
+                        self.active_sprite = None
+                
+                case "draw_layer":
+                    self.draw_layer = update_data["draw_layer"]

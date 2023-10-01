@@ -9,13 +9,12 @@ from rich import print
 from engine.entity import Entity
 from engine.unresolved import Unresolved
 from engine.events import Tick
-from engine.drawable_entity import DrawableEntity
 
 if TYPE_CHECKING:
     from engine.gamemode_client import GamemodeClient
     from engine.gamemode_server import GamemodeServer
 
-class Tile(DrawableEntity):
+class Tile(Entity):
     def __init__(
             self, 
             body: pymunk.Body,
@@ -24,10 +23,11 @@ class Tile(DrawableEntity):
             updater: str, 
             id: Optional[str] = None,
             color: Tuple = (255, 255, 255),
-            draw_layer: int = 0
+            draw_layer: int = 1,
+            active_sprite: Optional[pygame.Surface] = None
         ):
 
-        super().__init__(game=game, updater=updater, id=id, draw_layer=draw_layer)
+        super().__init__(game=game, updater=updater, id=id, draw_layer=draw_layer, active_sprite=active_sprite)
 
         self.game.event_subscriptions[Tick] += [
             self.despawn

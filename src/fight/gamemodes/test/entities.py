@@ -16,11 +16,18 @@ from engine.tile import Tile
 from engine.events import Tick, NewEntity
 from engine.unresolved import Unresolved
 from engine.timeline import Timeline
-from engine.drawable_entity import DrawableEntity
 
-class FreezableTileMaker(DrawableEntity):
-    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None, draw_layer: int = 1):
-        super().__init__(game, updater, id, draw_layer=draw_layer)
+class FreezableTileMaker(Entity):
+    def __init__(
+        self, 
+        game: GamemodeClient | GamemodeServer, 
+        updater: str, 
+        id: str | None = None,
+        active_sprite = None,
+        draw_layer = None
+    ):
+        
+        super().__init__(game, updater, id, active_sprite=active_sprite, draw_layer=draw_layer)
 
         self.game.event_subscriptions[events.KeyReturn] += [
             self.spawn_tile
@@ -100,7 +107,17 @@ class FreezableTileMaker(DrawableEntity):
         )
 
 class Player(Tile):
-    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, body: Body = None, shape: Shape = None, weapon: "Weapon" = None, id: str | None = None, draw_layer:int = 1):
+    def __init__(
+        self, 
+        game: GamemodeClient | GamemodeServer, 
+        updater: str, 
+        body: Body = None, 
+        shape: Shape = None, 
+        weapon: "Weapon" = None, 
+        id: str | None = None, 
+        draw_layer: int = 1,
+        active_sprite: Optional[pygame.Surface] = None
+    ):
         
         if body is None or shape is None:
             body=pymunk.Body(
@@ -117,57 +134,52 @@ class Player(Tile):
     
             shape=pymunk.Poly.create_box(
                 body=body,
-                size=(64,40)
+                size=(34,21)
             )
 
             shape.friction = 0.5
 
-        super().__init__(body, shape, game, updater, id, draw_layer=draw_layer)
+        super().__init__(
+            body,
+            shape, 
+            game, 
+            updater, 
+            id, 
+            draw_layer=draw_layer,
+            active_sprite=active_sprite
+        )
 
         self.weapon: Weapon = weapon
 
         self.game.event_subscriptions[Tick] += [
             self.handle_keys,
-            self.move_camera
+            self.move_camera,
+            self.advanced_walk_cycle
         ]
 
         self.walk_timeline = Timeline(
             {
-                0.08: pygame.transform.scale(
-                    pygame.image.load("fight/resources/timelines/nyancat/0.png"),
-                    (64, 40)
-                ),
-                0.16: pygame.transform.scale(
-                    pygame.image.load("fight/resources/timelines/nyancat/1.png"),
-                    (64, 40)
-                ),
-                0.24: pygame.transform.scale(
-                    pygame.image.load("fight/resources/timelines/nyancat/2.png"),
-                    (64, 40)
-                ),
-                0.32: pygame.transform.scale(
-                    pygame.image.load("fight/resources/timelines/nyancat/3.png"),
-                    (64, 40)
-                ),
-                0.40: pygame.transform.scale(
-                    pygame.image.load("fight/resources/timelines/nyancat/4.png"),
-                    (64, 40)
-                ),
-                0.48: pygame.transform.scale(
-                    pygame.image.load("fight/resources/timelines/nyancat/5.png"),
-                    (64, 40)
-                )
+                0.08: self.game.resources["resources/timelines/nyancat/0.png"],
+                0.16: self.game.resources["resources/timelines/nyancat/1.png"],
+                0.24: self.game.resources["resources/timelines/nyancat/2.png"],
+                0.32: self.game.resources["resources/timelines/nyancat/3.png"],
+                0.40: self.game.resources["resources/timelines/nyancat/4.png"],
+                0.48: self.game.resources["resources/timelines/nyancat/5.png"]
             },
             loop=True
         )
 
-        self.walk_timeline.play()
+    def advanced_walk_cycle(self, event: Tick):
 
+        if abs(self.body.velocity.x) > 0:
+            self.active_sprite = self.walk_timeline.get_frame(self.game.dt)
+        else:
+            self.active_sprite = list(self.walk_timeline.keyframes.values())[0]
 
     def draw(self):
 
         self.game.screen.blit(
-            self.walk_timeline.current_frame,
+            self.active_sprite,
             (
                 self.shape.bb.left + self.game.camera_offset[0],
                 self.shape.bb.bottom + self.game.camera_offset[1]
@@ -231,6 +243,12 @@ class Player(Tile):
                     if attribute_value:
                         self.weapon = Unresolved(update_data["weapon"])
                     self.weapon = None
+    
+    def toggle_walk_cycle(self, event: Tick):
+
+        if abs(self.body.velocity.x) > 0:
+            self.walk_timeline.play() # reset timeline to first frame
+            self.active_sprite = self.walk_timeline.current_frame
         
     def handle_keys(self, event: Tick):
         
@@ -273,7 +291,8 @@ class Weapon(Tile):
         id: str | None = None, 
         cooldown: int = 0, 
         last_shot: int = 0, 
-        draw_layer: int = 1
+        draw_layer: int = 1,
+        active_sprite: Optional[pygame.Surface] = None
     ): 
 
         
@@ -283,7 +302,8 @@ class Weapon(Tile):
             game=game, 
             updater=updater, 
             id=id, 
-            draw_layer=draw_layer
+            draw_layer=draw_layer,
+            active_sprite=active_sprite
         )
 
         self.game.event_subscriptions[Tick] += [
@@ -412,7 +432,8 @@ class Shotgun(Weapon):
         id: str | None = None, 
         cooldown: int = 0.6, 
         last_shot: int = 0, 
-        draw_layer: int = 1
+        draw_layer: int = 1,
+        active_sprite: Optional[pygame.Surface] = None
     ):
         
         if not body:
@@ -438,33 +459,34 @@ class Shotgun(Weapon):
             id=id, 
             cooldown=cooldown, 
             last_shot=last_shot, 
-            draw_layer=draw_layer
+            draw_layer=draw_layer,
+            active_sprite=active_sprite
         )
 
         self.reload_timeline = Timeline(
             {
                 0.08: pygame.transform.scale(
-                    pygame.image.load("fight/resources/timelines/shotgun/0.png"),
+                    pygame.image.load("resources/timelines/shotgun_reload/0.png"),
                     (36, 10)
                 ),
                 0.16: pygame.transform.scale(
-                    pygame.image.load("fight/resources/timelines/shotgun/1.png"),
+                    pygame.image.load("resources/timelines/shotgun_reload/1.png"),
                     (36, 10)
                 ),
                 0.24: pygame.transform.scale(
-                    pygame.image.load("fight/resources/timelines/shotgun/2.png"),
+                    pygame.image.load("resources/timelines/shotgun_reload/2.png"),
                     (36, 10)
                 ),
                 0.32: pygame.transform.scale(
-                    pygame.image.load("fight/resources/timelines/shotgun/3.png"),
+                    pygame.image.load("resources/timelines/shotgun_reload/3.png"),
                     (36, 10)
                 ),
                 0.40: pygame.transform.scale(
-                    pygame.image.load("fight/resources/timelines/shotgun/4.png"),
+                    pygame.image.load("resources/timelines/shotgun_reload/4.png"),
                     (36, 10)
                 ),
                 0.48: pygame.transform.scale(
-                    pygame.image.load("fight/resources/timelines/shotgun/5.png"),
+                    pygame.image.load("resources/timelines/shotgun_reload/5.png"),
                     (36, 10)
                 )
             }
@@ -477,11 +499,11 @@ class Shotgun(Weapon):
     def serialize(self) -> Dict[str, int | bool | str | list]:
         data_dict = super().serialize()
         # serialize entity data to be json compatible
-        data_dict.update(
-          {
-              "active_sprite": self.level
-          }
-        )
+        # data_dict.update(
+        #   {
+        #       "active_sprite": self. 
+        #   }
+        # )
         return data_dict
     
     def update(self, update_data):
@@ -541,7 +563,8 @@ class Bullet(Tile):
         shape: Shape = None, 
         id: str | None = None, 
         spawn_time = None, 
-        draw_layer: int = 1
+        draw_layer: int = 1,
+        active_sprite: Optional[pygame.Surface] = None
     ):
 
         body = Body(
@@ -561,7 +584,15 @@ class Bullet(Tile):
             (10, 5)
         )
 
-        super().__init__(body, shape, game, updater, id, draw_layer=draw_layer)
+        super().__init__(
+            body=body, 
+            shape=shape, 
+            game=game, 
+            updater=updater, 
+            id=id, 
+            draw_layer=draw_layer,
+            active_sprite=active_sprite
+        )
 
         self.game.event_subscriptions[Tick] += [
             self.despawn_bullet
@@ -613,7 +644,18 @@ class Bullet(Tile):
         return super().create(entity_data, entity_id, game)
 
 class ShotgunBullet(Bullet):
-    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, weapon: Weapon = None, body: Body = None, shape: Shape = None, id: str | None = None, spawn_time=None, draw_layer: int = 1):
+    def __init__(
+        self, 
+        game: GamemodeClient | GamemodeServer, 
+        updater: str, 
+        weapon: Weapon = None, 
+        body: Body = None, 
+        shape: Shape = None, 
+        id: str | None = None, 
+        spawn_time=None, 
+        draw_layer: int = 1,
+        active_sprite: Optional[pygame.Surface] = None
+    ):
         super().__init__(
             game=game, 
             updater=updater, 
@@ -622,16 +664,27 @@ class ShotgunBullet(Bullet):
             shape=shape, 
             id=id, 
             spawn_time=spawn_time, 
-            draw_layer=draw_layer
+            draw_layer=draw_layer,
+            active_sprite=active_sprite
+            
         )
 
         if isinstance(self.game, GamemodeClient):
-            self.sound = pygame.mixer.Sound("fight/resources/sounds/shotgun.wav")
+            self.sound = pygame.mixer.Sound("resources/sounds/shotgun.wav")
             self.sound.set_volume(0.10)
 
 class FreezableTile(Tile):
-    def __init__(self, body: Body, shape: Shape, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None, draw_layer: int = 1):
-        super().__init__(body, shape, game, updater, id, draw_layer=draw_layer)
+    def __init__(
+            self, 
+            body: Body, 
+            shape: Shape, 
+            game: GamemodeClient | GamemodeServer, 
+            updater: str, 
+            id: str | None = None, 
+            active_sprite = None,
+            draw_layer = 1
+        ):
+        super().__init__(body, shape, game, updater, id, active_sprite=active_sprite, draw_layer=draw_layer)
 
         self.game.event_subscriptions[Tick] += [
             self.create_constraint,
@@ -639,9 +692,6 @@ class FreezableTile(Tile):
             self.unfreeze,
             self.move
         ]
-    
-    def draw(self):
-        super().draw()
         
     def freeze(self, event: Tick):
         if not pygame.mouse.get_pressed()[2]:
@@ -704,11 +754,26 @@ class FreezableTile(Tile):
         ):
             return
 
-class Background(DrawableEntity):
-    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None, draw_layer: int = 0):
-        super().__init__(game, updater, id, draw_layer)
+class Background(Entity):
+    def __init__(
+        self, 
+        game: GamemodeClient | GamemodeServer, 
+        updater: str, 
+        id: str | None = None, 
+        draw_layer: int = 0,
+        active_sprite: Optional[pygame.Surface] = None
+    ):
+
+        super().__init__(
+            game = game, 
+            updater = updater, 
+            id = id, 
+            draw_layer = draw_layer,
+            active_sprite = active_sprite
+        )
     
     def draw(self):
+        print("drawing!")
         self.game.screen.fill(
             (
                 0,

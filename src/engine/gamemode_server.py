@@ -5,6 +5,7 @@ from copy import deepcopy
 from typing import List, Literal, Optional, Type, Dict, Union
 import time
 import zlib
+import pathlib
 
 import pygame
 from pygame import Rect
@@ -13,7 +14,7 @@ import pymunk
 from engine import headered_socket
 from engine.headered_socket import Disconnected
 from engine.exceptions import MalformedUpdate, InvalidUpdateType
-from engine.events import Tick, Event, DisconnectedClient, NewClient, ReceivedClientUpdates, UpdatesLoaded, ServerStart, TickStart, TickComplete, NetworkTick
+from engine.events import Tick, Event, DisconnectedClient, NewClient, ReceivedClientUpdates, UpdatesLoaded, ServerStart, TickStart, TickComplete, NetworkTick, ResourcesLoaded, GameStart
 from engine.entity import Entity
 from engine.tile import Tile
 
@@ -50,6 +51,7 @@ class GamemodeServer:
         self.space.gravity = (0, 900)
         self.last_tick = time.time()
         self.network_compression = network_compression
+        self.resources: Dict[str, pygame.Surface] = {}
         self.dt = 0.1 # i am initializing this with 0.1 instead of 0 because i think it might break stuff
 
         self.entity_type_map.update(
@@ -60,6 +62,10 @@ class GamemodeServer:
 
         self.event_subscriptions[ReceivedClientUpdates] += [
             self.load_updates
+        ]
+
+        self.event_subscriptions[ServerStart] += [
+            self.load_resources
         ]
 
         self.event_subscriptions[UpdatesLoaded] += [
@@ -144,6 +150,15 @@ class GamemodeServer:
         
         for destination in destinations:
             self.update_queue[destination].append(update)
+    
+    def load_resources(self, event: GameStart):
+        for sprite_path in pathlib.Path("resources").rglob("*.png"):
+            sprite_path = str(sprite_path)
+            self.resources[sprite_path] = pygame.image.load(sprite_path)
+        
+        print(self.resources)
+
+        self.trigger(ResourcesLoaded())
 
     def load_updates(self, event: ReceivedClientUpdates):
 

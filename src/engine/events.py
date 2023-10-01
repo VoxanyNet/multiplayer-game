@@ -16,6 +16,9 @@ class NewClient(Event):
     
         self.new_client = new_client
 
+class ResourcesLoaded(Event):
+    pass 
+
 class DisconnectedClient(Event):
     def __init__(self, disconnected_client_uuid: str):
 

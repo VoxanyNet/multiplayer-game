@@ -8,7 +8,7 @@ import pymunk
 from pymunk import Body, Shape
 
 from engine.gamemode_client import GamemodeClient
-from engine.events import GameStart, Tick
+from engine.events import GameStart, Tick, ResourcesLoaded
 from engine import events
 from engine.tile import Tile
 from fight.gamemodes.test.entities import FreezableTile, FreezableTileMaker, Player, Weapon, Bullet, Background, Shotgun
@@ -20,6 +20,10 @@ class Client(GamemodeClient):
 
         self.event_subscriptions[events.KeyE] += [
             self.spawn_entity
+        ]
+
+        self.event_subscriptions[ResourcesLoaded] += [
+            self.spawn_entities
         ]
 
         self.entity_type_map.update(
@@ -96,7 +100,8 @@ class Client(GamemodeClient):
             self.last_spawn = time.time()
 
 
-    def start(self, event: GameStart):
+    def spawn_entities(self, event: ResourcesLoaded):
+        print("spawning entities")
         
         tile_maker = FreezableTileMaker(self,self.uuid)
 

@@ -7,38 +7,29 @@ class Timeline:
     def __init__(self, keyframes: Dict[int, Surface], loop: bool = False):
         self.keyframes = keyframes
         
-        self.start_time: float = None
+        self.elapsed_time: float = 0
         self.loop = loop
 
-    def play(self):
+    def get_frame(self, dt: float):
+        """Progress the timeline by dt seconds and return frame"""
 
-        self.start_time = time.time()
-    
-    @property
-    def current_frame(self):
+        self.elapsed_time += dt
 
-        if not self.start_time:
-            elapsed_time = 0
-        
-        else:
-            elapsed_time = time.time() - self.start_time
-        
+        print(self.elapsed_time)
+
         for end_time, keyframe in self.keyframes.items():
-            
 
-            if elapsed_time <= end_time:
+            if self.elapsed_time <= end_time:
                 return keyframe
         
         if self.loop:
-            # reset the start time to exactly when the last frame was scheduled to end
-
             # get the last keyframe end time
             last_keyframe_end_time = list(reversed(self.keyframes.keys()))[0] # this is jank
 
-            self.start_time += last_keyframe_end_time
-            
-            return self.current_frame
+            # get the amount of time that has elapsed since the last frame would have played
+            self.elapsed_time = self.elapsed_time - last_keyframe_end_time
 
-        # if the timeline doesnt loop, and there are no valid keyframes
+            return self.get_frame(dt=0)
+        
         return None
     
