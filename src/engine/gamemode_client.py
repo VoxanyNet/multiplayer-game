@@ -22,6 +22,7 @@ from engine.helpers import get_matching_objects
 from engine.exceptions import InvalidUpdateType, MalformedUpdate
 from engine.events import Tick, Event, TickComplete, GameStart, TickStart, ScreenCleared, NetworkTick, ResourcesLoaded
 from engine import events
+from engine.drawable_entity import DrawableEntity
 
 
 class GamemodeClient:
@@ -343,9 +344,13 @@ class GamemodeClient:
                         update["entity_type"]
                     ]
 
-                    entity_class.create(
-                        update["data"], update["entity_id"], self
+                    deserialized_data = entity_class.deserialize(
+                        entity_data=update["data"], 
+                        entity_id=update["entity_id"], 
+                        game=self
                     )
+
+                    entity_class(game=self, id=update["entity_id"], **deserialized_data)
 
                 case "update":
 
@@ -374,6 +379,9 @@ class GamemodeClient:
 
         for entity in self.entities.values():
             entity: Entity
+
+            if not isinstance(entity, DrawableEntity):
+                continue
 
             if entity.draw_layer is None:
                 continue

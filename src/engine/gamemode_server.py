@@ -6,6 +6,7 @@ from typing import List, Literal, Optional, Type, Dict, Union
 import time
 import zlib
 import pathlib
+from rich import print
 
 import pygame
 from pygame import Rect
@@ -145,8 +146,6 @@ class GamemodeServer:
             "entity_type": entity_type_string,
             "data": data
         }
-
-        print(f"Server update: {update}")
         
         for destination in destinations:
             self.update_queue[destination].append(update)
@@ -155,8 +154,6 @@ class GamemodeServer:
         for sprite_path in pathlib.Path("resources").rglob("*.png"):
             sprite_path = str(sprite_path)
             self.resources[sprite_path] = pygame.image.load(sprite_path)
-        
-        print(self.resources)
 
         self.trigger(ResourcesLoaded())
 
@@ -174,9 +171,13 @@ class GamemodeServer:
                         update["entity_type"]
                     ]
 
-                    entity_class.create(
-                        update["data"], update["entity_id"], self
+                    deserialized_data = entity_class.deserialize(
+                        entity_data=update["data"], 
+                        entity_id=update["entity_id"], 
+                        game=self
                     )
+                    
+                    entity_class(game=self, id=update["entity_id"], **deserialized_data)
 
                 case "update":
 
@@ -350,8 +351,6 @@ class GamemodeServer:
             self.client_sockets[receiving_client_uuid].send_headered(
                 updates_json_bytes
             )
-
-            print(updates)
         
             self.update_queue[receiving_client_uuid] = []
             

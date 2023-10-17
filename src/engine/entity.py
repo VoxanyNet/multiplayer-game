@@ -2,6 +2,7 @@ import uuid
 import inspect
 from typing import Dict, List, Type, Tuple, Union, TYPE_CHECKING, get_type_hints, Callable, Optional
 import json
+from abc import ABC
 
 import pygame.image
 from pygame import Rect
@@ -14,32 +15,24 @@ from engine.events import TickComplete, NetworkTick, NewEntity
 if TYPE_CHECKING:
     from gamemode_client import GamemodeClient
     from gamemode_server import GamemodeServer
-
-class MissingSpritePath(Exception):
-    pass 
-
-class Entity:
+    
+class Entity(ABC):
     
     def __init__(
-        self, 
+        self,
         game: Union["GamemodeClient", "GamemodeServer"], 
         updater: str, 
-        id: Optional[str]=None, 
-        active_sprite: Optional[pygame.Surface]=None,
-        draw_layer: Optional[int] = None
+        id: Optional[str]=None
     ):
 
         self.updater = updater
         self.game = game
         self.last_tick_dict = {}
-        self.draw_layer: Optional[int] = draw_layer
-        
+
         if id is None:
             id = str(uuid.uuid4())[0:6]
         
         self.id = id
-
-        self.active_sprite: Optional[pygame.Surface] = active_sprite
 
         # add entity to the game state automatically
         self.game.entities[self.id] = self
@@ -106,38 +99,20 @@ class Entity:
 
     def serialize(self) -> Dict[str, Union[int, bool, str, list]]:
         """Serialize the entity's data"""
-        
-        active_sprite_path = None
-        
-        # find path for active sprite
-        if self.active_sprite:
-
-            for path, sprite in self.game.resources.items():
-                if self.active_sprite == sprite:
-                    active_sprite_path = path
-
-            if active_sprite_path is None:
-                raise MissingSpritePath(f"cannot find path for active sprite {sprite}")
             
         data_dict = {
-            "updater": self.updater,
-            "active_sprite": active_sprite_path,
-            "draw_layer": self.draw_layer
+            "updater": self.updater
         }
         
         return data_dict
 
-    @classmethod
-    def create(cls, entity_data: Dict[str, Union[int, bool, str, list]], entity_id: str, game: Union[Type["GamemodeClient"], Type["GamemodeServer"]]) -> Type["Entity"]:
-        """Use serialized entity data to create a new entity"""
+    @staticmethod
+    def deserialize(entity_data: Dict[str, Union[int, bool, str, list]], entity_id: str, game: Union[Type["GamemodeClient"], Type["GamemodeServer"]]):
+        """Deserialize a dictionary of entity init arguments into proper objects"""
 
-        entity_data["updater"] = entity_data["updater"]
-        entity_data["draw_layer"] = entity_data["draw_layer"]        
-        
-        if entity_data["active_sprite"] is not None: # this is verbose but clearer
-            entity_data["active_sprite"] = game.resources[entity_data["active_sprite"]]
+        entity_data["updater"] = entity_data["updater"]    
 
-        return cls(game=game, id=entity_id, **entity_data)
+        return entity_data
 
     def update(self, update_data):
         """Use serialized entity data to update existing entity"""
@@ -148,12 +123,3 @@ class Entity:
 
                 case "updater":
                     self.updater = update_data["updater"]
-
-                case "active_sprite":
-                    if update_data["active_sprite"] is not None:
-                        self.active_sprite = self.game.resources[update_data["active_sprite"]]
-                    else:
-                        self.active_sprite = None
-                
-                case "draw_layer":
-                    self.draw_layer = update_data["draw_layer"]

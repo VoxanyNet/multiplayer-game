@@ -6,7 +6,7 @@ from engine.gamemode_server import GamemodeServer
 class ExampleEntity(Entity):
 
     def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None):
-        super().__init__(game, updater, id)
+        Entity.__init__(game, updater, id)
 
         # add event listeners
         # for example:
@@ -15,7 +15,7 @@ class ExampleEntity(Entity):
         # ]
     
     def serialize(self) -> Dict[str, int | bool | str | list]:
-        data_dict = super().serialize()
+        data_dict = Entity.serialize(self)
         # serialize entity data to be json compatible
         # data_dict.update(
         #   {
@@ -25,7 +25,7 @@ class ExampleEntity(Entity):
         return data_dict
     
     def update(self, update_data):
-        super().update(update_data)
+        Entity.update(self, update_data)
         # update entity attributes with update_data
         # for example:
         # for attribute_name, attribute_value in update_data.items():
@@ -40,4 +40,4 @@ class ExampleEntity(Entity):
         # deserialize all entity_data items
         # for example:
         # entity_data["velocity"] = Vector(entity_data["vector"][0], entity_data["vector"][1])
-        return super().create(entity_data, entity_id, game)
+        return Entity.create(entity_data, entity_id, game)

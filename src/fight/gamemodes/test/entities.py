@@ -16,19 +16,33 @@ from engine.tile import Tile
 from engine.events import Tick, NewEntity
 from engine.unresolved import Unresolved
 from engine.timeline import Timeline
+from engine.drawable_entity import DrawableEntity
+from engine.sprite_entity import SpriteEntity
 
-class FreezableTileMaker(Entity):
+class FreezableTileMaker(DrawableEntity, Entity):
     def __init__(
         self, 
         game: GamemodeClient | GamemodeServer, 
         updater: str, 
         id: str | None = None,
-        active_sprite = None,
-        draw_layer = None
+        draw_layer: Optional[int] = None
     ):
         
-        super().__init__(game, updater, id, active_sprite=active_sprite, draw_layer=draw_layer)
-
+        Entity.__init__(
+            self, 
+            game=game, 
+            updater=updater, 
+            id=id
+        )
+        
+        DrawableEntity.__init__(
+            self, 
+            game=game, 
+            updater=updater, 
+            draw_layer=draw_layer
+        )
+        
+        
         self.game.event_subscriptions[events.KeyReturn] += [
             self.spawn_tile
         ]
@@ -106,17 +120,17 @@ class FreezableTileMaker(Entity):
             width=1
         )
 
-class Player(Tile):
+class Player(SpriteEntity, Tile):
     def __init__(
         self, 
         game: GamemodeClient | GamemodeServer, 
         updater: str, 
+        active_sprite: Optional[pygame.Surface] = None,
         body: Body = None, 
         shape: Shape = None, 
         weapon: "Weapon" = None, 
         id: str | None = None, 
-        draw_layer: int = 1,
-        active_sprite: Optional[pygame.Surface] = None
+        draw_layer: int = 1
     ):
         
         if body is None or shape is None:
@@ -125,10 +139,7 @@ class Player(Tile):
                 body_type=pymunk.Body.DYNAMIC
             )
 
-            body.moment = float("INF") #pymunk.moment_for_box(
-        #     body.mass,
-        #     (64, 40)
-        # )
+            body.moment = float("INF")
 
             body.position = game.screen.get_bounding_rect().center
     
@@ -139,22 +150,30 @@ class Player(Tile):
 
             shape.friction = 0.5
 
-        super().__init__(
-            body,
-            shape, 
-            game, 
-            updater, 
-            id, 
+        SpriteEntity.__init__(
+            self=self,
+            game=game, 
+            updater=updater, 
+            id=id, 
             draw_layer=draw_layer,
             active_sprite=active_sprite
         )
+        
+        Tile.__init__(
+            self=self,
+            body=body,
+            shape=shape,
+            game=game,
+            updater=updater,
+            id=id
+        )
 
-        self.weapon: Weapon = weapon
+        self.weapon = weapon
 
         self.game.event_subscriptions[Tick] += [
             self.handle_keys,
             self.move_camera,
-            self.advanced_walk_cycle
+            self.advance_walk_cycle
         ]
 
         self.walk_timeline = Timeline(
@@ -169,7 +188,7 @@ class Player(Tile):
             loop=True
         )
 
-    def advanced_walk_cycle(self, event: Tick):
+    def advance_walk_cycle(self, event: Tick):
 
         if abs(self.body.velocity.x) > 0:
             self.active_sprite = self.walk_timeline.get_frame(self.game.dt)
@@ -212,7 +231,7 @@ class Player(Tile):
         #print(self.game.camera_offset)
         
     def serialize(self) -> Dict[str, int | bool | str | list]:
-        data_dict = super().serialize()
+        data_dict = SpriteEntity.serialize(self) | Tile.serialize(self)
 
         if self.weapon:
             data_dict["weapon"] = self.weapon.id
@@ -221,18 +240,22 @@ class Player(Tile):
         
         return data_dict
         
-    @classmethod
-    def create(self, entity_data: Dict[str, int | bool | str | list], entity_id: str, game: GamemodeClient | GamemodeServer) -> type[Tile]:
+    @staticmethod
+    def deserialize(entity_data: Dict[str, int | bool | str | list], entity_id: str, game: GamemodeClient | GamemodeServer) -> dict:
         
         if entity_data["weapon"]:
             entity_data["weapon"] = Unresolved(entity_data["weapon"])
         else:
             entity_data["weapon"] = None
 
-        return super().create(entity_data, entity_id, game)
+        entity_data.update(SpriteEntity.deserialize(entity_data, entity_id, game))
+        entity_data.update(Tile.deserialize(entity_data, entity_id, game))
+
+        return entity_data
     
     def update(self, update_data: dict):
-        super().update(update_data)
+        SpriteEntity.update(self, update_data)
+        Tile.update(self, update_data)
         
         for attribute_name, attribute_value in update_data.items():
 
@@ -278,7 +301,7 @@ class Player(Tile):
                 self.body.center_of_gravity
             )
 
-class Weapon(Tile):
+class Weapon(DrawableEntity, Tile):
 
     def __init__(self, 
         game: GamemodeClient | GamemodeServer, 
@@ -291,19 +314,25 @@ class Weapon(Tile):
         id: str | None = None, 
         cooldown: int = 0, 
         last_shot: int = 0, 
-        draw_layer: int = 1,
-        active_sprite: Optional[pygame.Surface] = None
+        draw_layer: int = 1
     ): 
 
         
-        super().__init__(
-            body=body, 
-            shape=shape, 
+        DrawableEntity.__init__(
+            self=self,
             game=game, 
             updater=updater, 
             id=id, 
-            draw_layer=draw_layer,
-            active_sprite=active_sprite
+            draw_layer=draw_layer
+        )
+        
+        Tile.__init__(
+            self=self,
+            body=body,
+            shape=shape,
+            game=game,
+            updater=updater,
+            id=id
         )
 
         self.game.event_subscriptions[Tick] += [
@@ -347,7 +376,9 @@ class Weapon(Tile):
         return
 
     def serialize(self) -> Dict[str, int | bool | str | list]:
-        data_dict = super().serialize()
+        data_dict = {}
+        data_dict.update(DrawableEntity.serialize(self))
+        data_dict.update(Tile.serialize(self))
 
         if self.player:
             data_dict["player"] = self.player.id
@@ -366,7 +397,8 @@ class Weapon(Tile):
         return data_dict
     
     def update(self, update_data: dict):
-        super().update(update_data)
+        DrawableEntity.update(self, update_data)
+        Tile.update(self, update_data)
 
         for attribute_name, attribute_value in update_data.items():
 
@@ -385,9 +417,9 @@ class Weapon(Tile):
                 case "last_shot":
                     self.last_shot = attribute_value
     
-    @classmethod
-    def create(self, entity_data: Dict[str, int | bool | str | list], entity_id: str, game: GamemodeClient | GamemodeServer) -> type[Tile]:
-        
+    @staticmethod
+    def deserialize(entity_data: Dict[str, int | bool | str | list], entity_id: str, game: GamemodeClient | GamemodeServer) -> dict:
+        print("called")
         if entity_data["player"]:
             entity_data["player"] = Unresolved(entity_data["player"])
         else:
@@ -397,7 +429,10 @@ class Weapon(Tile):
 
         entity_data["last_shot"] = entity_data["last_shot"]
         
-        return super().create(entity_data, entity_id, game)
+        entity_data.update(DrawableEntity.deserialize(entity_data, entity_id, game))
+        entity_data.update(Tile.deserialize(entity_data, entity_id, game))
+
+        return entity_data
 
     def follow_cursor_on_circle(self, event: Tick):
         
@@ -420,7 +455,7 @@ class Weapon(Tile):
 
         self.body.position = (closest_x, closest_y)
         
-class Shotgun(Weapon):   
+class Shotgun(Weapon, SpriteEntity):   
     def __init__(self, 
         game: GamemodeClient | GamemodeServer, 
         updater: str, 
@@ -448,19 +483,28 @@ class Shotgun(Weapon):
             )
         
         
-        super().__init__(
-            game=game, 
-            updater=updater, 
-            clip_size=clip_size, 
-            ammo=ammo, 
-            player=player, 
-            body=body, 
-            shape=shape, 
-            id=id, 
-            cooldown=cooldown, 
-            last_shot=last_shot, 
+        SpriteEntity.__init__(
+            self=self,
+            game=game,
+            updater=updater,
             draw_layer=draw_layer,
-            active_sprite=active_sprite
+            active_sprite=active_sprite,
+            id=id
+        )
+
+        Weapon.__init__(
+            self=self,
+            game=game,
+            updater=updater,
+            clip_size=clip_size,
+            ammo=ammo,
+            body=body,
+            shape=shape,
+            player=player,
+            id=id,
+            cooldown=cooldown,
+            last_shot=last_shot,
+            draw_layer=draw_layer
         )
 
         self.reload_timeline = Timeline(
@@ -491,23 +535,21 @@ class Shotgun(Weapon):
                 )
             }
         )
-
-    
-    def draw(self):
-        pass
     
     def serialize(self) -> Dict[str, int | bool | str | list]:
-        data_dict = super().serialize()
-        # serialize entity data to be json compatible
-        # data_dict.update(
-        #   {
-        #       "active_sprite": self. 
-        #   }
-        # )
+
+        data_dict = {}
+        data_dict.update(SpriteEntity.serialize(self))
+        data_dict.update(Weapon.serialize(self))
+
         return data_dict
     
+    def draw(self):
+        self.draw_onto_body()
+
     def update(self, update_data):
-        super().update(update_data)
+        SpriteEntity.update(self, update_data)
+        Weapon.update(self, update_data)
         # update entity attributes with update_data
         # for example:
         # for attribute_name, attribute_value in update_data.items():
@@ -552,8 +594,7 @@ class Shotgun(Weapon):
 
         bullet.sound.play()
 
-
-class Bullet(Tile):
+class Bullet(DrawableEntity, Tile):
     def __init__(
         self, 
         game: GamemodeClient | GamemodeServer, 
@@ -563,8 +604,7 @@ class Bullet(Tile):
         shape: Shape = None, 
         id: str | None = None, 
         spawn_time = None, 
-        draw_layer: int = 1,
-        active_sprite: Optional[pygame.Surface] = None
+        draw_layer: int = 1
     ):
 
         body = Body(
@@ -584,14 +624,21 @@ class Bullet(Tile):
             (10, 5)
         )
 
-        super().__init__(
-            body=body, 
-            shape=shape, 
-            game=game, 
-            updater=updater, 
-            id=id, 
+        DrawableEntity.__init__(
+            self=self,
+            game=game,
+            updater=updater,
             draw_layer=draw_layer,
-            active_sprite=active_sprite
+            id=id
+        )
+
+        Tile.__init__(
+            self=self,
+            body=body,
+            shape=shape,
+            game=game,
+            updater=updater,
+            id=id
         )
 
         self.game.event_subscriptions[Tick] += [
@@ -605,13 +652,16 @@ class Bullet(Tile):
         else:
             self.spawn_time = time.time()
     
+    def draw(self):
+        self.debug_draw()
+
     def despawn_bullet(self, event: Tick):
 
         if time.time() - self.spawn_time > 1:
             self.kill()
 
     def serialize(self) -> Dict[str, int | bool | str | list]:
-        data_dict = super().serialize()
+        data_dict = DrawableEntity.serialize(self) | Tile.serialize(self)
 
         if self.weapon:
             data_dict["weapon"] = self.weapon.id
@@ -622,7 +672,8 @@ class Bullet(Tile):
         return data_dict
 
     def update(self, update_data: dict):
-        super().update(update_data)
+        DrawableEntity.update(self, update_data)
+        Tile.update(self, update_data)
 
         for attribute_name, attribute_value in update_data.items():
             match attribute_name:
@@ -633,15 +684,18 @@ class Bullet(Tile):
                     else:
                         self.weapon = attribute_value
     
-    @classmethod
-    def create(self, entity_data: Dict[str, int | bool | str | list], entity_id: str, game: GamemodeClient | GamemodeServer) -> type[Tile]:
+    @staticmethod
+    def deserialize(entity_data: Dict[str, int | bool | str | list], entity_id: str, game: GamemodeClient | GamemodeServer) -> type[Tile]:
         
         if entity_data["weapon"]:
             entity_data["weapon"] = Unresolved(entity_data["weapon"])
         else:
             entity_data["weapon"] = None
         
-        return super().create(entity_data, entity_id, game)
+        DrawableEntity.deserialize(entity_data, entity_id, game)
+        Tile.deserialize(entity_data, entity_id, game)
+
+        return entity_data
 
 class ShotgunBullet(Bullet):
     def __init__(
@@ -654,7 +708,6 @@ class ShotgunBullet(Bullet):
         id: str | None = None, 
         spawn_time=None, 
         draw_layer: int = 1,
-        active_sprite: Optional[pygame.Surface] = None
     ):
         super().__init__(
             game=game, 
@@ -664,27 +717,40 @@ class ShotgunBullet(Bullet):
             shape=shape, 
             id=id, 
             spawn_time=spawn_time, 
-            draw_layer=draw_layer,
-            active_sprite=active_sprite
-            
+            draw_layer=draw_layer 
         )
 
         if isinstance(self.game, GamemodeClient):
             self.sound = pygame.mixer.Sound("resources/sounds/shotgun.wav")
             self.sound.set_volume(0.10)
 
-class FreezableTile(Tile):
+class FreezableTile(DrawableEntity, Tile):
     def __init__(
             self, 
             body: Body, 
             shape: Shape, 
             game: GamemodeClient | GamemodeServer, 
             updater: str, 
-            id: str | None = None, 
-            active_sprite = None,
+            id: str | None = None,
             draw_layer = 1
         ):
-        super().__init__(body, shape, game, updater, id, active_sprite=active_sprite, draw_layer=draw_layer)
+        
+        DrawableEntity.__init__(
+            self=self,
+            game=game,
+            updater=updater,
+            draw_layer=draw_layer,
+            id=id
+        )
+
+        Tile.__init__(
+            self=self,
+            body=body,
+            shape=shape,
+            game=game,
+            updater=updater,
+            id=id
+        )
 
         self.game.event_subscriptions[Tick] += [
             self.create_constraint,
@@ -692,7 +758,33 @@ class FreezableTile(Tile):
             self.unfreeze,
             self.move
         ]
-        
+    
+    def serialize(self) -> Dict[str, int | bool | str | list]:
+        data_dict = {} 
+        data_dict.update(DrawableEntity.serialize(self))
+        data_dict.update(Tile.serialize(self))
+
+        return data_dict
+    
+    @staticmethod
+    def deserialize(entity_data: Dict[str, int | bool | str | list], entity_id: str, game: type[GamemodeClient] | type[GamemodeServer]) -> dict:
+        DrawableEntity.deserialize(
+            entity_data=entity_data,
+            entity_id=entity_id,
+            game=game
+        )
+
+        Tile.deserialize(
+            entity_data=entity_data,
+            entity_id=entity_id,
+            game=game
+        )
+
+        return entity_data
+    
+    def draw(self):
+        self.debug_draw()
+
     def freeze(self, event: Tick):
         if not pygame.mouse.get_pressed()[2]:
             return
@@ -754,26 +846,24 @@ class FreezableTile(Tile):
         ):
             return
 
-class Background(Entity):
+class Background(DrawableEntity, Entity):
     def __init__(
         self, 
         game: GamemodeClient | GamemodeServer, 
         updater: str, 
         id: str | None = None, 
         draw_layer: int = 0,
-        active_sprite: Optional[pygame.Surface] = None
     ):
 
-        super().__init__(
-            game = game, 
-            updater = updater, 
-            id = id, 
-            draw_layer = draw_layer,
-            active_sprite = active_sprite
+        DrawableEntity.__init__(
+            self=self,
+            game=game,
+            updater=updater,
+            draw_layer=draw_layer,
+            id=id
         )
     
     def draw(self):
-        print("drawing!")
         self.game.screen.fill(
             (
                 0,

@@ -9,6 +9,7 @@ from rich import print
 from engine.entity import Entity
 from engine.unresolved import Unresolved
 from engine.events import Tick
+from engine.drawable_entity import DrawableEntity
 
 if TYPE_CHECKING:
     from engine.gamemode_client import GamemodeClient
@@ -21,13 +22,10 @@ class Tile(Entity):
             shape: pymunk.Shape,
             game: Union["GamemodeClient", "GamemodeServer"], 
             updater: str, 
-            id: Optional[str] = None,
-            color: Tuple = (255, 255, 255),
-            draw_layer: int = 1,
-            active_sprite: Optional[pygame.Surface] = None
+            id: Optional[str] = None
         ):
 
-        super().__init__(game=game, updater=updater, id=id, draw_layer=draw_layer, active_sprite=active_sprite)
+        Entity.__init__(self=self, game=game, updater=updater, id=id)
 
         self.game.event_subscriptions[Tick] += [
             self.despawn
@@ -35,13 +33,13 @@ class Tile(Entity):
 
         self.body = body 
         self.shape = shape
-        self.color = color
+        self.color = (255,255,255)
 
         self.game.space.add(self.body, self.shape)
     
     def kill(self):
 
-        super().kill()
+        Entity.kill(self)
 
         self.game.space.remove(self.body, self.shape)
     
@@ -53,7 +51,7 @@ class Tile(Entity):
         if self.body.position.x > max_x or self.body.position.y > max_y:
             self.kill()
 
-    def draw(self):
+    def debug_draw(self):
 
         vertices = []
 
@@ -76,7 +74,7 @@ class Tile(Entity):
     
     def serialize(self) -> Dict[str, int | bool | str | list]:
 
-        data_dict = super().serialize()
+        data_dict = Entity.serialize(self)
 
         data_dict.update(
             {   
@@ -93,13 +91,11 @@ class Tile(Entity):
                 }
             }    
         )
-            
-        #print(data_dict)
 
         return data_dict
     
-    @classmethod
-    def create(self, entity_data: Dict[str, Union[int, bool, str, list]], entity_id: str, game: Union["GamemodeClient", "GamemodeServer"]) -> Type["Tile"]:
+    @staticmethod
+    def deserialize(entity_data: Dict[str, Union[int, bool, str, list]], entity_id: str, game: Union["GamemodeClient", "GamemodeServer"]) -> dict:
         """Translate serialized entity data into an actual Tile object"""
         
         body = pymunk.Body(
@@ -122,12 +118,14 @@ class Tile(Entity):
 
         entity_data["shape"] = shape
         
+        entity_data.update(Entity.deserialize(entity_data, entity_id, game=game))
 
-        return super().create(entity_data, entity_id, game=game)
+        return entity_data
+        
 
     def update(self, update_data: dict):
 
-        super().update(update_data)
+        Entity.update(self, update_data)
         
         for attribute_name, attribute_value in update_data.items():
 
