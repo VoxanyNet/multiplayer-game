@@ -130,7 +130,8 @@ class Player(SpriteEntity, Tile):
         shape: Shape = None, 
         weapon: "Weapon" = None, 
         id: str | None = None, 
-        draw_layer: int = 1
+        draw_layer: int = 1,
+        scale: int = 2
     ):
         
         if body is None or shape is None:
@@ -145,7 +146,7 @@ class Player(SpriteEntity, Tile):
     
             shape=pymunk.Poly.create_box(
                 body=body,
-                size=(34,21)
+                size=(68,42)
             )
 
             shape.friction = 0.5
@@ -156,7 +157,8 @@ class Player(SpriteEntity, Tile):
             updater=updater, 
             id=id, 
             draw_layer=draw_layer,
-            active_sprite=active_sprite
+            active_sprite=active_sprite,
+            scale=scale
         )
         
         Tile.__init__(
@@ -197,13 +199,7 @@ class Player(SpriteEntity, Tile):
 
     def draw(self):
 
-        self.game.screen.blit(
-            self.active_sprite,
-            (
-                self.shape.bb.left + self.game.camera_offset[0],
-                self.shape.bb.bottom + self.game.camera_offset[1]
-            )
-        )
+        self.draw_onto_body()
 
     def move_camera(self, event: Tick):
         """Move camera if we get too close to the edge of the screen"""
@@ -231,7 +227,9 @@ class Player(SpriteEntity, Tile):
         #print(self.game.camera_offset)
         
     def serialize(self) -> Dict[str, int | bool | str | list]:
-        data_dict = SpriteEntity.serialize(self) | Tile.serialize(self)
+        data_dict = {}
+        data_dict.update(SpriteEntity.serialize(self))
+        data_dict.update(Tile.serialize(self))
 
         if self.weapon:
             data_dict["weapon"] = self.weapon.id
@@ -468,7 +466,8 @@ class Shotgun(Weapon, SpriteEntity):
         cooldown: int = 0.6, 
         last_shot: int = 0, 
         draw_layer: int = 1,
-        active_sprite: Optional[pygame.Surface] = None
+        active_sprite: Optional[pygame.Surface] = None,
+        scale: int = 1
     ):
         
         if not body:
@@ -489,7 +488,8 @@ class Shotgun(Weapon, SpriteEntity):
             updater=updater,
             draw_layer=draw_layer,
             active_sprite=active_sprite,
-            id=id
+            id=id,
+            scale=scale
         )
 
         Weapon.__init__(
@@ -545,7 +545,7 @@ class Shotgun(Weapon, SpriteEntity):
         return data_dict
     
     def draw(self):
-        self.draw_onto_body()
+        pass
 
     def update(self, update_data):
         SpriteEntity.update(self, update_data)

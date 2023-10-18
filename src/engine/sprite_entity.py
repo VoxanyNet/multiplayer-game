@@ -1,7 +1,9 @@
 from abc import abstractproperty
-from typing import Dict, Optional
+import time
+from typing import Dict, Optional, List
 
 from pygame import Surface
+import pygame
 
 from engine.drawable_entity import DrawableEntity
 from engine.entity import Entity
@@ -13,7 +15,15 @@ class MissingSpritePath(Exception):
 
 class SpriteEntity(DrawableEntity):
 
-    def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, draw_layer: int, active_sprite: Optional[Surface], id: str | None = None):
+    def __init__(
+        self, 
+        game: GamemodeClient | GamemodeServer, 
+        updater: str, 
+        draw_layer: int, 
+        active_sprite: Optional[Surface], 
+        id: str | None = None,
+        scale: int = 1
+    ):
 
         DrawableEntity.__init__(
             self=self,
@@ -24,6 +34,7 @@ class SpriteEntity(DrawableEntity):
         )
 
         self.active_sprite = active_sprite
+        self.scale = scale
     
     def serialize(self) -> Dict[str, int | bool | str | list]:
 
@@ -32,7 +43,6 @@ class SpriteEntity(DrawableEntity):
         active_sprite_path = None
 
         if self.active_sprite:
-            
             for path, sprite in self.game.resources.items():
                 if self.active_sprite == sprite:
                     active_sprite_path = path
@@ -42,7 +52,8 @@ class SpriteEntity(DrawableEntity):
         
         data_dict.update(
             {
-                "active_sprite": active_sprite_path
+                "active_sprite": active_sprite_path,
+                "scale": self.scale
             }
         )
         
@@ -60,6 +71,9 @@ class SpriteEntity(DrawableEntity):
                     
                     else:
                         self.active_sprite = self.game.resources[attribute_value]
+                
+                case "scale":
+                    self.scale = attribute_value
 
     @staticmethod
     def deserialize(entity_data: Dict[str, int | bool | str | list], entity_id: str, game: type[GamemodeClient] | type[GamemodeServer]) -> dict:
@@ -69,6 +83,8 @@ class SpriteEntity(DrawableEntity):
         else:
             entity_data["active_sprite"] = game.resources[entity_data["active_sprite"]]
         
+        entity_data["scale"] = entity_data["scale"]
+        
         entity_data.update(DrawableEntity.deserialize(entity_data, entity_id, game))
 
         return entity_data
@@ -76,7 +92,21 @@ class SpriteEntity(DrawableEntity):
     def draw_onto_body(self):
         """Draw sprite onto pymunk body if the entity has one"""
         if not hasattr(self, "body"):
-            raise Exception("SpriteEntity.draw_onto_body not supported when entity has no body")
+            raise Exception("SpriteEntity.draw_onto_body only supported when entity has body")
+        
+        s = time.time()
+        active_sprite_scaled = pygame.transform.scale_by(
+            self.active_sprite,
+            self.scale
+        )
+        print(f"{time.time() - s}")
+        self.game.screen.blit(
+            active_sprite_scaled,
+            (
+                self.shape.bb.left + self.game.camera_offset[0],
+                self.shape.bb.bottom + self.game.camera_offset[1]
+            )
+        )
         
         
         

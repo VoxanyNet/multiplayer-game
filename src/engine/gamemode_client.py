@@ -372,8 +372,6 @@ class GamemodeClient:
         return
     
     def draw_entities(self, event: ScreenCleared):
-        
-        #self.space.debug_draw(self.options)
 
         draw_order: Dict[int, List[Entity]] = defaultdict(list)
 
@@ -396,6 +394,8 @@ class GamemodeClient:
             for entity in layer_entites:
                 entity.draw()
 
+        #self.space.debug_draw(self.options)
+        
         pygame.display.flip()
 
     def clear_screen(self, event: TickComplete):

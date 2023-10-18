@@ -38,7 +38,7 @@ class Tile(Entity):
         self.game.space.add(self.body, self.shape)
     
     def kill(self):
-
+  
         Entity.kill(self)
 
         self.game.space.remove(self.body, self.shape)

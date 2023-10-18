@@ -42,10 +42,7 @@ class DrawableEntity(Entity):
             match attribute_name:
 
                 case "draw_layer":
-                    self.draw_layer = attribute_value
-
-                case "active_sprite":
-                    self.active_sprite = self.game.resources[attribute_value]                    
+                    self.draw_layer = attribute_value               
     
     @staticmethod
     def deserialize(entity_data: Dict[str, int | bool | str | list], entity_id: str, game: type["GamemodeClient"] | type["GamemodeServer"]) -> type[Entity]:

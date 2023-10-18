@@ -15,8 +15,6 @@ class Timeline:
 
         self.elapsed_time += dt
 
-        print(self.elapsed_time)
-
         for end_time, keyframe in self.keyframes.items():
 
             if self.elapsed_time <= end_time:
