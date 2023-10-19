@@ -289,7 +289,6 @@ class Player(SpriteEntity, Tile):
             )
         
         if pygame.key.get_pressed()[pygame.K_SPACE]:
-            print("jump")
 
             if abs(self.body.velocity.y) > 0.1:
                 return 
@@ -724,7 +723,7 @@ class ShotgunBullet(Bullet):
             self.sound = pygame.mixer.Sound("resources/sounds/shotgun.wav")
             self.sound.set_volume(0.10)
 
-class FreezableTile(DrawableEntity, Tile):
+class FreezableTile(Tile, DrawableEntity):
     def __init__(
             self, 
             body: Body, 
