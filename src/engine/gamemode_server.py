@@ -153,6 +153,8 @@ class GamemodeServer:
     def load_resources(self, event: GameStart):
         for sprite_path in pathlib.Path("resources").rglob("*.png"):
             sprite_path = str(sprite_path)
+            # replace windows file path backslashes with forward slashes
+            sprite_path = sprite_path.replace("\\", "/")
             self.resources[sprite_path] = pygame.image.load(sprite_path)
 
         self.trigger(ResourcesLoaded())
