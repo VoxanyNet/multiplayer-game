@@ -79,10 +79,10 @@ class Tile(Entity):
         data_dict.update(
             {   
                 "body": {
-                    "angle": round(self.body.angle, 4),
-                    "position": (round(self.body.position.x, 4), round(self.body.position.y, 4)),
+                    "angle": round(self.body.angle, 1),
+                    "position": (round(self.body.position.x, 2), round(self.body.position.y, 2)),
                     "moment": self.body.moment,
-                    "velocity": (round(self.body.velocity.x, 6), round(self.body.velocity.y, 6))
+                    "velocity": (round(self.body.velocity.x, 0), round(self.body.velocity.y, 0))
                 },
                 "shape": {
                     "vertices": self.shape.get_vertices(),
