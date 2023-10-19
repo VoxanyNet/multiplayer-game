@@ -13,6 +13,7 @@ import pygame
 from pygame import Rect
 import pymunk
 from pymunk import pygame_util
+from rich import print
 
 from engine import headered_socket
 from engine.headered_socket import Disconnected

@@ -94,12 +94,11 @@ class SpriteEntity(DrawableEntity):
         if not hasattr(self, "body"):
             raise Exception("SpriteEntity.draw_onto_body only supported when entity has body")
         
-        s = time.time()
         active_sprite_scaled = pygame.transform.scale_by(
             self.active_sprite,
             self.scale
         )
-        print(f"{time.time() - s}")
+
         self.game.screen.blit(
             active_sprite_scaled,
             (
