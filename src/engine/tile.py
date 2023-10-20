@@ -28,7 +28,7 @@ class Tile(Entity):
         Entity.__init__(self=self, game=game, updater=updater, id=id)
 
         self.game.event_subscriptions[Tick] += [
-            self.despawn
+            #self.despawn
         ]
 
         self.body = body 
@@ -36,7 +36,7 @@ class Tile(Entity):
         self.color = (255,255,255)
 
         self.game.space.add(self.body, self.shape)
-    
+        
     def kill(self):
   
         Entity.kill(self)
