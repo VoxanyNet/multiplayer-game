@@ -140,7 +140,10 @@ class Player(SpriteEntity, Tile):
                 body_type=pymunk.Body.DYNAMIC
             )
 
-            body.moment = float("INF")
+            body.moment = pymunk.moment_for_box(
+                body.mass,
+                (68, 42)
+            )
 
             body.position = game.screen.get_bounding_rect().center
     
@@ -178,6 +181,7 @@ class Player(SpriteEntity, Tile):
             self.advance_walk_cycle
         ]
 
+        self.static_sprite = self.game.resources["resources/sprites/nyancat.png"]
         self.walk_timeline = Timeline(
             {
                 0.08: self.game.resources["resources/timelines/nyancat/0.png"],
@@ -195,7 +199,7 @@ class Player(SpriteEntity, Tile):
         if abs(self.body.velocity.x) > 0:
             self.active_sprite = self.walk_timeline.get_frame(self.game.dt)
         else:
-            self.active_sprite = list(self.walk_timeline.keyframes.values())[0]
+            self.active_sprite = self.static_sprite
 
     def draw(self):
 
@@ -466,7 +470,7 @@ class Shotgun(Weapon, SpriteEntity):
         last_shot: int = 0, 
         draw_layer: int = 1,
         active_sprite: Optional[pygame.Surface] = None,
-        scale: int = 1
+        scale: int = 1.5
     ):
         
         if not body:
@@ -505,35 +509,19 @@ class Shotgun(Weapon, SpriteEntity):
             last_shot=last_shot,
             draw_layer=draw_layer
         )
-
+        
+        self.static_sprite = self.game.resources["resources/sprites/shotgun.png"]
         self.reload_timeline = Timeline(
             {
-                0.08: pygame.transform.scale(
-                    pygame.image.load("resources/timelines/shotgun_reload/0.png"),
-                    (36, 10)
-                ),
-                0.16: pygame.transform.scale(
-                    pygame.image.load("resources/timelines/shotgun_reload/1.png"),
-                    (36, 10)
-                ),
-                0.24: pygame.transform.scale(
-                    pygame.image.load("resources/timelines/shotgun_reload/2.png"),
-                    (36, 10)
-                ),
-                0.32: pygame.transform.scale(
-                    pygame.image.load("resources/timelines/shotgun_reload/3.png"),
-                    (36, 10)
-                ),
-                0.40: pygame.transform.scale(
-                    pygame.image.load("resources/timelines/shotgun_reload/4.png"),
-                    (36, 10)
-                ),
-                0.48: pygame.transform.scale(
-                    pygame.image.load("resources/timelines/shotgun_reload/5.png"),
-                    (36, 10)
-                )
+                0.08: self.game.resources["resources/timelines/shotgun_reload/0.png"],
+                0.16: self.game.resources["resources/timelines/shotgun_reload/1.png"],
+                0.24: self.game.resources["resources/timelines/shotgun_reload/2.png"],
+                0.32: self.game.resources["resources/timelines/shotgun_reload/3.png"],
+                0.40: self.game.resources["resources/timelines/shotgun_reload/4.png"],
+                0.48: self.game.resources["resources/timelines/shotgun_reload/5.png"]
             }
         )
+        self.active_sprite = self.static_sprite
     
     def serialize(self) -> Dict[str, int | bool | str | list]:
 
@@ -544,7 +532,7 @@ class Shotgun(Weapon, SpriteEntity):
         return data_dict
     
     def draw(self):
-        pass
+        self.draw_onto_body()
 
     def update(self, update_data):
         SpriteEntity.update(self, update_data)
