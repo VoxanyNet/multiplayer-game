@@ -280,16 +280,16 @@ class Player(SpriteEntity, Tile):
         # move right
         if pygame.key.get_pressed()[pygame.K_d]:
             #print("right!")
-            self.body.apply_force_at_local_point(
+            self.body.apply_force_at_world_point(
                 (1000000,0),
-                self.body.center_of_gravity
+                self.body.position
             )
         
-        if pygame.key.get_pressed()[pygame.K_a]:
+        if pygame.key.get_pressed()[pygamde.K_a]:
             #print("left")
-            self.body.apply_force_at_local_point(
+            self.body.apply_force_at_world_point(
                 (-1000000,0),
-                self.body.center_of_gravity
+                self.body.position
             )
         
         if pygame.key.get_pressed()[pygame.K_SPACE]:
@@ -297,9 +297,9 @@ class Player(SpriteEntity, Tile):
             if abs(self.body.velocity.y) > 0.1:
                 return 
             
-            self.body.apply_impulse_at_local_point(
+            self.body.apply_impulse_at_world_point(
                 (0,-10000),
-                self.body.center_of_gravity
+                self.body.position
             )
 
 class Weapon(DrawableEntity, Tile):
