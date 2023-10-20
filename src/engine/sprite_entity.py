@@ -1,6 +1,7 @@
 from abc import abstractproperty
 import time
 from typing import Dict, Optional, List
+import math 
 
 from pygame import Surface
 import pygame
@@ -99,8 +100,13 @@ class SpriteEntity(DrawableEntity):
             self.scale
         )
 
-        self.game.screen.blit(
+        active_sprite_rotated = pygame.transform.rotate(
             active_sprite_scaled,
+            math.degrees(self.body.angle) * -1
+        )
+
+        self.game.screen.blit(
+            active_sprite_rotated,
             (
                 self.shape.bb.left + self.game.camera_offset[0],
                 self.shape.bb.bottom + self.game.camera_offset[1]
