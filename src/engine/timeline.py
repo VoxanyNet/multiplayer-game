@@ -10,6 +10,9 @@ class Timeline:
         self.elapsed_time: float = 0
         self.loop = loop
 
+    def reset(self):
+        self.elapsed_time = 0
+        
     def get_frame(self, dt: float):
         """Progress the timeline by dt seconds and return frame"""
 
@@ -29,5 +32,6 @@ class Timeline:
 
             return self.get_frame(dt=0)
         
-        return None
+        # return last keyframe if timeline ended
+        return list(self.keyframes.values())[-1]
     
