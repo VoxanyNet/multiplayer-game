@@ -1,12 +1,14 @@
 from typing import Dict, Optional, Type, Union, Tuple, List, TYPE_CHECKING
 import time
 import math
+import gc
 
 import pygame
 import pymunk
 from pymunk import Vec2d
 from pymunk import Shape, Body
 from pymunk.constraints import DampedSpring
+from rich import print
 
 from engine.entity import Entity
 from engine import events
@@ -25,7 +27,7 @@ class FreezableTileMaker(DrawableEntity, Entity):
         game: GamemodeClient | GamemodeServer, 
         updater: str, 
         id: str | None = None,
-        draw_layer: Optional[int] = None
+        draw_layer: Optional[int] = 1
     ):
         
         Entity.__init__(
@@ -131,7 +133,8 @@ class Player(SpriteEntity, Tile):
         weapon: "Weapon" = None, 
         id: str | None = None, 
         draw_layer: int = 1,
-        scale: int = 2
+        scale: int = 2,
+        health: int = 100
     ):
         
         if body is None or shape is None:
@@ -180,6 +183,8 @@ class Player(SpriteEntity, Tile):
             self.move_camera,
             self.advance_walk_cycle
         ]
+        
+        self.health = health
 
         self.static_sprite = self.game.resources["resources/sprites/nyancat.png"]
         self.walk_timeline = Timeline(
@@ -240,6 +245,8 @@ class Player(SpriteEntity, Tile):
         else:
             data_dict["weapon"] = None
         
+        data_dict["health"] = self.health
+
         return data_dict
         
     @staticmethod
@@ -249,6 +256,8 @@ class Player(SpriteEntity, Tile):
             entity_data["weapon"] = Unresolved(entity_data["weapon"])
         else:
             entity_data["weapon"] = None
+        
+        entity_data["health"] = entity_data["health"]
 
         entity_data.update(SpriteEntity.deserialize(entity_data, entity_id, game))
         entity_data.update(Tile.deserialize(entity_data, entity_id, game))
@@ -267,7 +276,10 @@ class Player(SpriteEntity, Tile):
 
                     if attribute_value:
                         self.weapon = Unresolved(update_data["weapon"])
-                    self.weapon = None
+                    self.weapon = None 
+                
+                case "health":
+                    self.health = attribute_value
     
     def toggle_walk_cycle(self, event: Tick):
 
@@ -546,15 +558,6 @@ class Shotgun(Weapon, SpriteEntity):
     def update(self, update_data):
         SpriteEntity.update(self, update_data)
         Weapon.update(self, update_data)
-        # update entity attributes with update_data
-        # for example:
-        # for attribute_name, attribute_value in update_data.items():
-
-        #     match attribute_name:
-                
-        #         case "level":
-        #             self.level = update_data["level"]
-    
     
     def shoot(self, event: events.MouseLeftClick):
 
@@ -616,7 +619,8 @@ class Bullet(DrawableEntity, Tile):
         shape: Shape = None, 
         id: str | None = None, 
         spawn_time = None, 
-        draw_layer: int = 1
+        draw_layer: int = 1,
+        damage: int = 25
     ):
 
         body = Body(
@@ -653,8 +657,11 @@ class Bullet(DrawableEntity, Tile):
             id=id
         )
 
+        self.damage = damage
+
         self.game.event_subscriptions[Tick] += [
-            self.despawn_bullet
+            self.despawn_bullet,
+            self.damage_players
         ]
 
         self.weapon = weapon
@@ -665,11 +672,34 @@ class Bullet(DrawableEntity, Tile):
             self.spawn_time = time.time()
     
     def draw(self):
+        #print("AHHHHH")
         self.debug_draw()
+    
+    def damage_players(self, event: Tick):
+
+        print(self.game.entities)
+        for entity in self.game.entities.copy().values():
+            if type(entity) is not Player:
+                continue
+
+            entity:Player
+            
+            if not entity.shape.bb.intersects(self.shape.bb):
+                continue 
+
+            entity.health -= self.damage
+
+            print(entity.health)
+
+            self.kill()
+
+            break
+
 
     def despawn_bullet(self, event: Tick):
 
         if time.time() - self.spawn_time > 1:
+            print("bullet expired")
             self.kill()
 
     def serialize(self) -> Dict[str, int | bool | str | list]:
@@ -719,7 +749,7 @@ class ShotgunBullet(Bullet):
         shape: Shape = None, 
         id: str | None = None, 
         spawn_time=None, 
-        draw_layer: int = 1,
+        draw_layer: int = 1
     ):
         super().__init__(
             game=game, 
