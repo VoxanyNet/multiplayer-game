@@ -285,7 +285,7 @@ class Player(SpriteEntity, Tile):
                 self.body.position
             )
         
-        if pygame.key.get_pressed()[pygamde.K_a]:
+        if pygame.key.get_pressed()[pygame.K_a]:
             #print("left")
             self.body.apply_force_at_world_point(
                 (-1000000,0),
@@ -466,7 +466,7 @@ class Shotgun(Weapon, SpriteEntity):
         body: Body = None, 
         shape: Shape = None, 
         id: str | None = None, 
-        cooldown: int = 0.6, 
+        cooldown: int = 0.44, 
         last_shot: int = 0, 
         draw_layer: int = 1,
         active_sprite: Optional[pygame.Surface] = None,
@@ -513,15 +513,24 @@ class Shotgun(Weapon, SpriteEntity):
         self.static_sprite = self.game.resources["resources/sprites/shotgun.png"]
         self.reload_timeline = Timeline(
             {
-                0.08: self.game.resources["resources/timelines/shotgun_reload/0.png"],
-                0.16: self.game.resources["resources/timelines/shotgun_reload/1.png"],
-                0.24: self.game.resources["resources/timelines/shotgun_reload/2.png"],
+                0.04: self.game.resources["resources/timelines/shotgun_reload/0.png"],
+                0.08: self.game.resources["resources/timelines/shotgun_reload/1.png"],
+                0.12: self.game.resources["resources/timelines/shotgun_reload/2.png"],
+                0.16: self.game.resources["resources/timelines/shotgun_reload/3.png"],
+                0.20: self.game.resources["resources/timelines/shotgun_reload/4.png"],
+                0.24: self.game.resources["resources/timelines/shotgun_reload/5.png"],
+                0.28: self.game.resources["resources/timelines/shotgun_reload/4.png"],
                 0.32: self.game.resources["resources/timelines/shotgun_reload/3.png"],
-                0.40: self.game.resources["resources/timelines/shotgun_reload/4.png"],
-                0.48: self.game.resources["resources/timelines/shotgun_reload/5.png"]
+                0.36: self.game.resources["resources/timelines/shotgun_reload/2.png"],
+                0.40: self.game.resources["resources/timelines/shotgun_reload/1.png"],
+                0.44: self.game.resources["resources/timelines/shotgun_reload/0.png"]
             }
         )
         self.active_sprite = self.static_sprite
+
+        self.game.event_subscriptions[Tick] += [
+            self.handle_reload
+        ]
     
     def serialize(self) -> Dict[str, int | bool | str | list]:
 
@@ -580,6 +589,22 @@ class Shotgun(Weapon, SpriteEntity):
         bullet.body.velocity = self.body.velocity + (bullet_path_vector.normalized() * 3000)
 
         bullet.sound.play()
+        
+        # begin reload animation
+        self.reload_timeline.reset()
+        self.active_sprite = self.reload_timeline.get_frame(0)
+    
+    def handle_reload(self, event: Tick):
+
+        if time.time() - self.last_shot < self.cooldown:
+            # progress reload animation
+            self.active_sprite = self.reload_timeline.get_frame(self.game.dt)
+            
+            return  
+        
+        self.ammo = self.clip_size
+        self.active_sprite = self.static_sprite
+
 
 class Bullet(DrawableEntity, Tile):
     def __init__(
