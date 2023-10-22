@@ -655,8 +655,6 @@ class Bullet(DrawableEntity, Tile):
         self.debug_draw()
     
     def damage_players(self, event: Tick):
-
-        print(self.game.entities)
         for entity in self.game.entities.copy().values():
             if type(entity) is not Player:
                 continue
