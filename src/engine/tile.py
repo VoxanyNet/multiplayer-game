@@ -22,10 +22,18 @@ class Tile(Entity):
             shape: pymunk.Shape,
             game: Union["GamemodeClient", "GamemodeServer"], 
             updater: str, 
-            id: Optional[str] = None
+            id: Optional[str] = None,
+            *args,
+            **kwargs
         ):
 
-        Entity.__init__(self=self, game=game, updater=updater, id=id)
+        super().__init__(
+            game=game, 
+            updater=updater, 
+            id=id,
+            *args,
+            **kwargs
+        )
 
         self.game.event_subscriptions[Tick] += [
             #self.despawn

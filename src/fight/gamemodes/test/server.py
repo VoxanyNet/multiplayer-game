@@ -14,7 +14,7 @@ from fight.gamemodes.test.entity_type_map import entity_type_map
 
 class Server(GamemodeServer):
     def __init__(self, server_ip: str = socket.gethostname(), server_port: int = 5560, network_compression: bool = True):
-        super().__init__( server_ip=server_ip, server_port=server_port, network_compression=network_compression)
+        super().__init__(server_ip=server_ip, server_port=server_port, network_compression=network_compression)
 
         self.entity_type_map.update(
             entity_type_map

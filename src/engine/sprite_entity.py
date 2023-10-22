@@ -23,15 +23,18 @@ class SpriteEntity(DrawableEntity):
         draw_layer: int, 
         active_sprite: Optional[Surface], 
         id: str | None = None,
-        scale: int = 1
+        scale: int = 1,
+        *args,
+        **kwargs
     ):
 
-        DrawableEntity.__init__(
-            self=self,
+        super().__init__(
             game=game, 
             updater=updater, 
             draw_layer=draw_layer, 
-            id=id
+            id=id,
+            *args,
+            **kwargs
         )
 
         self.active_sprite = active_sprite

@@ -22,7 +22,9 @@ class Entity(ABC):
         self,
         game: Union["GamemodeClient", "GamemodeServer"], 
         updater: str, 
-        id: Optional[str]=None
+        id: Optional[str]=None,
+        *args,
+        **kwargs
     ):
 
         self.updater = updater

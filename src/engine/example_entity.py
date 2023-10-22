@@ -6,7 +6,7 @@ from engine.gamemode_server import GamemodeServer
 class ExampleEntity(Entity):
 
     def __init__(self, game: GamemodeClient | GamemodeServer, updater: str, id: str | None = None):
-        Entity.__init__(game, updater, id)
+        super().__init__(game, updater, id)
 
         # add event listeners
         # for example:

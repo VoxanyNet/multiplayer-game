@@ -9,12 +9,21 @@ if TYPE_CHECKING:
 
 class DrawableEntity(Entity):
     
-    def __init__(self, game: Union["GamemodeClient", "GamemodeServer"], updater: str, draw_layer: int, id: str | None = None):
-        Entity.__init__(
-            self=self,
+    def __init__(
+        self, 
+        game: Union["GamemodeClient", "GamemodeServer"], 
+        updater: str, 
+        draw_layer: int, 
+        id: str | None = None,
+        *args,
+        **kwargs
+    ):
+        super().__init__(
             game=game, 
             updater=updater, 
-            id=id
+            id=id,
+            *args,
+            **kwargs
         )
 
         self.draw_layer = draw_layer

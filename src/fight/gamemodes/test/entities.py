@@ -27,23 +27,19 @@ class FreezableTileMaker(DrawableEntity, Entity):
         game: GamemodeClient | GamemodeServer, 
         updater: str, 
         id: str | None = None,
-        draw_layer: Optional[int] = 1
+        draw_layer: Optional[int] = 1,
+        *args,
+        **kwargs
     ):
         
-        Entity.__init__(
-            self, 
+        super().__init__(
             game=game, 
             updater=updater, 
-            id=id
+            id=id,
+            draw_layer=draw_layer,
+            *args,
+            **kwargs
         )
-        
-        DrawableEntity.__init__(
-            self, 
-            game=game, 
-            updater=updater, 
-            draw_layer=draw_layer
-        )
-        
         
         self.game.event_subscriptions[events.KeyReturn] += [
             self.spawn_tile
@@ -134,7 +130,9 @@ class Player(SpriteEntity, Tile):
         id: str | None = None, 
         draw_layer: int = 1,
         scale: int = 2,
-        health: int = 100
+        health: int = 100,
+        *args,
+        **kwargs
     ):
         
         if body is None or shape is None:
@@ -157,23 +155,17 @@ class Player(SpriteEntity, Tile):
 
             shape.friction = 0.5
 
-        SpriteEntity.__init__(
-            self=self,
+        super().__init__(
             game=game, 
             updater=updater, 
             id=id, 
             draw_layer=draw_layer,
             active_sprite=active_sprite,
-            scale=scale
-        )
-        
-        Tile.__init__(
-            self=self,
+            scale=scale,
             body=body,
             shape=shape,
-            game=game,
-            updater=updater,
-            id=id
+            *args,
+            **kwargs
         )
 
         self.weapon = weapon
@@ -327,25 +319,21 @@ class Weapon(DrawableEntity, Tile):
         id: str | None = None, 
         cooldown: int = 0, 
         last_shot: int = 0, 
-        draw_layer: int = 1
+        draw_layer: int = 1,
+        *args,
+        **kwargs
     ): 
 
         
-        DrawableEntity.__init__(
-            self=self,
+        super().__init__(
             game=game, 
             updater=updater, 
             id=id, 
-            draw_layer=draw_layer
-        )
-        
-        Tile.__init__(
-            self=self,
+            draw_layer=draw_layer,
             body=body,
             shape=shape,
-            game=game,
-            updater=updater,
-            id=id
+            *args,
+            **kwargs
         )
 
         self.game.event_subscriptions[Tick] += [
@@ -482,7 +470,9 @@ class Shotgun(Weapon, SpriteEntity):
         last_shot: int = 0, 
         draw_layer: int = 1,
         active_sprite: Optional[pygame.Surface] = None,
-        scale: int = 1.5
+        scale: int = 1.5,
+        *args,
+        **kwargs
     ):
         
         if not body:
@@ -497,29 +487,22 @@ class Shotgun(Weapon, SpriteEntity):
             )
         
         
-        SpriteEntity.__init__(
-            self=self,
+        super().__init__(
             game=game,
             updater=updater,
             draw_layer=draw_layer,
             active_sprite=active_sprite,
             id=id,
-            scale=scale
-        )
-
-        Weapon.__init__(
-            self=self,
-            game=game,
-            updater=updater,
+            scale=scale,
             clip_size=clip_size,
             ammo=ammo,
             body=body,
             shape=shape,
             player=player,
-            id=id,
             cooldown=cooldown,
             last_shot=last_shot,
-            draw_layer=draw_layer
+            *args,
+            **kwargs
         )
         
         self.static_sprite = self.game.resources["resources/sprites/shotgun.png"]
@@ -620,7 +603,9 @@ class Bullet(DrawableEntity, Tile):
         id: str | None = None, 
         spawn_time = None, 
         draw_layer: int = 1,
-        damage: int = 25
+        damage: int = 25,
+        *args,
+        **kwargs
     ):
 
         body = Body(
@@ -640,21 +625,15 @@ class Bullet(DrawableEntity, Tile):
             (10, 5)
         )
 
-        DrawableEntity.__init__(
-            self=self,
+        super().__init__(
             game=game,
             updater=updater,
             draw_layer=draw_layer,
-            id=id
-        )
-
-        Tile.__init__(
-            self=self,
+            id=id,
             body=body,
             shape=shape,
-            game=game,
-            updater=updater,
-            id=id
+            *args,
+            **kwargs
         )
 
         self.damage = damage
@@ -749,7 +728,9 @@ class ShotgunBullet(Bullet):
         shape: Shape = None, 
         id: str | None = None, 
         spawn_time=None, 
-        draw_layer: int = 1
+        draw_layer: int = 1,
+        *args,
+        **kwargs
     ):
         super().__init__(
             game=game, 
@@ -759,7 +740,9 @@ class ShotgunBullet(Bullet):
             shape=shape, 
             id=id, 
             spawn_time=spawn_time, 
-            draw_layer=draw_layer 
+            draw_layer=draw_layer,
+            *args,
+            **kwargs
         )
 
         if isinstance(self.game, GamemodeClient):
@@ -774,24 +757,20 @@ class FreezableTile(Tile, DrawableEntity):
             game: GamemodeClient | GamemodeServer, 
             updater: str, 
             id: str | None = None,
-            draw_layer = 1
+            draw_layer = 1,
+            *args,
+            **kwargs
         ):
         
-        DrawableEntity.__init__(
-            self=self,
+        super().__init__(
             game=game,
             updater=updater,
             draw_layer=draw_layer,
-            id=id
-        )
-
-        Tile.__init__(
-            self=self,
+            id=id,
             body=body,
             shape=shape,
-            game=game,
-            updater=updater,
-            id=id
+            *args,
+            **kwargs
         )
 
         self.game.event_subscriptions[Tick] += [
@@ -895,14 +874,17 @@ class Background(DrawableEntity, Entity):
         updater: str, 
         id: str | None = None, 
         draw_layer: int = 0,
+        *args,
+        **kwargs
     ):
 
-        DrawableEntity.__init__(
-            self=self,
+        super().__init__(
             game=game,
             updater=updater,
             draw_layer=draw_layer,
-            id=id
+            id=id,
+            *args,
+            **kwargs
         )
     
     def draw(self):
