@@ -202,6 +202,18 @@ class Player(SpriteEntity, Tile):
 
         self.draw_onto_body()
 
+        # draw health bar
+        pygame.draw.rect(
+            surface=self.game.screen,
+            color=(0,255,0),
+            rect=[
+                self.body.position.x - 30 + self.game.,
+                self.body.position.y - 40,
+                self.health,
+                10
+            ]
+        )
+
     def move_camera(self, event: Tick):
         """Move camera if we get too close to the edge of the screen"""
         
