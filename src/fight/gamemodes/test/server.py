@@ -32,5 +32,5 @@ class Server(GamemodeServer):
         floor_shape=pymunk.Poly.create_box(body=floor_body,size=(1000,20))
         floor_shape.friction = 1
         floor_body.position = (self.boundry_rect.centerx, self.boundry_rect.bottom - 10)
-        floor = Tile(body=floor_body, game=self, shape=floor_shape, updater=self.uuid)
+        floor = FreezableTile(body=floor_body, game=self, shape=floor_shape, updater=self.uuid)
         
