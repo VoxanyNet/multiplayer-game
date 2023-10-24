@@ -207,9 +207,9 @@ class Player(SpriteEntity, Tile):
             surface=self.game.screen,
             color=(0,255,0),
             rect=[
-                self.body.position.x - 30 + self.game.,
-                self.body.position.y - 40,
-                self.health,
+                self.body.position.x - 30 + self.game.camera_offset[0],
+                self.body.position.y - 40 + self.game.camera_offset[1],
+                self.health * 0.5,
                 10
             ]
         )
@@ -283,6 +283,7 @@ class Player(SpriteEntity, Tile):
                     self.weapon = None 
                 
                 case "health":
+                    print("healtg")
                     self.health = attribute_value
     
     def toggle_walk_cycle(self, event: Tick):
