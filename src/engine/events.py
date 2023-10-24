@@ -17,42 +17,46 @@ class NewClient(Event):
         self.new_client = new_client
 
 class ResourcesLoaded(Event):
+    """All sprites and sounds have been loaded into GamemodeClient.resources"""
     pass 
 
 class DisconnectedClient(Event):
+    """A client has disconnected from the server"""
     def __init__(self, disconnected_client_uuid: str):
 
         self.disconnected_client_uuid = disconnected_client_uuid
 
 class TickStart(Event):
+    """Triggers before Tick event"""
     pass
 
 class TickComplete(Event):
+    """Triggers after Tick event"""
     pass
 
 class GameStart(Event):
     pass 
 
 class ScreenCleared(Event):
+    """Screen surface has been cleared for a new frame"""
     pass 
 
 class ReceivedClientUpdates(Event):
+    """The server has received updates from clients"""
     pass
 
 class UpdatesLoaded(Event):
+    """Entity updates have been deserialized"""
     pass
 
 class ServerStart(Event):
     pass
 
-class EntityCreated(Event):
-    def __init__(self, new_entity: Type["Entity"]):
-        self.new_entity = new_entity
-
 class NetworkTick(Event):
     pass
 
 class NewEntity(Event):
+    """A new entity has been initialized"""
     def __init__(self, new_entity: Type["Entity"]):
         self.new_entity = new_entity
 
