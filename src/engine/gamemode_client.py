@@ -21,7 +21,7 @@ from engine.entity import Entity
 from engine.tile import Tile
 from engine.helpers import get_matching_objects
 from engine.exceptions import InvalidUpdateType, MalformedUpdate
-from engine.events import Tick, Event, TickComplete, GameStart, TickStart, ScreenCleared, NetworkTick, ResourcesLoaded
+from engine.events import Tick, Event, TickComplete, GameStart, TickStart, ScreenCleared, NetworkTick, ResourcesLoaded, ReceivedNetworkUpdates, SentNetworkUpdates
 from engine import events
 from engine.drawable_entity import DrawableEntity
 
@@ -85,12 +85,12 @@ class GamemodeClient:
             self.increment_tick_counter,
             self.trigger_input_events,
             self.step_space,
-            self.receive_network_updates, # we dont put this on NetworkTick because we just want to receive updates ASAP,
             self.set_adjusted_mouse_pos
         ]
 
         self.event_subscriptions[NetworkTick] += [
-            self.send_network_updates
+            self.send_network_updates,
+            self.receive_network_updates
         ]
         
         self.event_subscriptions[TickStart] += [
@@ -313,7 +313,21 @@ class GamemodeClient:
 
         self.update_queue = []
 
-    def receive_network_updates(self, event: Optional[TickComplete] = None):
+    def set_entity_checkpoints(self, event: ReceivedNetworkUpdates):
+        """Set entity update checkpoints after receiving updates from the server"""
+
+        for entity in self.entities.values():
+            entity.set_update_checkpoint()
+
+    def detect_entity_updates(self, event: NetworkTick):
+        """Detect all entity changes between when the checkpoint was set and now"""
+        
+        for entity in self.entities.values():
+            entity.detect_updates()
+
+        self.trigger(SentNetworkUpdates())
+        
+    def receive_network_updates(self, event: Optional[SentNetworkUpdates] = None):
 
         # this method can either be directly invoked or be called by an event
 
@@ -323,6 +337,7 @@ class GamemodeClient:
             sys.exit(print("Server closed"))
 
         if updates_json_bytes is None: # this means that there are no new complete updates sent
+            self.trigger(ReceivedNetworkUpdates())
             return
 
         if self.network_compression:
@@ -372,7 +387,7 @@ class GamemodeClient:
         for entity in self.entities.values():
             entity.resolve()
 
-        return
+        self.trigger(ReceivedNetworkUpdates())
     
     def draw_entities(self, event: ScreenCleared):
 
