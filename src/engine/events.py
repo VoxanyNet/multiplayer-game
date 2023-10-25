@@ -16,6 +16,16 @@ class NewClient(Event):
     
         self.new_client = new_client
 
+class ParsedNetworkUpdates(Event):
+    pass
+
+class StartedTrackingUpdates(Event):
+    """Started tracking entity updates for this network tick"""
+    pass
+
+class FinishedTrackingUpdates(Event):
+    """Finished tracking entity updates for this network tick"""
+    pass
 class ReceivedNetworkUpdates(Event):
     """Client has received network updates from server"""
     pass
