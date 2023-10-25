@@ -29,7 +29,7 @@ class Entity(ABC):
 
         self.updater = updater
         self.game = game
-        self.last_tick_dict = {}
+        self.update_checkpoint = {}
 
         if id is None:
             id = str(uuid.uuid4())[0:6]
@@ -38,8 +38,6 @@ class Entity(ABC):
 
         # add entity to the game state automatically
         self.game.entities[self.id] = self
-
-        self.game.event_subscriptions[NetworkTick] += [self.detect_updates] 
 
         self.game.trigger(NewEntity(new_entity=self))
 
@@ -57,14 +55,16 @@ class Entity(ABC):
                 if listener.__self__ is self:
                     event_listeners.remove(listener)
 
+    def set_update_checkpoint(self):
+        self.update_checkpoint = self.serialize()
 
-    def detect_updates(self, event: NetworkTick):
+    def detect_updates(self):
         """Compare entity state from last tick to this tick to find differences"""
 
         current_tick_dict = self.serialize()
         
         # this indicates that the entity did not exist last tick
-        if self.last_tick_dict == {}:
+        if self.update_checkpoint == {}:
             self.game.network_update(
                 update_type="create",
                 entity_id=self.id,
@@ -73,17 +73,15 @@ class Entity(ABC):
             )
         
         # if not a new entity, check for changes
-        elif current_tick_dict != self.last_tick_dict:
+        elif current_tick_dict != self.update_checkpoint:
             
-            update_data_dict = dict_diff(self.last_tick_dict, current_tick_dict)
+            update_data_dict = dict_diff(self.update_checkpoint, current_tick_dict)
 
             #print(update_data_dict)
 
             self.game.network_update(update_type="update", entity_id=self.id, data=update_data_dict)
 
             #print(json.dumps(update_data_dict))
-        
-        self.last_tick_dict = current_tick_dict
                 
     def resolve(self):
         """Convert any of the entity's attributes that are of type 'Unresolved' to the actual entity they are pointing to"""
