@@ -16,6 +16,14 @@ class NewClient(Event):
     
         self.new_client = new_client
 
+class ReceivedNetworkUpdates(Event):
+    """Client has received network updates from server"""
+    pass
+
+class SentNetworkUpdates(Event):
+    """The client has detected and sent entity updates to server"""
+    pass
+
 class ResourcesLoaded(Event):
     """All sprites and sounds have been loaded into GamemodeClient.resources"""
     pass 
