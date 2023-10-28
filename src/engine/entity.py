@@ -47,7 +47,17 @@ class Entity(ABC):
         # this is kind of a band aid fix, not sure how this should be done
         if self.updater is self.game.uuid:
             self.game.network_update(update_type="delete", entity_id=self.id)
+            
+            # delete any outgoing updates that reference this entity
+            # for update in self.game.outgoing_updates_queue.copy():
+
+            #     update_index = self.game.outgoing_updates_queue.index(update)
+
+            #     if update["entity_id"] == self.id:
+            #         del self.game.outgoing_updates_queue[update_index]
+            #         print(f"deleted {update}")
         
+        print(f"deleting {self.id} {self.game.tick_count}")
         del self.game.entities[self.id]
 
         for event, event_listeners in self.game.event_subscriptions.items():

@@ -21,7 +21,7 @@ from engine.entity import Entity
 from engine.tile import Tile
 from engine.helpers import get_matching_objects
 from engine.exceptions import InvalidUpdateType, MalformedUpdate
-from engine.events import Tick, Event, TickComplete, GameStart, TickStart, ScreenCleared, NetworkTick, ResourcesLoaded, ReceivedNetworkUpdates, SentNetworkUpdates
+from engine.events import StartedTrackingUpdates, FinishedTrackingUpdates, Tick, Event, TickComplete, GameStart, TickStart, ScreenCleared, NetworkTick, ResourcesLoaded, ReceivedNetworkUpdates, SentNetworkUpdates, ParsedNetworkUpdates
 from engine import events
 from engine.drawable_entity import DrawableEntity
 
@@ -37,16 +37,17 @@ class GamemodeClient:
         pygame.init()
         pygame.mixer.init()
         
-        self.update_history = []
+        self.update_history: List[List[dict]] = []
         self.server = headered_socket.HeaderedSocket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_ip = server_ip
-        self.server_port = server_port
+        self.server_ip: str = server_ip
+        self.server_port: int = server_port
         self.uuid = str(uuid.uuid4())[0:4]
-        self.update_queue = []
+        self.outgoing_updates_queue: List[dict] = []
+        self.incoming_updates_queue: List[dict] = []
         self.entity_type_map: Dict[str, Type[Entity]] = {}
         self.entities: Dict[str, Entity] = {}
         self.event_subscriptions = defaultdict(list)
-        self.tick_count = 0
+        self.tick_count: int = 0
         self.space = pymunk.Space()
         self.space.gravity = (0, 900)
         self.last_tick = time.time()
@@ -54,9 +55,9 @@ class GamemodeClient:
         self.dt = 0.1 # i am initializing this with 0.1 instead of 0 because i think it might break stuff
         self.sent_bytes = 0
         self.network_compression = network_compression
-        self.adjusted_mouse_pos: Tuple[int, int] = [0,0]
-        self.camera_offset = [0,0]
-        self.screen = pygame.display.set_mode(
+        self.adjusted_mouse_pos: List[int] = [0,0]
+        self.camera_offset: List[int] = [0,0]
+        self.screen: pygame.Surface = pygame.display.set_mode(
             [1280, 720],
             pygame.RESIZABLE
             #pygame.FULLSCREEN
@@ -85,16 +86,25 @@ class GamemodeClient:
             self.increment_tick_counter,
             self.trigger_input_events,
             self.step_space,
-            self.set_adjusted_mouse_pos
+            self.set_adjusted_mouse_pos,
+            self.receive_network_updates, # it doesnt really matter when we receive network updates, they are parsed each network tick
         ]
 
         self.event_subscriptions[NetworkTick] += [
             self.send_network_updates,
-            self.receive_network_updates
+            self.detect_entity_updates
+        ]
+
+        self.event_subscriptions[ParsedNetworkUpdates] += [
+            self.set_entity_checkpoints
         ]
         
         self.event_subscriptions[TickStart] += [
             self.measure_dt
+        ]
+
+        self.event_subscriptions[FinishedTrackingUpdates] += [
+            self.parse_incoming_updates
         ]
 
         self.entity_type_map.update(
@@ -276,7 +286,7 @@ class GamemodeClient:
             "data": data
         }
 
-        self.update_queue.append(
+        self.outgoing_updates_queue.append(
             update
         )
     
@@ -287,11 +297,11 @@ class GamemodeClient:
         
         # we must send an updates list even if there are no updates
         # this is because the server will only give US updates if we do first
-
-        self.update_history.append(self.update_queue)
+        
+        self.update_history.append(self.outgoing_updates_queue)
         
         updates_json = json.dumps(
-            self.update_queue
+            self.outgoing_updates_queue
         )
         
 
@@ -311,29 +321,34 @@ class GamemodeClient:
 
         self.sent_bytes += len(updates_json_bytes)
 
-        self.update_queue = []
+        self.outgoing_updates_queue = []
 
-    def set_entity_checkpoints(self, event: ReceivedNetworkUpdates):
+
+    def set_entity_checkpoints(self, event: ParsedNetworkUpdates):
         """Set entity update checkpoints after receiving updates from the server"""
 
         for entity in self.entities.values():
             entity.set_update_checkpoint()
+        
+        self.trigger(StartedTrackingUpdates())
 
     def detect_entity_updates(self, event: NetworkTick):
         """Detect all entity changes between when the checkpoint was set and now"""
         
         for entity in self.entities.values():
             entity.detect_updates()
-
-        self.trigger(SentNetworkUpdates())
         
-    def receive_network_updates(self, event: Optional[SentNetworkUpdates] = None):
+        self.trigger(FinishedTrackingUpdates())
+        
+    # parse network updates -> start tracking updates ->  finish tracking updates -> parse network updates
+        
+    def receive_network_updates(self, event: Optional[NetworkTick] = None):
 
         # this method can either be directly invoked or be called by an event
-
         try:
             updates_json_bytes = self.server.recv_headered()
         except Disconnected:
+            raise Disconnected()
             sys.exit(print("Server closed"))
 
         if updates_json_bytes is None: # this means that there are no new complete updates sent
@@ -352,8 +367,14 @@ class GamemodeClient:
         updates = json.loads(
             updates_json
         )
+
+        self.incoming_updates_queue += updates
         
-        for update in updates:
+        self.trigger(ReceivedNetworkUpdates())
+
+    def parse_incoming_updates(self, event: FinishedTrackingUpdates):
+
+        for update in self.incoming_updates_queue:
 
             match update["update_type"]:
                 case "create":
@@ -371,6 +392,10 @@ class GamemodeClient:
                     entity_class(game=self, id=update["entity_id"], **deserialized_data)
 
                 case "update":
+                    
+                    # sometimes entity updates will come in for entities that have killed because latency
+                    if update["entity_id"] not in self.entities.keys():
+                        continue
 
                     updating_entity = self.entities[
                         update["entity_id"]
@@ -387,7 +412,9 @@ class GamemodeClient:
         for entity in self.entities.values():
             entity.resolve()
 
-        self.trigger(ReceivedNetworkUpdates())
+        self.incoming_updates_queue = []
+        
+        self.trigger(ParsedNetworkUpdates())
     
     def draw_entities(self, event: ScreenCleared):
 

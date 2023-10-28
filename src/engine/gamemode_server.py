@@ -167,7 +167,7 @@ class GamemodeServer:
 
                 case "create":
 
-                    print("Received create update")
+                    print(f"created entity {update["entity_id"]}")
 
                     entity_class = self.entity_type_map[
                         update["entity_type"]
@@ -183,6 +183,10 @@ class GamemodeServer:
 
                 case "update":
 
+                    # sometimes entity updates will come in for entities that have killed because latency
+                    if update["entity_id"] not in self.entities.keys():
+                        continue
+
                     updating_entity = self.entities[
                         update["entity_id"]
                     ]
@@ -192,6 +196,8 @@ class GamemodeServer:
                     )
 
                 case "delete":
+
+                    print(f"deleting entity {update["entity_id"]} {self.tick_count}")
 
                     self.entities[update["entity_id"]].kill()
             

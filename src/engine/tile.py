@@ -142,17 +142,20 @@ class Tile(Entity):
                 case "body":
                     
                     for sub_attribute_name, sub_attribute_value in attribute_value.items():
+                        
+                        # we dont want to receive position updates from other clients
+                        if self.updater is not self.game.uuid:
 
-                        match sub_attribute_name:
+                            match sub_attribute_name:
+                                
+                                case "velocity":
+                                    self.body.velocity = sub_attribute_value
 
-                            case "velocity":
-                                self.body.velocity = sub_attribute_value
-
-                            case "angle":
-                                self.body.angle = sub_attribute_value 
-                            
-                            case "position":
-                                self.body.position = sub_attribute_value
+                                case "angle":
+                                    self.body.angle = sub_attribute_value 
+                                
+                                case "position":
+                                    self.body.position = sub_attribute_value
 
                 case "shape":
 

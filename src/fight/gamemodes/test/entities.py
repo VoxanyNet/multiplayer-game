@@ -283,7 +283,6 @@ class Player(SpriteEntity, Tile):
                     self.weapon = None 
                 
                 case "health":
-                    print("healtg")
                     self.health = attribute_value
     
     def toggle_walk_cycle(self, event: Tick):
