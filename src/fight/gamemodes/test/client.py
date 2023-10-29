@@ -19,7 +19,7 @@ class Client(GamemodeClient):
         super().__init__(server_ip=server_ip, server_port=server_port, network_compression=network_compression)
 
         self.event_subscriptions[events.KeyE] += [
-            self.spawn_entity
+            #self.spawn_entity
         ]
 
         self.event_subscriptions[ResourcesLoaded] += [
@@ -31,10 +31,6 @@ class Client(GamemodeClient):
         )
 
         self.boundry_rect = boundry_rect = Rect(0,0,1280,720)
-
-        #collision_handler = self.space.add_collision_handler(1, 1)
-
-        #collision_handler.begin = collision_callback
 
 
         self.last_spawn = 0
