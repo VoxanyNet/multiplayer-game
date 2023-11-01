@@ -21,6 +21,7 @@ from engine.unresolved import Unresolved
 from engine.timeline import Timeline
 from engine.drawable_entity import DrawableEntity
 from engine.sprite_entity import SpriteEntity
+from fight.gamemodes.test.events import BulletHit
 
 
 class FreezableTileMaker(DrawableEntity, Entity):
@@ -711,6 +712,13 @@ class Bullet(Tile):
 
             print(entity.health)
 
+            self.game.trigger(
+                BulletHit(
+                    bullet=self,
+                    player=entity
+                )
+            )
+
             self.kill()
 
             break
@@ -758,7 +766,7 @@ class Bullet(Tile):
         Tile.deserialize(entity_data, entity_id, game)
 
         return entity_data
-
+    
 class ShotgunBullet(DrawableEntity, Bullet):
     def __init__(
         self, 
