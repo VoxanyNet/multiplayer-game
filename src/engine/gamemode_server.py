@@ -167,7 +167,7 @@ class GamemodeServer:
 
                 case "create":
 
-                    print(f"created entity {update["entity_id"]}")
+                    print(f"created entity {update['entity_id']}")
 
                     entity_class = self.entity_type_map[
                         update["entity_type"]
@@ -197,7 +197,7 @@ class GamemodeServer:
 
                 case "delete":
 
-                    print(f"deleting entity {update["entity_id"]} {self.tick_count}")
+                    print(f"deleting entity {update['entity_id']} {self.tick_count}")
 
                     self.entities[update["entity_id"]].kill()
             
