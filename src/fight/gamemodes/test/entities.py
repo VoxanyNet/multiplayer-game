@@ -4,6 +4,7 @@ import math
 import gc
 
 import pygame
+from pygame import Surface
 import pymunk
 from pymunk import Vec2d
 from pymunk import Shape, Body
@@ -20,6 +21,7 @@ from engine.unresolved import Unresolved
 from engine.timeline import Timeline
 from engine.drawable_entity import DrawableEntity
 from engine.sprite_entity import SpriteEntity
+
 
 class FreezableTileMaker(DrawableEntity, Entity):
     def __init__(
@@ -118,6 +120,55 @@ class FreezableTileMaker(DrawableEntity, Entity):
             width=1
         )
 
+class Barrel(SpriteEntity, Tile):
+
+    preview_sprite
+    def __init__(
+        self,
+        game: GamemodeClient | GamemodeServer, 
+        updater: str, 
+        draw_layer: int, 
+        active_sprite: Optional[pygame.Surface] = None, 
+        shape: Optional[pymunk.Shape] = None,
+        body: Optional[pymunk.Body] = None,
+        id: str | None = None, 
+        scale: int = 2, 
+        *args, 
+        **kwargs
+    ):
+        
+        if body is None or shape is None:
+            body=pymunk.Body(
+                mass=100,
+                body_type=pymunk.Body.DYNAMIC
+            )
+
+            body.moment = pymunk.moment_for_box(
+                body.mass,
+                (68, 42)
+            )
+
+            body.position = game.screen.get_bounding_rect().center
+    
+            shape=pymunk.Poly.create_box(
+                body=body,
+                size=(68,42)
+            )
+
+            shape.friction = 1
+        
+        super().__init__(
+            game=game, 
+            updater=updater, 
+            draw_layer=draw_layer, 
+            active_sprite=active_sprite, 
+            id=id, 
+            scale=scale, 
+            body=body,
+            shape=shape,
+            *args, 
+            **kwargs
+        )
 class Player(SpriteEntity, Tile):
     def __init__(
         self, 
@@ -905,3 +956,44 @@ class Background(DrawableEntity, Entity):
                 102
             )
         )
+
+class EntitySpawner(DrawableEntity, Entity):
+
+    spawnable_entites = [
+        Barrel,
+        FreezableTile
+    ]
+
+    def __init__(
+        self,
+        game: GamemodeClient | GamemodeServer, 
+        updater: str, 
+        draw_layer: int,
+        active_item: Type[Entity] = spawnable_entites[0],
+        id: str | None = None, 
+        *args, **kwargs
+    ):
+        
+        super().__init__(
+            game=game, 
+            updater=updater, 
+            id=id, 
+            draw_layer=draw_layer
+            *args, 
+            **kwargs
+        )
+
+        self.active_item = active_item
+    
+    def draw(self):
+
+        self.game.screen.blit(
+            self.game.screen,
+            self.game.adjusted_mouse_pos
+        )
+    
+    def switch_item(self, event: Union[events.KeyE, events.KeyQ]):
+
+        match event:
+            case events.KeyE:
+                self.active_item

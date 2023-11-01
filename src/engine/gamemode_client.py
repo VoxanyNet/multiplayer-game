@@ -239,7 +239,7 @@ class GamemodeClient:
         
         if keys[pygame.K_MINUS]:
             self.trigger(events.KeyMinus())
-
+    
     def step_space(self, event: Tick):
         """Simulate physics for self.dt amount of time"""
 

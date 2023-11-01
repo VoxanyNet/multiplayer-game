@@ -21,7 +21,7 @@ class SpriteEntity(DrawableEntity):
         game: GamemodeClient | GamemodeServer, 
         updater: str, 
         draw_layer: int, 
-        active_sprite: Optional[Surface], 
+        active_sprite: Optional[Surface] = None, 
         id: str | None = None,
         scale: int = 1,
         *args,

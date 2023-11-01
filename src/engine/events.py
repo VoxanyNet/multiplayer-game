@@ -176,3 +176,9 @@ class MouseMiddleClick(Event):
 
 class MouseRightClick(Event):
     pass
+
+class MouseWheelUp(Event):
+    pass 
+
+class MouseWheelDown(Event):
+    pass
