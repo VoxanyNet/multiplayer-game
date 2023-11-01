@@ -122,7 +122,6 @@ class FreezableTileMaker(DrawableEntity, Entity):
 
 class Barrel(SpriteEntity, Tile):
 
-    preview_sprite
     def __init__(
         self,
         game: GamemodeClient | GamemodeServer, 
@@ -655,43 +654,24 @@ class Shotgun(Weapon, SpriteEntity):
         self.active_sprite = self.static_sprite
 
 
-class Bullet(DrawableEntity, Tile):
+class Bullet(Tile):
     def __init__(
         self, 
         game: GamemodeClient | GamemodeServer, 
         updater: str, 
+        damage: int,
+        body: Body, 
+        shape: Shape, 
         weapon: Weapon = None, 
-        body: Body = None, 
-        shape: Shape = None, 
         id: str | None = None, 
-        spawn_time = None, 
-        draw_layer: int = 1,
-        damage: int = 25,
+        spawn_time = None,
         *args,
         **kwargs
     ):
 
-        body = Body(
-            mass = 0.1,
-            body_type=pymunk.Body.DYNAMIC
-        )
-
-        shape = pymunk.Poly.create_box(
-            body=body,
-            size=(5,2.5)
-        )
-
-        shape.friction = 0.5
-
-        body.moment = pymunk.moment_for_box(
-            body.mass,
-            (10, 5)
-        )
-
         super().__init__(
             game=game,
             updater=updater,
-            draw_layer=draw_layer,
             id=id,
             body=body,
             shape=shape,
@@ -779,7 +759,7 @@ class Bullet(DrawableEntity, Tile):
 
         return entity_data
 
-class ShotgunBullet(Bullet):
+class ShotgunBullet(DrawableEntity, Bullet):
     def __init__(
         self, 
         game: GamemodeClient | GamemodeServer, 
@@ -789,10 +769,31 @@ class ShotgunBullet(Bullet):
         shape: Shape = None, 
         id: str | None = None, 
         spawn_time=None, 
+        damage: int = 25,
         draw_layer: int = 1,
         *args,
         **kwargs
     ):
+        
+        if body is None:
+            body = Body(
+                mass = 0.1,
+                body_type=pymunk.Body.DYNAMIC
+            )
+
+            body.moment = pymunk.moment_for_box(
+                body.mass,
+                (10, 5)
+            )
+
+        if shape is None:
+            shape = pymunk.Poly.create_box(
+                body=body,
+                size=(5,2.5)
+            )
+
+            shape.friction = 0.5
+
         super().__init__(
             game=game, 
             updater=updater, 
@@ -802,6 +803,7 @@ class ShotgunBullet(Bullet):
             id=id, 
             spawn_time=spawn_time, 
             draw_layer=draw_layer,
+            damage=damage,
             *args,
             **kwargs
         )
@@ -809,6 +811,9 @@ class ShotgunBullet(Bullet):
         if isinstance(self.game, GamemodeClient):
             self.sound = pygame.mixer.Sound("resources/sounds/shotgun.wav")
             self.sound.set_volume(0.10)
+
+    def draw(self):
+        Tile.debug_draw(self)
 
 class FreezableTile(Tile, DrawableEntity):
     def __init__(
