@@ -8,8 +8,8 @@ if TYPE_CHECKING:
 class BulletHit(Event):
     def __init__(
         self,
-        bullet: Bullet,
-        player: Player
+        bullet: "Bullet",
+        player: "Player"
     ):
         self.bullet = bullet
         self.player = player
