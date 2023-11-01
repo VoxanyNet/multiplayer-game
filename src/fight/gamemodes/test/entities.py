@@ -766,6 +766,89 @@ class Bullet(Tile):
         Tile.deserialize(entity_data, entity_id, game)
 
         return entity_data
+
+class Explosive(Bullet):
+    def __init__(
+        self, 
+        game: GamemodeClient | GamemodeServer, 
+        updater: str, 
+        damage: int, 
+        body: Body, 
+        shape: Shape, 
+        explosion_radius: float,
+        explosion_intensity: float,
+        weapon: Weapon = None, 
+        id: str | None = None, 
+        spawn_time=None, 
+        *args, 
+        **kwargs
+    ):
+        super().__init__(
+            game=game, 
+            updater=updater, 
+            damage=damage, 
+            body=body, 
+            shape=shape, 
+            weapon=weapon, 
+            id=id, 
+            spawn_time=spawn_time, 
+            *args, 
+            **kwargs
+        )
+
+        self.explosion_radius = explosion_radius
+        self.explosion_intensity = explosion_intensity
+
+        self.game.event_subscriptions[BulletHit] += [
+            self.explode
+        ]
+    
+    def explode(self, event: BulletHit):
+        
+        print("boom")
+
+        if event.bullet is not self:
+            return 
+        
+        for entity in self.game.entities.values():
+
+            if not isinstance(entity, Tile):
+                continue
+            
+            distance = self.body.position - entity.body.position
+
+            print(f"distance to entity is {distance}")
+
+class Rocket(SpriteEntity, Explosive):
+    def __init__(
+        self, 
+        game: GamemodeClient | GamemodeServer, 
+        updater: str,  
+        body: Body = None, 
+        shape: Shape = None, 
+        damage: int = 1,
+        explosion_radius: float = 1000,
+        explosion_intensity: float = 10,
+        weapon: Weapon = None, 
+        id: str | None = None, 
+        spawn_time=None, 
+        *args, 
+        **kwargs
+    ):
+        super().__init__(
+            game=game, 
+            updater=updater, 
+            damage=damage, 
+            body=body, 
+            shape=shape, 
+            weapon=weapon, 
+            id=id, 
+            spawn_time=spawn_time,
+            explosion_intensity=explosion_intensity,
+            explosion_radius=explosion_radius, 
+            *args, 
+            **kwargs
+        )
     
 class ShotgunBullet(DrawableEntity, Bullet):
     def __init__(
