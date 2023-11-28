@@ -108,7 +108,7 @@ class Tile(Entity):
         
         body = pymunk.Body(
             moment=entity_data["body"]["moment"],
-            body_type=pymunk.Body.KINEMATIC
+            body_type=pymunk.Body.DYNAMIC
         )
 
         body.position = entity_data["body"]["position"]

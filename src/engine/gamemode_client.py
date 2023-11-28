@@ -262,15 +262,15 @@ class GamemodeClient:
             if type(entity) is entity_type or entity is entity_type: # this allows looking up an instance of an entity or just the class of an entity
                 entity_type_string = possible_entity_type_string
         
-        if entity_type_string ==  None:
+        if entity_type_string == None:
             raise KeyError(f"Entity type {type(entity)} does not exist in entity type map")
     
         else:
             return entity_type_string
 
-    def network_update(self, update_type: Union[Literal["create"], Literal["update"], Literal["delete"]], entity_id: str, data: dict = None, entity_type_string: str = None):
+    def network_update(self, update_type: Union[Literal["create"], Literal["update"], Literal["delete"], Literal["force"]], entity_id: str, data: dict = None, entity_type_string: str = None):
 
-        if update_type not in ["create", "update", "delete"]:
+        if update_type not in ["create", "update", "delete", "force"]:
             raise InvalidUpdateType(f"Update type {update_type} is invalid")
 
         if update_type == "create" and entity_type_string is None:
@@ -279,12 +279,13 @@ class GamemodeClient:
         if update_type == "create" and entity_type_string not in self.entity_type_map:
             raise MalformedUpdate(f"Entity type {entity_type_string} does not exist in the entity type map")
 
-        update = {
-            "update_type": update_type,
-            "entity_id": entity_id,
-            "entity_type": entity_type_string,
-            "data": data
-        }
+        update = {}
+
+        update["update_type"] = update_type
+        update["entity_id"] = entity_id
+        
+        if data: update["data"] = data
+        if entity_type_string: update["entity_type"] = entity_type_string
 
         self.outgoing_updates_queue.append(
             update
@@ -339,6 +340,62 @@ class GamemodeClient:
             entity.detect_updates()
         
         self.trigger(FinishedTrackingUpdates())
+    
+    def apply_force(
+        self, 
+        entity: Tile,
+        force_type: Union[
+            Literal["force_local"],
+            Literal["force_world"],
+            Literal["impulse_local"],
+            Literal["impulse_world"]
+        ],
+        force: Tuple[float, float],
+        point: Tuple[float, float]
+    ):
+        """Network friendly force application"""
+        
+        update_data = {
+            "force_type": force_type,
+            "force": force,
+            "point": point
+        }
+        
+        # do not apply forces to entites that are not our own
+        if entity.updater != self.uuid:
+            self.network_update(
+                update_type="force",
+                entity_id=entity.id,
+                data=update_data
+            )
+
+        else:
+
+            match force_type:
+
+                case "force_local":
+                    entity.body.apply_force_at_local_point(
+                        force=force,
+                        point=point
+                    )
+                
+                case "force_world":
+                    entity.body.apply_force_at_world_point(
+                        force=force,
+                        point=point
+                    )
+                
+                case "impulse_local":
+                    entity.body.apply_impulse_at_local_point(
+                        force=force,
+                        point=point
+                    )
+                
+                case "impulse_world":
+                    entity.body.apply_impulse_at_world_point(
+                        force=force,
+                        point=point
+                    )
         
     # parse network updates -> start tracking updates ->  finish tracking updates -> parse network updates
         
@@ -407,7 +464,55 @@ class GamemodeClient:
 
                 case "delete":
 
-                    self.entities[update["entity_id"]].kill()
+                    try:
+                        self.entities[update["entity_id"]].kill()
+                    except KeyError:
+                        # THIS IS A BANDAID FIX
+                        pass
+                
+                case "force":
+                    
+                    entity = self.entities[update["entity_id"]]
+
+                    # do not apply force to entities we don't own
+                    if entity.updater != self.uuid:
+                        continue
+
+                    if not isinstance(entity, Tile):
+                        raise TypeError(f"cannot apply force update to non tile {entity}")
+                    
+                    force = tuple(update["data"]["force"])
+                    point = tuple(update["data"]["point"])
+
+                    match update["force_type"]:
+
+                        case "force_local":
+
+                            entity.body.apply_force_at_local_point(
+                                force=force,
+                                point=point
+                            )
+                        
+                        case "force_world":
+                            
+                            entity.body.apply_force_at_world_point(
+                                force=force,
+                                point=point
+                            )
+
+                        case "impulse_local":
+
+                            entity.body.apply_impulse_at_local_point(
+                                impulse=force,
+                                point=point
+                            )
+
+                        case "impulse_world":
+                            
+                            entity.body.apply_impulse_at_world_point(
+                                impulse=force,
+                                point=point
+                            )
 
         for entity in self.entities.values():
             entity.resolve()

@@ -2,7 +2,7 @@ import socket
 import json
 from collections import defaultdict
 from copy import deepcopy
-from typing import List, Literal, Optional, Type, Dict, Union
+from typing import List, Literal, Optional, Type, Dict, Union, Tuple
 import time
 import zlib
 import pathlib
@@ -199,8 +199,59 @@ class GamemodeServer:
 
                     print(f"deleting entity {update['entity_id']} {self.tick_count}")
 
-                    self.entities[update["entity_id"]].kill()
-            
+                    print(self.updates_to_load)
+
+                    try:
+                        self.entities[update["entity_id"]].kill()
+                    except KeyError:
+                        # THIS IS A BANDAID FIX
+                        pass
+
+                
+                case "force":
+                    
+                    entity = self.entities[update["entity_id"]]
+
+                    # do not apply force to entities we don't own
+                    if entity.updater != self.uuid:
+                        continue
+
+                    if not isinstance(entity, Tile):
+                        raise TypeError(f"cannot apply force update to non tile {entity}")
+                    
+                    force = update["data"]["force"]
+                    point = update["data"]["point"]
+
+                    match update["force_type"]:
+
+                        case "force_local":
+
+                            entity.body.apply_force_at_local_point(
+                                force=force,
+                                point=point
+                            )
+                        
+                        case "force_world":
+                            
+                            entity.body.apply_force_at_world_point(
+                                force=force,
+                                point=point
+                            )
+
+                        case "impulse_local":
+
+                            entity.body.apply_impulse_at_local_point(
+                                impulse=force,
+                                point=point
+                            )
+
+                        case "impulse_world":
+                            
+                            entity.body.apply_impulse_at_world_point(
+                                impulse=force,
+                                point=point
+                            )
+
         self.updates_to_load = []
 
         for entity in self.entities.values():
@@ -209,6 +260,62 @@ class GamemodeServer:
             entity.resolve()
 
         self.trigger(UpdatesLoaded())
+
+    def apply_force(
+        self, 
+        entity: Tile,
+        force_type: Union[
+            Literal["force_local"],
+            Literal["force_world"],
+            Literal["impulse_local"],
+            Literal["impulse_world"]
+        ],
+        force: Tuple[float, float],
+        point: Tuple[float, float]
+    ):
+        """Network friendly force application"""
+        
+        update_data = {
+            "force_type": force_type,
+            "force": force,
+            "point": point
+        }
+        
+        # do not apply forces to entites that are not our own
+        if entity.updater != self.uuid:
+            self.network_update(
+                update_type="force",
+                entity_id=entity.id,
+                data=update_data
+            )
+
+        else:
+
+            match force_type:
+
+                case "force_local":
+                    entity.body.apply_force_at_local_point(
+                        force=force,
+                        point=point
+                    )
+                
+                case "force_world":
+                    entity.body.apply_force_at_world_point(
+                        force=force,
+                        point=point
+                    )
+                
+                case "impulse_local":
+                    entity.body.apply_impulse_at_local_point(
+                        force=force,
+                        point=point
+                    )
+                
+                case "impulse_world":
+                    entity.body.apply_impulse_at_world_point(
+                        force=force,
+                        point=point
+                    )
 
     def lookup_entity_type_string(self, entity: Union[Type[Entity], Type[type]]) -> str:
         """Find entity type's corresponding type string in entity_type_map"""

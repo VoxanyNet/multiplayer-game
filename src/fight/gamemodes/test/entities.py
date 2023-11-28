@@ -2,6 +2,7 @@ from typing import Dict, Optional, Type, Union, Tuple, List, TYPE_CHECKING
 import time
 import math
 import gc
+from abc import abstractproperty
 
 import pygame
 from pygame import Surface
@@ -121,6 +122,25 @@ class FreezableTileMaker(DrawableEntity, Entity):
             width=1
         )
 
+    def update(self, update_data: dict):
+        DrawableEntity.update(self, update_data)
+        Entity.update(self, update_data)
+    
+    def serialize(self) -> Dict[str, int | bool | str | list]:
+        data_dict = {}
+        data_dict.update(DrawableEntity.serialize(self))
+        data_dict.update(Entity.serialize(self))
+
+        return data_dict
+
+    @staticmethod
+    def deserialize(entity_data: Dict[str, int | bool | str | list], entity_id: str, game: type[GamemodeClient] | type[GamemodeServer]) -> type[Entity]:
+        
+        entity_data.update(DrawableEntity.deserialize(entity_data, entity_id, game))
+        entity_data.update(Entity.deserialize(entity_data, entity_id, game))
+
+        return entity_data
+
 class Barrel(SpriteEntity, Tile):
 
     def __init__(
@@ -169,6 +189,26 @@ class Barrel(SpriteEntity, Tile):
             *args, 
             **kwargs
         )
+    
+    def update(self, update_data: dict):
+        SpriteEntity.update(self, update_data)
+        Tile.update(self, update_data)
+    
+    def serialize(self) -> Dict[str, int | bool | str | list]:
+        data_dict = {}
+        data_dict.update(SpriteEntity.serialize(self))
+        data_dict.update(Tile.serialize(self))
+
+        return data_dict
+
+    @staticmethod
+    def deserialize(entity_data: Dict[str, int | bool | str | list], entity_id: str, game: type[GamemodeClient] | type[GamemodeServer]) -> dict:
+        
+        entity_data.update(SpriteEntity.deserialize(entity_data, entity_id, game))
+        entity_data.update(Tile.deserialize(entity_data, entity_id, game))
+
+        return entity_data
+    
 class Player(SpriteEntity, Tile):
     def __init__(
         self, 
@@ -369,7 +409,7 @@ class Player(SpriteEntity, Tile):
                 self.body.position
             )
 
-class Weapon(DrawableEntity, Tile):
+class Weapon(Tile, SpriteEntity):
 
     def __init__(self, 
         game: GamemodeClient | GamemodeServer, 
@@ -378,11 +418,14 @@ class Weapon(DrawableEntity, Tile):
         ammo: int,
         body: Body, 
         shape: Shape, 
+        bullet_type: Type["Bullet"],
         player: Optional[Player] = None, 
         id: str | None = None, 
         cooldown: int = 0, 
         last_shot: int = 0, 
         draw_layer: int = 1,
+        active_sprite: Optional[pygame.Surface] = None,
+        scale: int = 1.5,
         *args,
         **kwargs
     ): 
@@ -392,8 +435,10 @@ class Weapon(DrawableEntity, Tile):
             game=game, 
             updater=updater, 
             id=id, 
-            draw_layer=draw_layer,
             body=body,
+            draw_layer=draw_layer,
+            active_sprite=active_sprite,
+            scale=scale,
             shape=shape,
             *args,
             **kwargs
@@ -409,11 +454,14 @@ class Weapon(DrawableEntity, Tile):
             self.shoot
         ]
 
+        self.reload_timeline: Timeline
+
         self.player = player
         self.cooldown = cooldown
         self.last_shot = last_shot
         self.ammo = ammo 
         self.clip_size = clip_size
+        self.bullet_type = bullet_type
     
     def aim(self, event: Tick):
         if not self.player:
@@ -437,182 +485,12 @@ class Weapon(DrawableEntity, Tile):
     
     def shoot(self, event: events.MouseLeftClick):
         
-        return
-
-    def serialize(self) -> Dict[str, int | bool | str | list]:
-        data_dict = {}
-        data_dict.update(DrawableEntity.serialize(self))
-        data_dict.update(Tile.serialize(self))
-
-        if self.player:
-            data_dict["player"] = self.player.id
-        else:
-            data_dict['player'] = None
-        
-        data_dict.update(
-            {
-                "cooldown": self.cooldown,
-                "last_shot": self.last_shot,
-                "clip_size": self.clip_size,
-                "ammo": self.ammo
-            }
-        )
-
-        return data_dict
-    
-    def update(self, update_data: dict):
-        DrawableEntity.update(self, update_data)
-        Tile.update(self, update_data)
-
-        for attribute_name, attribute_value in update_data.items():
-
-            match attribute_name:
-
-                case "player":
-                    
-                    if attribute_value:
-                        self.player = attribute_value
-                    else:
-                        self.player = None
-                
-                case "cooldown":
-                    self.cooldown = attribute_value
-                
-                case "last_shot":
-                    self.last_shot = attribute_value
-    
-    @staticmethod
-    def deserialize(entity_data: Dict[str, int | bool | str | list], entity_id: str, game: GamemodeClient | GamemodeServer) -> dict:
-        print("called")
-        if entity_data["player"]:
-            entity_data["player"] = Unresolved(entity_data["player"])
-        else:
-            entity_data["player"] = None
-        
-        entity_data["cooldown"] = entity_data["cooldown"]
-
-        entity_data["last_shot"] = entity_data["last_shot"]
-        
-        entity_data.update(DrawableEntity.deserialize(entity_data, entity_id, game))
-        entity_data.update(Tile.deserialize(entity_data, entity_id, game))
-
-        return entity_data
-
-    def follow_cursor_on_circle(self, event: Tick):
-        
-        if not self.player:
-            return 
-        
-        # i stole this :)
-        x1, y1 = self.player.body.position
-        x2, y2 = self.game.adjusted_mouse_pos
-
-        dx = x2 - x1
-        dy = y2 - y1
-
-        length = math.sqrt(dx**2 + dy**2)
-        unit_dx = dx / length
-        unit_dy = dy / length
-
-        closest_x = x1 + 75 * unit_dx
-        closest_y = y1 + 75 * unit_dy
-
-        self.body.position = (closest_x, closest_y)
-        
-class Shotgun(Weapon, SpriteEntity):   
-    def __init__(self, 
-        game: GamemodeClient | GamemodeServer, 
-        updater: str, 
-        clip_size: int = 2, 
-        ammo: int = 2, 
-        player: Player | None = None, 
-        body: Body = None, 
-        shape: Shape = None, 
-        id: str | None = None, 
-        cooldown: int = 0.44, 
-        last_shot: int = 0, 
-        draw_layer: int = 1,
-        active_sprite: Optional[pygame.Surface] = None,
-        scale: int = 1.5,
-        *args,
-        **kwargs
-    ):
-        
-        if not body:
-            body = Body(
-                body_type=pymunk.Body.KINEMATIC
-            )
-        
-        if not shape:
-            shape = pymunk.Poly.create_box(
-                body=body,
-                size=(30,10)
-            )
-        
-        
-        super().__init__(
-            game=game,
-            updater=updater,
-            draw_layer=draw_layer,
-            active_sprite=active_sprite,
-            id=id,
-            scale=scale,
-            clip_size=clip_size,
-            ammo=ammo,
-            body=body,
-            shape=shape,
-            player=player,
-            cooldown=cooldown,
-            last_shot=last_shot,
-            *args,
-            **kwargs
-        )
-        
-        self.static_sprite = self.game.resources["resources/sprites/shotgun.png"]
-        self.reload_timeline = Timeline(
-            {
-                0.04: self.game.resources["resources/timelines/shotgun_reload/0.png"],
-                0.08: self.game.resources["resources/timelines/shotgun_reload/1.png"],
-                0.12: self.game.resources["resources/timelines/shotgun_reload/2.png"],
-                0.16: self.game.resources["resources/timelines/shotgun_reload/3.png"],
-                0.20: self.game.resources["resources/timelines/shotgun_reload/4.png"],
-                0.24: self.game.resources["resources/timelines/shotgun_reload/5.png"],
-                0.28: self.game.resources["resources/timelines/shotgun_reload/4.png"],
-                0.32: self.game.resources["resources/timelines/shotgun_reload/3.png"],
-                0.36: self.game.resources["resources/timelines/shotgun_reload/2.png"],
-                0.40: self.game.resources["resources/timelines/shotgun_reload/1.png"],
-                0.44: self.game.resources["resources/timelines/shotgun_reload/0.png"]
-            }
-        )
-        self.active_sprite = self.static_sprite
-
-        self.game.event_subscriptions[Tick] += [
-            self.handle_reload
-        ]
-    
-    def serialize(self) -> Dict[str, int | bool | str | list]:
-
-        data_dict = {}
-        data_dict.update(SpriteEntity.serialize(self))
-        data_dict.update(Weapon.serialize(self))
-
-        return data_dict
-    
-    def draw(self):
-        self.draw_onto_body()
-
-    def update(self, update_data):
-        SpriteEntity.update(self, update_data)
-        Weapon.update(self, update_data)
-    
-    def shoot(self, event: events.MouseLeftClick):
-
         if time.time() - self.last_shot < self.cooldown:
             return 
 
         self.last_shot = time.time()
 
-        bullet = ShotgunBullet(
+        bullet = self.bullet_type(
             game=self.game,
             updater=self.game.uuid
         )
@@ -642,18 +520,98 @@ class Shotgun(Weapon, SpriteEntity):
         # begin reload animation
         self.reload_timeline.reset()
         self.active_sprite = self.reload_timeline.get_frame(0)
-    
-    def handle_reload(self, event: Tick):
 
-        if time.time() - self.last_shot < self.cooldown:
-            # progress reload animation
-            self.active_sprite = self.reload_timeline.get_frame(self.game.dt)
-            
-            return  
+    def serialize(self) -> Dict[str, int | bool | str | list]:
+        data_dict = {}
+        data_dict.update(Tile.serialize(self))
+
+        if self.player:
+            data_dict["player"] = self.player.id
+        else:
+            data_dict['player'] = None
         
-        self.ammo = self.clip_size
-        self.active_sprite = self.static_sprite
+        entity_type_string = None
+        
+        for entity_type_string, entity_type in self.game.entity_type_map.items():
+            if entity_type is self.bullet_type:
+                break 
 
+        if entity_type_string is None:
+            raise Exception("bullet type does not exist in entity type map")
+
+        data_dict.update(
+            {
+                "cooldown": self.cooldown,
+                "last_shot": self.last_shot,
+                "clip_size": self.clip_size,
+                "ammo": self.ammo,
+                "bullet_type": entity_type_string
+            }
+        )
+
+        return data_dict
+    
+    def update(self, update_data: dict):
+        Tile.update(self, update_data)
+
+        for attribute_name, attribute_value in update_data.items():
+
+            match attribute_name:
+
+                case "player":
+                    
+                    if attribute_value:
+                        self.player = attribute_value
+                    else:
+                        self.player = None
+                
+                case "cooldown":
+                    self.cooldown = attribute_value
+                
+                case "last_shot":
+                    self.last_shot = attribute_value
+                
+                case "bullet_type":
+                    self.bullet_type = self.game.entity_type_map[attribute_value]
+    
+    @staticmethod
+    def deserialize(entity_data: Dict[str, int | bool | str | list], entity_id: str, game: GamemodeClient | GamemodeServer) -> dict:
+
+        if entity_data["player"]:
+            entity_data["player"] = Unresolved(entity_data["player"])
+        else:
+            entity_data["player"] = None
+        
+        entity_data["cooldown"] = entity_data["cooldown"]
+
+        entity_data["last_shot"] = entity_data["last_shot"]
+
+        entity_data["bullet_type"] = game.entity_type_map[entity_data["bullet_type"]]
+        
+        entity_data.update(Tile.deserialize(entity_data, entity_id, game))
+
+        return entity_data
+
+    def follow_cursor_on_circle(self, event: Tick):
+        
+        if not self.player:
+            return 
+        
+        # i stole this :)
+        x1, y1 = self.player.body.position
+        x2, y2 = self.game.adjusted_mouse_pos
+
+        dx = x2 - x1
+        dy = y2 - y1
+
+        length = math.sqrt(dx**2 + dy**2)
+        unit_dx = dx / length
+        unit_dy = dy / length
+
+        closest_x = x1 + 75 * unit_dx
+        closest_y = y1 + 75 * unit_dy
+
+        self.body.position = (closest_x, closest_y)
 
 class Bullet(Tile):
     def __init__(
@@ -687,13 +645,15 @@ class Bullet(Tile):
             self.damage_players
         ]
 
+        self.sound: pygame.mixer.Sound
+
         self.weapon = weapon
 
         if spawn_time:
             self.spawn_time = spawn_time
         else:
             self.spawn_time = time.time()
-    
+
     def draw(self):
         #print("AHHHHH")
         self.debug_draw()
@@ -722,8 +682,7 @@ class Bullet(Tile):
             self.kill()
 
             break
-
-
+    
     def despawn_bullet(self, event: Tick):
 
         if time.time() - self.spawn_time > 1:
@@ -731,7 +690,8 @@ class Bullet(Tile):
             self.kill()
 
     def serialize(self) -> Dict[str, int | bool | str | list]:
-        data_dict = DrawableEntity.serialize(self) | Tile.serialize(self)
+        data_dict = {} 
+        data_dict.update(Tile.serialize(self))
 
         if self.weapon:
             data_dict["weapon"] = self.weapon.id
@@ -742,7 +702,6 @@ class Bullet(Tile):
         return data_dict
 
     def update(self, update_data: dict):
-        DrawableEntity.update(self, update_data)
         Tile.update(self, update_data)
 
         for attribute_name, attribute_value in update_data.items():
@@ -756,100 +715,16 @@ class Bullet(Tile):
     
     @staticmethod
     def deserialize(entity_data: Dict[str, int | bool | str | list], entity_id: str, game: GamemodeClient | GamemodeServer) -> type[Tile]:
-        
+    
         if entity_data["weapon"]:
             entity_data["weapon"] = Unresolved(entity_data["weapon"])
         else:
             entity_data["weapon"] = None
-        
-        DrawableEntity.deserialize(entity_data, entity_id, game)
+
         Tile.deserialize(entity_data, entity_id, game)
 
         return entity_data
 
-class Explosive(Bullet):
-    def __init__(
-        self, 
-        game: GamemodeClient | GamemodeServer, 
-        updater: str, 
-        damage: int, 
-        body: Body, 
-        shape: Shape, 
-        explosion_radius: float,
-        explosion_intensity: float,
-        weapon: Weapon = None, 
-        id: str | None = None, 
-        spawn_time=None, 
-        *args, 
-        **kwargs
-    ):
-        super().__init__(
-            game=game, 
-            updater=updater, 
-            damage=damage, 
-            body=body, 
-            shape=shape, 
-            weapon=weapon, 
-            id=id, 
-            spawn_time=spawn_time, 
-            *args, 
-            **kwargs
-        )
-
-        self.explosion_radius = explosion_radius
-        self.explosion_intensity = explosion_intensity
-
-        self.game.event_subscriptions[BulletHit] += [
-            self.explode
-        ]
-    
-    def explode(self, event: BulletHit):
-        
-        print("boom")
-
-        if event.bullet is not self:
-            return 
-        
-        for entity in self.game.entities.values():
-
-            if not isinstance(entity, Tile):
-                continue
-            
-            distance = self.body.position - entity.body.position
-
-            print(f"distance to entity is {distance}")
-
-class Rocket(SpriteEntity, Explosive):
-    def __init__(
-        self, 
-        game: GamemodeClient | GamemodeServer, 
-        updater: str,  
-        body: Body = None, 
-        shape: Shape = None, 
-        damage: int = 1,
-        explosion_radius: float = 1000,
-        explosion_intensity: float = 10,
-        weapon: Weapon = None, 
-        id: str | None = None, 
-        spawn_time=None, 
-        *args, 
-        **kwargs
-    ):
-        super().__init__(
-            game=game, 
-            updater=updater, 
-            damage=damage, 
-            body=body, 
-            shape=shape, 
-            weapon=weapon, 
-            id=id, 
-            spawn_time=spawn_time,
-            explosion_intensity=explosion_intensity,
-            explosion_radius=explosion_radius, 
-            *args, 
-            **kwargs
-        )
-    
 class ShotgunBullet(DrawableEntity, Bullet):
     def __init__(
         self, 
@@ -906,6 +781,375 @@ class ShotgunBullet(DrawableEntity, Bullet):
     def draw(self):
         Tile.debug_draw(self)
 
+    def update(self, update_data: dict):
+        DrawableEntity.update(self, update_data)
+        Bullet.update(self, update_data)
+
+    def serialize(self) -> Dict[str, int | bool | str | list]:
+        data_dict = {}
+        data_dict.update(DrawableEntity.serialize(self))
+        data_dict.update(Bullet.serialize(self))
+
+        return data_dict
+    
+    @staticmethod
+    def deserialize(entity_data: Dict[str, int | bool | str | list], entity_id: str, game: type[GamemodeClient] | type[GamemodeServer]) -> type[Entity]:
+        
+        DrawableEntity.deserialize(entity_data, entity_id, game)
+        Bullet.deserialize(entity_data, entity_id, game)
+
+        return entity_data
+      
+class Shotgun(Weapon):   
+    def __init__(self, 
+        game: GamemodeClient | GamemodeServer, 
+        updater: str, 
+        clip_size: int = 2, 
+        ammo: int = 200, 
+        player: Player | None = None, 
+        body: Body = None, 
+        shape: Shape = None, 
+        id: str | None = None, 
+        cooldown: int = 0.44, 
+        last_shot: int = 0, 
+        draw_layer: int = 1,
+        active_sprite: Optional[pygame.Surface] = None,
+        bullet_type: Type["Bullet"] = ShotgunBullet,
+        scale: int = 1.5,
+        *args,
+        **kwargs
+    ):
+        
+        if not body:
+            body = Body(
+                body_type=pymunk.Body.KINEMATIC
+            )
+        
+        if not shape:
+            shape = pymunk.Poly.create_box(
+                body=body,
+                size=(30,10)
+            )
+        
+        
+        super().__init__(
+            game=game,
+            updater=updater,
+            draw_layer=draw_layer,
+            active_sprite=active_sprite,
+            id=id,
+            scale=scale,
+            clip_size=clip_size,
+            ammo=ammo,
+            bullet_type=bullet_type,
+            body=body,
+            shape=shape,
+            player=player,
+            cooldown=cooldown,
+            last_shot=last_shot,
+            *args,
+            **kwargs
+        )
+        
+        self.static_sprite = self.game.resources["resources/sprites/shotgun.png"]
+        self.reload_timeline = Timeline(
+            {
+                0.04: self.game.resources["resources/timelines/shotgun_reload/0.png"],
+                0.08: self.game.resources["resources/timelines/shotgun_reload/1.png"],
+                0.12: self.game.resources["resources/timelines/shotgun_reload/2.png"],
+                0.16: self.game.resources["resources/timelines/shotgun_reload/3.png"],
+                0.20: self.game.resources["resources/timelines/shotgun_reload/4.png"],
+                0.24: self.game.resources["resources/timelines/shotgun_reload/5.png"],
+                0.28: self.game.resources["resources/timelines/shotgun_reload/4.png"],
+                0.32: self.game.resources["resources/timelines/shotgun_reload/3.png"],
+                0.36: self.game.resources["resources/timelines/shotgun_reload/2.png"],
+                0.40: self.game.resources["resources/timelines/shotgun_reload/1.png"],
+                0.44: self.game.resources["resources/timelines/shotgun_reload/0.png"]
+            }
+        )
+        self.active_sprite = self.static_sprite
+
+        self.game.event_subscriptions[Tick] += [
+            self.handle_reload
+        ]
+    
+    def serialize(self) -> Dict[str, int | bool | str | list]:
+
+        data_dict = {}
+        data_dict.update(SpriteEntity.serialize(self))
+        data_dict.update(Weapon.serialize(self))
+
+        return data_dict
+    
+    def draw(self):
+        self.draw_onto_body()
+
+    def update(self, update_data):
+        Weapon.update(self, update_data)
+        SpriteEntity.update(self, update_data)
+    
+    @staticmethod
+    def deserialize(entity_data: Dict[str, int | bool | str | list], entity_id: str, game: GamemodeClient | GamemodeServer) -> dict:
+        Weapon.deserialize(entity_data, entity_id, game)
+        SpriteEntity.deserialize(entity_data, entity_id, game)
+
+        return entity_data
+    
+    def handle_reload(self, event: Tick):
+
+        if time.time() - self.last_shot < self.cooldown:
+            # progress reload animation
+            self.active_sprite = self.reload_timeline.get_frame(self.game.dt)
+            
+            return  
+        
+        self.ammo = self.clip_size
+        self.active_sprite = self.static_sprite
+
+class Explosive(Bullet):
+    def __init__(
+        self, 
+        game: GamemodeClient | GamemodeServer, 
+        updater: str, 
+        damage: int, 
+        body: Body, 
+        shape: Shape, 
+        explosion_radius: float,
+        explosion_intensity: float,
+        weapon: Weapon = None, 
+        id: str | None = None, 
+        spawn_time=None, 
+        *args, 
+        **kwargs
+    ):
+        super().__init__(
+            game=game, 
+            updater=updater, 
+            damage=damage, 
+            body=body, 
+            shape=shape, 
+            weapon=weapon, 
+            id=id, 
+            spawn_time=spawn_time, 
+            *args, 
+            **kwargs
+        )
+
+        self.explosion_radius = explosion_radius
+        self.explosion_intensity = explosion_intensity
+
+        self.game.event_subscriptions[BulletHit] += [
+            self.explode
+        ]
+    
+    def explode(self, event: BulletHit):
+
+        if event.bullet is not self:
+            return 
+        
+        for entity in self.game.entities.values():
+
+            if not isinstance(entity, Tile):
+                continue
+            
+            distance: Vec2d = entity.body.position - self.body.position
+
+            explosion_vector = distance.normalized()
+
+            print(explosion_vector)
+
+            # self.game.apply_force(
+            #     entity=entity,
+            #     force_type="force_world",
+            #     force=
+            # )
+
+    def update(self, update_data: dict):
+        Bullet.update(self, update_data)
+    
+    def serialize(self) -> Dict[str, int | bool | str | list]:
+        data_dict = {}
+        data_dict.update(Bullet.serialize(self))
+
+        return data_dict
+    
+    @staticmethod
+    def deserialize(entity_data: Dict[str, int | bool | str | list], entity_id: str, game: GamemodeClient | GamemodeServer) -> type[Tile]:
+        Bullet.deserialize(entity_data, entity_id, game=game)
+
+        return entity_data
+
+class Rocket(DrawableEntity, Explosive):
+    def __init__(
+        self, 
+        game: GamemodeClient | GamemodeServer, 
+        updater: str,  
+        body: Body = None, 
+        shape: Shape = None, 
+        damage: int = 1,
+        explosion_radius: float = 1000,
+        explosion_intensity: float = 10,
+        weapon: Weapon = None, 
+        id: str | None = None, 
+        draw_layer: int = 1,
+        spawn_time=None,
+        *args, 
+        **kwargs
+    ):
+        
+        if body is None:
+            body = Body(
+                mass = 0.1,
+                body_type=pymunk.Body.DYNAMIC
+            )
+
+            body.moment = pymunk.moment_for_box(
+                body.mass,
+                (5, 2.5)
+            )
+
+        if shape is None:
+            shape = pymunk.Poly.create_box(
+                body=body,
+                size=(5,2.5)
+            )
+
+            shape.friction = 0.5
+
+        super().__init__(
+            game=game, 
+            updater=updater, 
+            damage=damage, 
+            body=body, 
+            shape=shape, 
+            weapon=weapon, 
+            id=id,
+            spawn_time=spawn_time,
+            explosion_intensity=explosion_intensity,
+            explosion_radius=explosion_radius, 
+            draw_layer=draw_layer,
+            *args, 
+            **kwargs
+        )
+
+        if isinstance(self.game, GamemodeClient):
+            self.sound = pygame.mixer.Sound("resources/sounds/shotgun.wav")
+            self.sound.set_volume(0.10)
+        
+
+    def update(self, update_data: dict):
+        DrawableEntity.update(self, update_data)
+        Explosive.update(self, update_data)
+    
+    def serialize(self) -> Dict[str, int | bool | str | list]:
+        data_dict = {}
+        data_dict.update(DrawableEntity.serialize(self))
+        data_dict.update(Explosive.serialize(self))
+
+        return data_dict
+    
+    @staticmethod
+    def deserialize(entity_data: Dict[str, int | bool | str | list], entity_id: str, game: type[GamemodeClient] | type[GamemodeServer]) -> dict:
+        DrawableEntity.deserialize(entity_data, entity_id, game)
+        Explosive.deserialize(entity_data, entity_id, game)
+
+        return entity_data
+
+    def draw(self):
+        self.debug_draw()
+
+class RPG(Weapon, SpriteEntity):
+    def __init__(
+        self, 
+        game: GamemodeClient | GamemodeServer,
+        updater: str, 
+        clip_size: int = 1, 
+        ammo: int = 100, 
+        body: Optional[Body] = None, 
+        shape: Optional[Shape] = None,
+        player: Player | None = None, 
+        id: str | None = None,
+        cooldown: int = 1,
+        active_sprite: Optional[Surface] = None, 
+        last_shot: int = 0, 
+        draw_layer: int = 1, 
+        bullet_type: Type[Bullet] = Rocket,
+        *args, 
+        **kwargs
+    ):
+        
+        if not body:
+            body=pymunk.Body(
+                mass=1,
+                moment=50,
+                body_type=pymunk.Body.DYNAMIC
+            )
+        
+        if not shape:
+            shape = pymunk.Poly.create_box(
+                body=body,
+                size=(30,10)
+            )
+            
+        super().__init__(
+            game=game, 
+            updater=updater, 
+            clip_size=clip_size, 
+            ammo=ammo, 
+            body=body, 
+            shape=shape, 
+            player=player, 
+            id=id, 
+            cooldown=cooldown, 
+            last_shot=last_shot, 
+            draw_layer=draw_layer,
+            active_sprite=active_sprite,
+            bullet_type=bullet_type,
+            *args, 
+            **kwargs
+        )
+
+        self.static_sprite = self.game.resources["resources/sprites/shotgun.png"]
+        self.reload_timeline = Timeline(
+            {
+                0.04: self.game.resources["resources/timelines/shotgun_reload/0.png"],
+                0.08: self.game.resources["resources/timelines/shotgun_reload/1.png"],
+                0.12: self.game.resources["resources/timelines/shotgun_reload/2.png"],
+                0.16: self.game.resources["resources/timelines/shotgun_reload/3.png"],
+                0.20: self.game.resources["resources/timelines/shotgun_reload/4.png"],
+                0.24: self.game.resources["resources/timelines/shotgun_reload/5.png"],
+                0.28: self.game.resources["resources/timelines/shotgun_reload/4.png"],
+                0.32: self.game.resources["resources/timelines/shotgun_reload/3.png"],
+                0.36: self.game.resources["resources/timelines/shotgun_reload/2.png"],
+                0.40: self.game.resources["resources/timelines/shotgun_reload/1.png"],
+                0.44: self.game.resources["resources/timelines/shotgun_reload/0.png"]
+            }
+        )
+        self.active_sprite = self.static_sprite
+    
+    def update(self, update_data: dict):
+        Weapon.update(self, update_data)
+        SpriteEntity.update(self, update_data)
+
+    def serialize(self) -> Dict[str, int | bool | str | list]:
+        data_dict = {}
+        data_dict.update(Weapon.serialize(self))
+        data_dict.update(SpriteEntity.serialize(self))
+
+        return data_dict
+
+    @staticmethod
+    def deserialize(entity_data: Dict[str, int | bool | str | list], entity_id: str, game: GamemodeClient | GamemodeServer) -> dict:
+        Weapon.deserialize(entity_data, entity_id, game)
+        SpriteEntity.deserialize(entity_data, entity_id, game)
+
+        return entity_data
+
+    def draw(self):
+        self.draw_onto_body()
+    
+    # caiden jones sucks
+    
 class FreezableTile(Tile, DrawableEntity):
     def __init__(
             self, 
@@ -944,6 +1188,10 @@ class FreezableTile(Tile, DrawableEntity):
 
         return data_dict
     
+    def update(self, update_data: dict):
+        Tile.update(self, update_data)
+        DrawableEntity.update(self, update_data)
+        
     @staticmethod
     def deserialize(entity_data: Dict[str, int | bool | str | list], entity_id: str, game: type[GamemodeClient] | type[GamemodeServer]) -> dict:
         DrawableEntity.deserialize(
@@ -1052,6 +1300,25 @@ class Background(DrawableEntity, Entity):
                 102
             )
         )
+    
+    def update(self, update_data: dict):
+        DrawableEntity.update(self, update_data)
+        Entity.update(self, update_data)
+    
+    def serialize(self) -> Dict[str, int | bool | str | list]:
+        data_dict = {}
+        data_dict.update(DrawableEntity.serialize(self))
+        data_dict.update(Entity.serialize(self))
+
+        return data_dict
+    
+    @staticmethod
+    def deserialize(entity_data: Dict[str, int | bool | str | list], entity_id: str, game: type[GamemodeClient] | type[GamemodeServer]) -> type[Entity]:
+        DrawableEntity.deserialize(entity_data, entity_id, game)
+        Entity.deserialize(entity_data, entity_id, game)
+
+        return entity_data
+
 
 class EntitySpawner(DrawableEntity, Entity):
 

@@ -11,7 +11,7 @@ from engine.gamemode_client import GamemodeClient
 from engine.events import GameStart, Tick, ResourcesLoaded
 from engine import events
 from engine.tile import Tile
-from fight.gamemodes.test.entities import FreezableTile, FreezableTileMaker, Player, Weapon, Bullet, Background, Shotgun
+from fight.gamemodes.test.entities import FreezableTile, FreezableTileMaker, Player, Weapon, Bullet, Background, Shotgun, RPG
 from fight.gamemodes.test.entity_type_map import entity_type_map
 
 class Client(GamemodeClient):
@@ -103,7 +103,7 @@ class Client(GamemodeClient):
 
         player = Player(self, updater=self.uuid)
 
-        weapon=Shotgun(self, updater=self.uuid)
+        weapon = Shotgun(self, updater=self.uuid)
 
         player.weapon = weapon
         weapon.player = player
