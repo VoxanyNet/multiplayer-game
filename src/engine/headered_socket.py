@@ -1,5 +1,6 @@
 import socket
 from socket import AddressFamily, SocketKind
+from typing import Optional
 
 
 class InvalidHeader(Exception):
@@ -30,12 +31,6 @@ class HeaderedSocket(socket.socket):
         # get number of bytes json string uses
         data_size = len(data)
 
-        # the amount of data that has been acknowledged by the client to have been sent
-        # somtimes we need to resend data if the client does not acknowledge it
-        # im not sure why sockets don't do this automatically
-        # in my case the clients receive buffer was filling up
-        sent_data = 0
-
         # if the number used to represent the length of the payload is over 7 characters we cant trasmit it
         if len(str(data_size)) > header_size:
             raise PayloadTooLarge(f"Payload header cannot be more than {header_size} characters")
@@ -52,14 +47,19 @@ class HeaderedSocket(socket.socket):
 
         self.sendall(headered_data)
 
-    def recv_headered(self, header_size=7):
+    def recv_headered(self, header_size=7) -> Optional[bytearray]:
+        """
+        Attempt to construct complete message
+        If didn't receive the whole message yet, returns None
+        """
         
-        # we arent already try to construct a message
+        # if self.constructed data is 0, that means we should be expecting a new header
         if len(self.constructed_data) == 0:
             try:
                 header = self.recv(header_size).decode("utf-8")
 
             except BlockingIOError:
+                # nothing in the socket buffer
                 pass
 
                 return None
@@ -80,13 +80,14 @@ class HeaderedSocket(socket.socket):
 
 
         while len(self.constructed_data) != self.payload_length:
+            # read from buffer until we get a complete message
             
             try:
+                # read {self.payload_length} number of bytes from the socket buffer minus what we have already read
                 new_data = self.recv(self.payload_length - len(self.constructed_data))
 
             except BlockingIOError:
-
-                print("no new data!")
+                # we reached the end of the buffer, so the user will need to invoke recv_headered again to receive the entire message
 
                 return None
 
@@ -96,6 +97,7 @@ class HeaderedSocket(socket.socket):
             if new_data == "":
                 raise Disconnected("Remote socket disconnected")
             
+            # save the newly read data
             self.constructed_data.extend(new_data)
 
         # make a copy of the constructed data before resetting it
