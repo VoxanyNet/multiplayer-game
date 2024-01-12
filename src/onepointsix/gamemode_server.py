@@ -12,12 +12,12 @@ import pygame
 from pygame import Rect
 import pymunk
 
-from engine import headered_socket
-from engine.headered_socket import Disconnected
-from engine.exceptions import MalformedUpdate, InvalidUpdateType
-from engine.events import Tick, Event, DisconnectedClient, NewClient, ReceivedClientUpdates, UpdatesLoaded, ServerStart, TickStart, TickComplete, NetworkTick, ResourcesLoaded, GameStart
-from engine.entity import Entity
-from engine.tile import Tile
+from onepointsix import headered_socket
+from onepointsix.headered_socket import Disconnected
+from onepointsix.exceptions import MalformedUpdate, InvalidUpdateType
+from onepointsix.events import Tick, Event, DisconnectedClient, NewClient, ReceivedClientUpdates, UpdatesLoaded, ServerStart, TickStart, TickComplete, NetworkTick, ResourcesLoaded, GameStart
+from onepointsix.entity import Entity
+from onepointsix.tile import Tile
 
 
 class GamemodeServer:

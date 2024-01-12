@@ -15,15 +15,15 @@ import pymunk
 from pymunk import pygame_util
 from rich import print
 
-from engine import headered_socket
-from engine.headered_socket import Disconnected
-from engine.entity import Entity
-from engine.tile import Tile
-from engine.helpers import get_matching_objects
-from engine.exceptions import InvalidUpdateType, MalformedUpdate
-from engine.events import StartedTrackingUpdates, FinishedTrackingUpdates, Tick, Event, TickComplete, GameStart, TickStart, ScreenCleared, NetworkTick, ResourcesLoaded, ReceivedNetworkUpdates, SentNetworkUpdates, ParsedNetworkUpdates
-from engine import events
-from engine.drawable_entity import DrawableEntity
+from onepointsix import headered_socket
+from onepointsix.headered_socket import Disconnected
+from onepointsix.entity import Entity
+from onepointsix.tile import Tile
+from onepointsix.helpers import get_matching_objects
+from onepointsix.exceptions import InvalidUpdateType, MalformedUpdate
+from onepointsix.events import StartedTrackingUpdates, FinishedTrackingUpdates, Tick, Event, TickComplete, GameStart, TickStart, ScreenCleared, NetworkTick, ResourcesLoaded, ReceivedNetworkUpdates, SentNetworkUpdates, ParsedNetworkUpdates
+from onepointsix import events
+from onepointsix.drawable_entity import DrawableEntity
 
 
 class GamemodeClient:

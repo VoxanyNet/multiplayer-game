@@ -1,9 +1,9 @@
 from typing import Type, TYPE_CHECKING
 
-from engine.headered_socket import HeaderedSocket
+from onepointsix.headered_socket import HeaderedSocket
 
 if TYPE_CHECKING:
-    from engine.entity import Entity
+    from onepointsix.entity import Entity
 
 class Event:
     pass

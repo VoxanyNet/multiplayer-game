@@ -6,10 +6,10 @@ import math
 from pygame import Surface
 import pygame
 
-from engine.drawable_entity import DrawableEntity
-from engine.entity import Entity
-from engine.gamemode_client import GamemodeClient
-from engine.gamemode_server import GamemodeServer
+from onepointsix.drawable_entity import DrawableEntity
+from onepointsix.entity import Entity
+from onepointsix.gamemode_client import GamemodeClient
+from onepointsix.gamemode_server import GamemodeServer
 
 class MissingSpritePath(Exception):
     pass 

@@ -1,11 +1,11 @@
 from abc import ABC, abstractproperty, abstractmethod
 from typing import Dict, Optional, Union, TYPE_CHECKING
 
-from engine.entity import Entity
+from onepointsix.entity import Entity
 
 if TYPE_CHECKING:
-    from engine.gamemode_client import GamemodeClient
-    from engine.gamemode_server import GamemodeServer
+    from onepointsix.gamemode_client import GamemodeClient
+    from onepointsix.gamemode_server import GamemodeServer
 
 class DrawableEntity(Entity):
     

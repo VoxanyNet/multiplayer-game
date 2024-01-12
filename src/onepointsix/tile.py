@@ -6,14 +6,14 @@ from pygame import Rect
 import pygame
 from rich import print
 
-from engine.entity import Entity
-from engine.unresolved import Unresolved
-from engine.events import Tick
-from engine.drawable_entity import DrawableEntity
+from onepointsix.entity import Entity
+from onepointsix.unresolved import Unresolved
+from onepointsix.events import Tick
+from onepointsix.drawable_entity import DrawableEntity
 
 if TYPE_CHECKING:
-    from engine.gamemode_client import GamemodeClient
-    from engine.gamemode_server import GamemodeServer
+    from onepointsix.gamemode_client import GamemodeClient
+    from onepointsix.gamemode_server import GamemodeServer
 
 class Tile(Entity):
     def __init__(

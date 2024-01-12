@@ -8,9 +8,9 @@ import pygame.image
 from pygame import Rect
 from rich import print
 
-from engine.unresolved import Unresolved
-from engine.helpers import get_matching_objects, dict_diff
-from engine.events import TickComplete, NetworkTick, NewEntity
+from onepointsix.unresolved import Unresolved
+from onepointsix.helpers import get_matching_objects, dict_diff
+from onepointsix.events import TickComplete, NetworkTick, NewEntity
 
 if TYPE_CHECKING:
     from gamemode_client import GamemodeClient

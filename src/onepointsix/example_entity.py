@@ -1,7 +1,7 @@
 from typing import Dict, Optional, Type, Union
-from engine.entity import Entity
-from engine.gamemode_client import GamemodeClient
-from engine.gamemode_server import GamemodeServer
+from onepointsix.entity import Entity
+from onepointsix.gamemode_client import GamemodeClient
+from onepointsix.gamemode_server import GamemodeServer
 
 class ExampleEntity(Entity):
 
