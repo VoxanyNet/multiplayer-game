@@ -10,14 +10,12 @@ from rich import print
 
 import pygame
 from pygame import Rect
-import pymunk
 
 from onepointsix import headered_socket
 from onepointsix.headered_socket import Disconnected
 from onepointsix.exceptions import MalformedUpdate, InvalidUpdateType
 from onepointsix.events import Tick, Event, DisconnectedClient, NewClient, ReceivedClientUpdates, UpdatesLoaded, ServerStart, TickStart, TickComplete, NetworkTick, ResourcesLoaded, GameStart
 from onepointsix.entity import Entity
-from onepointsix.tile import Tile
 
 
 class GamemodeServer:
@@ -48,18 +46,10 @@ class GamemodeServer:
         self.server_ip = server_ip
         self.server_port = server_port
         self.tick_count = 0
-        self.space = pymunk.Space()
-        self.space.gravity = (0, 900)
         self.last_tick = time.time()
         self.network_compression = network_compression
         self.resources: Dict[str, pygame.Surface] = {}
         self.dt = 0.1 # i am initializing this with 0.1 instead of 0 because i think it might break stuff
-
-        self.entity_type_map.update(
-            {
-                "tile": Tile
-            }
-        )
 
         self.event_subscriptions[ReceivedClientUpdates] += [
             self.load_updates
@@ -83,7 +73,6 @@ class GamemodeServer:
 
         self.event_subscriptions[Tick] += [
             self.increment_tick_counter,
-            self.step_space,
             self.accept_new_clients,
             self.receive_client_updates 
         ]
@@ -91,10 +80,6 @@ class GamemodeServer:
         self.event_subscriptions[TickStart] += [
             self.measure_dt
         ]
-    
-    def step_space(self, event: Tick):
-        """Simulate physics for self.dt amount of time"""
-        self.space.step(self.dt)
     
     def measure_dt(self, event: TickStart):
         """Measure the time since the last tick and update self.dt"""
@@ -208,49 +193,6 @@ class GamemodeServer:
                         pass
 
                 
-                case "force":
-                    
-                    entity = self.entities[update["entity_id"]]
-
-                    # do not apply force to entities we don't own
-                    if entity.updater != self.uuid:
-                        continue
-
-                    if not isinstance(entity, Tile):
-                        raise TypeError(f"cannot apply force update to non tile {entity}")
-                    
-                    force = update["data"]["force"]
-                    point = update["data"]["point"]
-
-                    match update["force_type"]:
-
-                        case "force_local":
-
-                            entity.body.apply_force_at_local_point(
-                                force=force,
-                                point=point
-                            )
-                        
-                        case "force_world":
-                            
-                            entity.body.apply_force_at_world_point(
-                                force=force,
-                                point=point
-                            )
-
-                        case "impulse_local":
-
-                            entity.body.apply_impulse_at_local_point(
-                                impulse=force,
-                                point=point
-                            )
-
-                        case "impulse_world":
-                            
-                            entity.body.apply_impulse_at_world_point(
-                                impulse=force,
-                                point=point
-                            )
 
         self.updates_to_load = []
 
@@ -260,62 +202,6 @@ class GamemodeServer:
             entity.resolve()
 
         self.trigger(UpdatesLoaded())
-
-    def apply_force(
-        self, 
-        entity: Tile,
-        force_type: Union[
-            Literal["force_local"],
-            Literal["force_world"],
-            Literal["impulse_local"],
-            Literal["impulse_world"]
-        ],
-        force: Tuple[float, float],
-        point: Tuple[float, float]
-    ):
-        """Network friendly force application"""
-        
-        update_data = {
-            "force_type": force_type,
-            "force": force,
-            "point": point
-        }
-        
-        # do not apply forces to entites that are not our own
-        if entity.updater != self.uuid:
-            self.network_update(
-                update_type="force",
-                entity_id=entity.id,
-                data=update_data
-            )
-
-        else:
-
-            match force_type:
-
-                case "force_local":
-                    entity.body.apply_force_at_local_point(
-                        force=force,
-                        point=point
-                    )
-                
-                case "force_world":
-                    entity.body.apply_force_at_world_point(
-                        force=force,
-                        point=point
-                    )
-                
-                case "impulse_local":
-                    entity.body.apply_impulse_at_local_point(
-                        force=force,
-                        point=point
-                    )
-                
-                case "impulse_world":
-                    entity.body.apply_impulse_at_world_point(
-                        force=force,
-                        point=point
-                    )
 
     def lookup_entity_type_string(self, entity: Union[Type[Entity], Type[type]]) -> str:
         """Find entity type's corresponding type string in entity_type_map"""

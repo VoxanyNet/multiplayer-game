@@ -11,14 +11,11 @@ import pathlib
 
 import pygame
 from pygame import Rect
-import pymunk
-from pymunk import pygame_util
 from rich import print
 
 from onepointsix import headered_socket
 from onepointsix.headered_socket import Disconnected
 from onepointsix.entity import Entity
-from onepointsix.tile import Tile
 from onepointsix.helpers import get_matching_objects
 from onepointsix.exceptions import InvalidUpdateType, MalformedUpdate
 from onepointsix.events import StartedTrackingUpdates, FinishedTrackingUpdates, Tick, Event, TickComplete, GameStart, TickStart, ScreenCleared, NetworkTick, ResourcesLoaded, ReceivedNetworkUpdates, SentNetworkUpdates, ParsedNetworkUpdates
@@ -48,8 +45,6 @@ class GamemodeClient:
         self.entities: Dict[str, Entity] = {}
         self.event_subscriptions = defaultdict(list)
         self.tick_count: int = 0
-        self.space = pymunk.Space()
-        self.space.gravity = (0, 900)
         self.last_tick = time.time()
         self.resources: Dict[str, pygame.Surface] = {}
         self.dt = 0.1 # i am initializing this with 0.1 instead of 0 because i think it might break stuff
@@ -62,8 +57,6 @@ class GamemodeClient:
             pygame.RESIZABLE
             #pygame.FULLSCREEN
         )
-
-        self.options = pymunk.pygame_util.DrawOptions(self.screen)
 
         self.event_subscriptions[TickComplete] += [
             self.clear_screen
@@ -85,7 +78,6 @@ class GamemodeClient:
         self.event_subscriptions[Tick] += [
             self.increment_tick_counter,
             self.trigger_input_events,
-            self.step_space,
             self.set_adjusted_mouse_pos,
             self.receive_network_updates, # it doesnt really matter when we receive network updates, they are parsed each network tick
         ]
@@ -106,12 +98,6 @@ class GamemodeClient:
         self.event_subscriptions[FinishedTrackingUpdates] += [
             self.parse_incoming_updates
         ]
-
-        self.entity_type_map.update(
-            {
-                "tile": Tile
-            }
-        )
 
     def load_resources(self, event: GameStart):
         for sprite_path in pathlib.Path("resources").rglob("*.png"):
@@ -240,12 +226,6 @@ class GamemodeClient:
         if keys[pygame.K_MINUS]:
             self.trigger(events.KeyMinus())
     
-    def step_space(self, event: Tick):
-        """Simulate physics for self.dt amount of time"""
-
-        for _ in range(10):
-            self.space.step(self.dt/10)
-    
     def measure_dt(self, event: TickStart):
         """Measure the time since the last tick and update self.dt"""
 
@@ -268,9 +248,9 @@ class GamemodeClient:
         else:
             return entity_type_string
 
-    def network_update(self, update_type: Union[Literal["create"], Literal["update"], Literal["delete"], Literal["force"]], entity_id: str, data: dict = None, entity_type_string: str = None):
+    def network_update(self, update_type: Union[Literal["create"], Literal["update"]], entity_id: str, data: dict = None, entity_type_string: str = None):
 
-        if update_type not in ["create", "update", "delete", "force"]:
+        if update_type not in ["create", "update", "delete"]:
             raise InvalidUpdateType(f"Update type {update_type} is invalid")
 
         if update_type == "create" and entity_type_string is None:
@@ -340,62 +320,6 @@ class GamemodeClient:
             entity.detect_updates()
         
         self.trigger(FinishedTrackingUpdates())
-    
-    def apply_force(
-        self, 
-        entity: Tile,
-        force_type: Union[
-            Literal["force_local"],
-            Literal["force_world"],
-            Literal["impulse_local"],
-            Literal["impulse_world"]
-        ],
-        force: Tuple[float, float],
-        point: Tuple[float, float]
-    ):
-        """Network friendly force application"""
-        
-        update_data = {
-            "force_type": force_type,
-            "force": force,
-            "point": point
-        }
-        
-        # do not apply forces to entites that are not our own
-        if entity.updater != self.uuid:
-            self.network_update(
-                update_type="force",
-                entity_id=entity.id,
-                data=update_data
-            )
-
-        else:
-
-            match force_type:
-
-                case "force_local":
-                    entity.body.apply_force_at_local_point(
-                        force=force,
-                        point=point
-                    )
-                
-                case "force_world":
-                    entity.body.apply_force_at_world_point(
-                        force=force,
-                        point=point
-                    )
-                
-                case "impulse_local":
-                    entity.body.apply_impulse_at_local_point(
-                        force=force,
-                        point=point
-                    )
-                
-                case "impulse_world":
-                    entity.body.apply_impulse_at_world_point(
-                        force=force,
-                        point=point
-                    )
         
     # parse network updates -> start tracking updates ->  finish tracking updates -> parse network updates
         
@@ -469,50 +393,6 @@ class GamemodeClient:
                     except KeyError:
                         # THIS IS A BANDAID FIX
                         pass
-                
-                case "force":
-                    
-                    entity = self.entities[update["entity_id"]]
-
-                    # do not apply force to entities we don't own
-                    if entity.updater != self.uuid:
-                        continue
-
-                    if not isinstance(entity, Tile):
-                        raise TypeError(f"cannot apply force update to non tile {entity}")
-                    
-                    force = tuple(update["data"]["force"])
-                    point = tuple(update["data"]["point"])
-
-                    match update["force_type"]:
-
-                        case "force_local":
-
-                            entity.body.apply_force_at_local_point(
-                                force=force,
-                                point=point
-                            )
-                        
-                        case "force_world":
-                            
-                            entity.body.apply_force_at_world_point(
-                                force=force,
-                                point=point
-                            )
-
-                        case "impulse_local":
-
-                            entity.body.apply_impulse_at_local_point(
-                                impulse=force,
-                                point=point
-                            )
-
-                        case "impulse_world":
-                            
-                            entity.body.apply_impulse_at_world_point(
-                                impulse=force,
-                                point=point
-                            )
 
         for entity in self.entities.values():
             entity.resolve()
