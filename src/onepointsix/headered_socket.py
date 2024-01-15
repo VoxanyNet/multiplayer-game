@@ -22,7 +22,7 @@ class HeaderedSocket(socket.socket):
         super().__init__(family, type, proto, fileno)
 
         self.constructed_data = bytearray()
-        self.payload_length = int
+        self.payload_length = int()
 
     def send_headered(self, data, header_size=7):
 
@@ -47,7 +47,7 @@ class HeaderedSocket(socket.socket):
 
         self.sendall(headered_data)
 
-    def recv_headered(self, header_size=7) -> Optional[bytearray]:
+    def recv_headered(self, header_size=7) -> bytes:
         """
         Attempt to construct complete message
         If didn't receive the whole message yet, returns None
@@ -60,9 +60,7 @@ class HeaderedSocket(socket.socket):
 
             except BlockingIOError:
                 # nothing in the socket buffer
-                pass
-
-                return None
+                raise BlockingIOError()
 
             except ConnectionResetError:
                 raise Disconnected("Remote socket reset connection")
@@ -89,7 +87,7 @@ class HeaderedSocket(socket.socket):
             except BlockingIOError:
                 # we reached the end of the buffer, so the user will need to invoke recv_headered again to receive the entire message
 
-                return None
+                raise BlockingIOError()
 
             except ConnectionResetError:
                 raise Disconnected("Remote socket reset connection")
@@ -105,7 +103,7 @@ class HeaderedSocket(socket.socket):
         # reset constructed data for next batch of data
         self.constructed_data = bytearray()
         # this will only return if we get all of the data
-        return constructed_data
+        return bytes(constructed_data)
 
     # accept() is redefined to return PayloadSockets instead of default ones
     def accept(self):

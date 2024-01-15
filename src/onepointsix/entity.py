@@ -13,8 +13,8 @@ from onepointsix.helpers import get_matching_objects, dict_diff
 from onepointsix.events import TickComplete, NetworkTick, NewEntity
 
 if TYPE_CHECKING:
-    from gamemode_client import GamemodeClient
-    from gamemode_server import GamemodeServer
+    from onepointsix.gamemode_client import GamemodeClient
+    from onepointsix.gamemode_server import GamemodeServer
     
 class Entity(ABC):
     
@@ -29,7 +29,7 @@ class Entity(ABC):
 
         self.updater = updater
         self.game = game
-        self.update_checkpoint = {}
+        self.update_checkpoint: dict = {}
 
         if id is None:
             id = str(uuid.uuid4())[0:6]
@@ -107,17 +107,17 @@ class Entity(ABC):
 
             self.__setattr__(attribute_name, resolved_attribute)
 
-    def serialize(self) -> Dict[str, Union[int, bool, str, list]]:
+    def serialize(self) -> Dict[str, Union[int, bool, str, list, None]]:
         """Serialize the entity's data"""
             
-        data_dict = {
+        data_dict: Dict[str, Union[int, bool, str, list, None]] = {
             "updater": self.updater
         }
         
         return data_dict
 
     @staticmethod
-    def deserialize(entity_data: Dict[str, Union[int, bool, str, list]], entity_id: str, game: Union[Type["GamemodeClient"], Type["GamemodeServer"]]):
+    def deserialize(entity_data: Dict[str, Union[int, bool, str, list]], entity_id: str, game: Union["GamemodeClient", "GamemodeServer"]):
         """Deserialize a dictionary of entity init arguments into proper objects"""
 
         entity_data["updater"] = entity_data["updater"]    

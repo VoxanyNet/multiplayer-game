@@ -75,7 +75,7 @@ class NetworkTick(Event):
 
 class NewEntity(Event):
     """A new entity has been initialized"""
-    def __init__(self, new_entity: Type["Entity"]):
+    def __init__(self, new_entity: Entity):
         self.new_entity = new_entity
 
 class KeyA(Event):

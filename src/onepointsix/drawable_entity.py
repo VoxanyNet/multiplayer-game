@@ -19,9 +19,9 @@ class DrawableEntity(Entity):
         **kwargs
     ):
         super().__init__(
-            game=game, 
-            updater=updater, 
-            id=id,
+            game, 
+            updater, 
+            id,
             *args,
             **kwargs
         )
@@ -32,7 +32,7 @@ class DrawableEntity(Entity):
     def draw(self):
         pass
 
-    def serialize(self) -> Dict[str, int | bool | str | list]:
+    def serialize(self) -> Dict[str, int | bool | str | list | None]:
         data_dict = Entity.serialize(self)
 
         data_dict.update(
@@ -54,7 +54,7 @@ class DrawableEntity(Entity):
                     self.draw_layer = attribute_value               
     
     @staticmethod
-    def deserialize(entity_data: Dict[str, int | bool | str | list], entity_id: str, game: type["GamemodeClient"] | type["GamemodeServer"]) -> type[Entity]:
+    def deserialize(entity_data: Dict[str, int | bool | str | list], entity_id: str, game: Union["GamemodeClient", "GamemodeServer"]) -> Dict[str, int | bool | str | list]:
         
         entity_data["draw_layer"] = entity_data["draw_layer"]
 

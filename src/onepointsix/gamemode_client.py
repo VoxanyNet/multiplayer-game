@@ -5,7 +5,8 @@ import uuid
 import socket
 import json
 from collections import defaultdict
-from typing import Union, Type, Dict, Literal, List, Optional, Tuple
+from typing import Union, Type, Dict, Literal, List, Optional, Tuple, Callable
+from types import MethodType
 import zlib
 import pathlib
 
@@ -43,14 +44,14 @@ class GamemodeClient:
         self.incoming_updates_queue: List[dict] = []
         self.entity_type_map: Dict[str, Type[Entity]] = {}
         self.entities: Dict[str, Entity] = {}
-        self.event_subscriptions = defaultdict(list)
+        self.event_subscriptions: defaultdict[Type[Event], list] = defaultdict(list)
         self.tick_count: int = 0
         self.last_tick = time.time()
         self.resources: Dict[str, pygame.Surface] = {}
         self.dt = 0.1 # i am initializing this with 0.1 instead of 0 because i think it might break stuff
         self.sent_bytes = 0
         self.network_compression = network_compression
-        self.adjusted_mouse_pos: List[int] = [0,0]
+        self.adjusted_mouse_pos: Tuple[int, int] = (0,0)
         self.camera_offset: List[int] = [0,0]
         self.screen: pygame.Surface = pygame.display.set_mode(
             [1280, 720],
@@ -101,12 +102,10 @@ class GamemodeClient:
 
     def load_resources(self, event: GameStart):
         for sprite_path in pathlib.Path("resources").rglob("*.png"):
-            sprite_path = str(sprite_path)
+            sprite_path_string = str(sprite_path)
             # replace windows file path backslashes with forward slashes
-            sprite_path = sprite_path.replace("\\", "/")
-            self.resources[sprite_path] = pygame.image.load(sprite_path)
-        
-        print(self.resources)
+            sprite_path_string = sprite_path_string.replace("\\", "/")
+            self.resources[sprite_path_string] = pygame.image.load(sprite_path)
 
         self.trigger(ResourcesLoaded())
 
@@ -233,7 +232,7 @@ class GamemodeClient:
 
         self.last_tick = time.time()
 
-    def lookup_entity_type_string(self, entity: Union[Type[Entity], Type[type]]) -> str:
+    def lookup_entity_type_string(self, entity: Union[Type[Entity], Type[type]]) -> Optional[str]:
         """Find entity type's corresponding type string in entity_type_map"""
 
         entity_type_string = None
@@ -248,7 +247,7 @@ class GamemodeClient:
         else:
             return entity_type_string
 
-    def network_update(self, update_type: Union[Literal["create"], Literal["update"]], entity_id: str, data: dict = None, entity_type_string: str = None):
+    def network_update(self, update_type: Union[Literal["create"], Literal["update"], Literal["delete"]], entity_id: str, data: Optional[dict] = None, entity_type_string: Optional[str] = None) -> None:
 
         if update_type not in ["create", "update", "delete"]:
             raise InvalidUpdateType(f"Update type {update_type} is invalid")
@@ -259,7 +258,7 @@ class GamemodeClient:
         if update_type == "create" and entity_type_string not in self.entity_type_map:
             raise MalformedUpdate(f"Entity type {entity_type_string} does not exist in the entity type map")
 
-        update = {}
+        update: dict = {}
 
         update["update_type"] = update_type
         update["entity_id"] = entity_id
@@ -330,9 +329,8 @@ class GamemodeClient:
             updates_json_bytes = self.server.recv_headered()
         except Disconnected:
             raise Disconnected()
-            sys.exit(print("Server closed"))
 
-        if updates_json_bytes is None: # this means that there are no new complete updates sent
+        except BlockingIOError: # this means that there are no new complete updates sent
             self.trigger(ReceivedNetworkUpdates())
             return
 
@@ -403,10 +401,9 @@ class GamemodeClient:
     
     def draw_entities(self, event: ScreenCleared):
 
-        draw_order: Dict[int, List[Entity]] = defaultdict(list)
+        draw_order: Dict[int, List[DrawableEntity]] = defaultdict(list)
 
         for entity in self.entities.values():
-            entity: Entity
 
             if not isinstance(entity, DrawableEntity):
                 continue
@@ -434,7 +431,7 @@ class GamemodeClient:
 
         self.trigger(ScreenCleared())
 
-    def trigger(self, event: Type[Event]):
+    def trigger(self, event: Event):
 
         for function in self.event_subscriptions[type(event)]:
             if function.__self__.__class__.__base__ == GamemodeClient:
@@ -474,8 +471,8 @@ class GamemodeClient:
 
         running = True 
 
-        last_game_tick = 0
-        last_network_tick = 0
+        last_game_tick: float = 0
+        last_network_tick: float = 0
 
         while running:
 

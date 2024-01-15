@@ -29,10 +29,10 @@ class SpriteEntity(DrawableEntity):
     ):
 
         super().__init__(
-            game=game, 
-            updater=updater, 
-            draw_layer=draw_layer, 
-            id=id,
+            game, 
+            updater, 
+            draw_layer, 
+            id,
             *args,
             **kwargs
         )
@@ -40,11 +40,13 @@ class SpriteEntity(DrawableEntity):
         self.active_sprite = active_sprite
         self.scale = scale
     
-    def serialize(self) -> Dict[str, int | bool | str | list]:
+    def serialize(self) -> Dict[str, int | bool | str | list | None]:
 
         data_dict = DrawableEntity.serialize(self)
 
-        active_sprite_path = None
+        path: Optional[str] = None 
+        sprite: Optional[pygame.Surface] = None 
+        active_sprite_path: Optional[str] = None
 
         if self.active_sprite:
             for path, sprite in self.game.resources.items():
@@ -80,7 +82,7 @@ class SpriteEntity(DrawableEntity):
                     self.scale = attribute_value
 
     @staticmethod
-    def deserialize(entity_data: Dict[str, int | bool | str | list], entity_id: str, game: type[GamemodeClient] | type[GamemodeServer]) -> dict:
+    def deserialize(entity_data: dict, entity_id: str, game: GamemodeClient | GamemodeServer) -> dict:
         
         if entity_data["active_sprite"] is None:
             entity_data["active_sprite"] = None

@@ -2,7 +2,8 @@ import socket
 import json
 from collections import defaultdict
 from copy import deepcopy
-from typing import List, Literal, Optional, Type, Dict, Union, Tuple
+from typing import List, Literal, Optional, Type, Dict, Union, Tuple, NewType
+from types import MethodType
 import time
 import zlib
 import pathlib
@@ -38,11 +39,11 @@ class GamemodeServer:
         self.client_sockets: Dict[str, headered_socket.HeaderedSocket] = {}
         self.entities: Dict[str, Entity] = {}
         self.entity_type_map: Dict[str, Type[Entity]] = {}
-        self.updates_to_load = []
+        self.updates_to_load: List[dict] = []
         self.uuid = "server"
         self.server_clock = pygame.time.Clock()
-        self.update_queue = defaultdict(list)
-        self.event_subscriptions = defaultdict(list)
+        self.update_queue: defaultdict[str, List[dict]] = defaultdict(list)
+        self.event_subscriptions: defaultdict[Type[Event], list] = defaultdict(list)
         self.server_ip = server_ip
         self.server_port = server_port
         self.tick_count = 0
@@ -94,7 +95,7 @@ class GamemodeServer:
 
         print("server online...")
 
-    def trigger(self, event: Type[Event]):
+    def trigger(self, event: Event):
 
         for function in self.event_subscriptions[type(event)]:
             if function.__self__.__class__.__base__ == GamemodeServer:
@@ -109,7 +110,7 @@ class GamemodeServer:
             
             function(event) 
 
-    def network_update(self, update_type: Union[Literal["create"], Literal["update"], Literal["delete"]], entity_id: str, destinations: List[str] = None, data: dict = None, entity_type_string: str = None):
+    def network_update(self, update_type: Union[Literal["create"], Literal["update"], Literal["delete"]], entity_id: str, destinations: Optional[List[str]] = None, data: Optional[dict] = None, entity_type_string: Optional[str] = None):
         """Queue up a network update for specified client uuid(s)"""
 
         if update_type not in ["create", "update", "delete"]:
@@ -123,7 +124,7 @@ class GamemodeServer:
 
         # if no destinations are specified, we just send the update to all connected clients
         if destinations is None:
-            destinations = self.client_sockets.keys()
+            destinations = list(self.client_sockets.keys())
 
         update = {
             "update_type": update_type,
@@ -137,10 +138,10 @@ class GamemodeServer:
     
     def load_resources(self, event: GameStart):
         for sprite_path in pathlib.Path("resources").rglob("*.png"):
-            sprite_path = str(sprite_path)
+            sprite_path_string = str(sprite_path)
             # replace windows file path backslashes with forward slashes
-            sprite_path = sprite_path.replace("\\", "/")
-            self.resources[sprite_path] = pygame.image.load(sprite_path)
+            sprite_path_string = sprite_path_string.replace("\\", "/")
+            self.resources[sprite_path_string] = pygame.image.load(sprite_path)
 
         self.trigger(ResourcesLoaded())
 
@@ -197,13 +198,12 @@ class GamemodeServer:
         self.updates_to_load = []
 
         for entity in self.entities.values():
-            entity: Entity
 
             entity.resolve()
 
         self.trigger(UpdatesLoaded())
 
-    def lookup_entity_type_string(self, entity: Union[Type[Entity], Type[type]]) -> str:
+    def lookup_entity_type_string(self, entity: Entity) -> Optional[str]:
         """Find entity type's corresponding type string in entity_type_map"""
 
         entity_type_string = None
@@ -250,8 +250,6 @@ class GamemodeServer:
         else:
             for entity in self.entities.values():
 
-                entity: Entity
-
                 entity_type_string = self.lookup_entity_type_string(entity)
                 
                 data = entity.serialize()
@@ -268,8 +266,6 @@ class GamemodeServer:
         disconnected_client_uuid = event.disconnected_client_uuid
         
         for entity_uuid, entity in self.entities.copy().items():
-
-            entity: Entity
 
             if entity.updater == disconnected_client_uuid:
                 del self.entities[entity_uuid]
@@ -310,7 +306,7 @@ class GamemodeServer:
 
                 continue
 
-            if incoming_updates_bytes is None:
+            except BlockingIOError:
                 continue
 
             if self.network_compression:
@@ -359,8 +355,8 @@ class GamemodeServer:
         
         self.trigger(ServerStart())
         
-        last_network_tick = 0
-        last_game_tick = 0
+        last_network_tick: float = 0
+        last_game_tick: float = 0
 
         while True:   
             

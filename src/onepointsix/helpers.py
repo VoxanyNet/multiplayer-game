@@ -5,20 +5,20 @@ def get_matching_objects(collection: Union[dict, list], object_type):
     """Recursively search through a dictionary or list to find objects of given type"""
     matching_objects: List[Type[object_type]] = []
 
-    if collection.__class__ == dict: 
+    if type(collection) == dict: 
         for value in collection.values():
             if isinstance(value, object_type): 
                 matching_objects.append(value)
 
-            elif value.__class__ == dict or list:
+            elif type(value) == dict or type(value) == list:
                 matching_objects += get_matching_objects(value, object_type)
 
-    elif collection.__class__ == list:
+    elif type(collection) == list:
         for value in collection:
             if isinstance(value, object_type):
                 matching_objects.append(value)
 
-            elif value.__class__ == dict or list:
+            elif type(value) == dict or type(value) == list:
 
                 matching_objects += get_matching_objects(value, object_type) 
     
